@@ -1,0 +1,38 @@
+"""The kernel's own settings, read at the call so ``override_settings`` and a late configure both reach them."""
+
+from __future__ import annotations
+
+from typing import Any
+
+import pytest
+from django.core.exceptions import ImproperlyConfigured
+from django.test import override_settings
+
+from django_service_specs.settings import max_array_length
+
+
+def test_the_default_maximum_is_a_thousand_elements() -> None:
+    # Django's own DATA_UPLOAD_MAX_NUMBER_FIELDS, the line a form body stops at.
+    assert max_array_length() == 1000
+
+
+@pytest.mark.parametrize("value", [0, 1, 50_000, None])
+def test_the_setting_is_read_as_given(value: int | None) -> None:
+    with override_settings(SERVICE_SPECS_MAX_ARRAY_LENGTH=value):
+        assert max_array_length() == value
+
+
+@pytest.mark.parametrize(
+    "value", [True, -1, 1.5, "1000"], ids=["bool", "negative", "float", "string"]
+)
+def test_a_setting_that_is_no_count_is_refused_by_name(value: Any) -> None:
+    # Refused where it is read rather than compared, so a string never reaches
+    # ``len(value) > "1000"`` as a TypeError naming nothing.
+    with (
+        override_settings(SERVICE_SPECS_MAX_ARRAY_LENGTH=value),
+        pytest.raises(
+            ImproperlyConfigured,
+            match=f"SERVICE_SPECS_MAX_ARRAY_LENGTH must be a non-negative int or None; got {value!r}",
+        ),
+    ):
+        max_array_length()
