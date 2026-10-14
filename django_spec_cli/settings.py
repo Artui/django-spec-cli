@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -42,5 +42,34 @@ def max_array_length() -> int | None:
         raise ImproperlyConfigured(
             f"{_MAX_ARRAY_LENGTH} must be a non-negative int or None; got {value!r}. It is the "
             "most elements an array takes where its parameter declares no max_length."
+        )
+    return value
+
+
+_COMMAND_OUTPUT = "SERVICE_SPECS_COMMAND_OUTPUT"
+_COMMAND_OUTPUTS = ("auto", "table", "json")
+
+
+def command_output() -> Literal["auto", "table", "json"]:
+    """``SERVICE_SPECS_COMMAND_OUTPUT``: the format a ``SpecCommand`` writes its result in.
+
+    ``"auto"`` when the project sets nothing: a table on a terminal and JSON
+    Lines on anything else, so a person reads one and a script parses the
+    other. ``"table"`` or ``"json"`` pins the format project-wide, for a
+    project whose CI should print what an interactive run does. A command's
+    own ``--table`` or ``--json`` still wins over either.
+
+    Read on every call, never at import, as every kernel setting is.
+
+    Raises:
+        ImproperlyConfigured: anything but one of the three strings, matched
+            exactly, so ``"TABLE"`` or ``"jsonl"`` is refused by name rather
+            than quietly read as the default.
+    """
+    value: Any = getattr(settings, _COMMAND_OUTPUT, "auto")
+    if value not in _COMMAND_OUTPUTS:
+        raise ImproperlyConfigured(
+            f"{_COMMAND_OUTPUT} must be one of 'auto', 'table' or 'json'; got {value!r}. It is "
+            "the format a SpecCommand writes its result in."
         )
     return value
