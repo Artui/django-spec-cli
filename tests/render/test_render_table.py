@@ -257,12 +257,24 @@ def test_with_no_output_a_key_used_as_a_header_is_escaped_too() -> None:
     assert _table([{"a\nb": 1}], None) == "a\\nb\n1\n"
 
 
-def test_a_line_break_or_control_character_in_a_cell_is_escaped() -> None:
-    # A raw newline would split a row across two lines, and a raw escape byte
-    # would let a row's contents drive the operator's terminal.
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        # A raw newline would split a row across two lines, and a raw escape
+        # byte would let a row's contents drive the operator's terminal.
+        ("a\nb\tc\x1b[31m", "note             n\na\\nb\\tc\\x1b[31m  1\n"),
+        # JSON leaves both separators raw and ``str.splitlines`` breaks a line
+        # at either, so a raw one would split a row for any reader that does.
+        ("a\u2028b\u2029c", "note             n\na\\u2028b\\u2029c  1\n"),
+    ],
+    ids=["controls", "separators"],
+)
+def test_a_character_that_breaks_a_line_or_drives_a_terminal_is_escaped(
+    value: str, expected: str
+) -> None:
+    # Two columns, so the first is padded to the escaped text's width.
     output = Output((OutputField("note", "string"), OutputField("n", "string")))
-    rows: list[dict[str, object]] = [{"note": "a\nb\tc\x1b[31m", "n": "1"}]
-    assert _table(rows, output) == "note             n\na\\nb\\tc\\x1b[31m  1\n"
+    assert _table([{"note": value, "n": "1"}], output) == expected
 
 
 def test_with_no_output_the_first_row_names_the_columns() -> None:
@@ -271,12 +283,15 @@ def test_with_no_output_the_first_row_names_the_columns() -> None:
     assert _table(rows, None) == "b  a\n1  x\n   y\n"
 
 
-def test_with_no_output_and_no_rows_nothing_is_printed() -> None:
-    assert _table([], None) == ""
-
-
-def test_an_output_with_no_fields_prints_nothing() -> None:
-    assert _table([{"a": 1}], Output()) == ""
+@pytest.mark.parametrize(
+    ("rows", "output"),
+    [([], None), ([{"a": 1}], Output())],
+    ids=["no-output-and-no-rows", "output-with-no-fields"],
+)
+def test_with_no_columns_nothing_is_printed(
+    rows: list[dict[str, object]], output: Output | None
+) -> None:
+    assert _table(rows, output) == ""
 
 
 def test_each_line_is_one_write_so_django_s_wrapper_adds_no_blank_lines() -> None:
@@ -335,23 +350,16 @@ def test_a_dataclass_presenter_s_rows_render_under_its_own_output() -> None:
     )
 
 
-def test_a_line_or_paragraph_separator_in_a_cell_is_escaped() -> None:
-    # JSON leaves both raw and ``str.splitlines`` breaks a line at either, so a
-    # raw one would split a row for any reader that splits that way.
-    output = Output((OutputField("note", "string"),))
-    assert _table([{"note": "a\u2028b\u2029c"}], output) == "note\na\\u2028b\\u2029c\n"
-
-
-def test_an_enclosing_mark_takes_no_column() -> None:
+@pytest.mark.parametrize(
+    ("name", "padded"),
+    [("a\u20ddb", "a\u20ddb  "), ("\uff21", "\uff21  ")],
+    ids=["enclosing-mark-takes-none", "full-width-takes-two"],
+)
+def test_a_character_takes_the_columns_a_terminal_draws_it_in(name: str, padded: str) -> None:
+    # Each is padded as a two-column value beside ``ab``.
     output = Output((OutputField("name", "string"), OutputField("n", "string")))
-    rows: list[dict[str, object]] = [{"name": "a\u20ddb", "n": "1"}, {"name": "ab", "n": "2"}]
-    assert _table(rows, output) == "name  n\na\u20ddb    1\nab    2\n"
-
-
-def test_a_full_width_character_takes_two_columns() -> None:
-    output = Output((OutputField("name", "string"), OutputField("n", "string")))
-    rows: list[dict[str, object]] = [{"name": "\uff21", "n": "1"}, {"name": "ab", "n": "2"}]
-    assert _table(rows, output) == "name  n\n\uff21    1\nab    2\n"
+    rows: list[dict[str, object]] = [{"name": name, "n": "1"}, {"name": "ab", "n": "2"}]
+    assert _table(rows, output) == f"name  n\n{padded}  1\nab    2\n"
 
 
 def test_a_choice_is_matched_by_type_as_well_as_value() -> None:

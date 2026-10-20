@@ -13,6 +13,7 @@ from django_service_specs.adapters.pydantic import PydanticPresenter
 from pydantic import BaseModel, Field
 
 from django_spec_cli.render.render_result import render_result
+from tests.render.utils import pulled_before_the_first_write
 
 _OUTPUT = Output(
     (
@@ -103,25 +104,11 @@ def test_rows_from_a_generator_stream_to_a_pipe() -> None:
     # Streaming has to survive this layer as well as the writer beneath it:
     # nothing here may turn the rows into a list, or look at the first one
     # before writing it.
-    pulled = 0
-    pulled_at_first_write: list[int] = []
-
-    def rows() -> Iterator[Mapping[str, Any]]:
-        nonlocal pulled
-        for n in range(3):
-            pulled += 1
-            yield {"id": n}
-
-    class _Recording(io.StringIO):
-        def write(self, text: str) -> int:
-            if not pulled_at_first_write:
-                pulled_at_first_write.append(pulled)
-            return super().write(text)
-
-    stream = _Recording()
-    render_result(rows(), _OUTPUT, stream, table=False)
-    assert pulled_at_first_write == [1]
-    assert stream.getvalue() == '{"id":0}\n{"id":1}\n{"id":2}\n'
+    pulled, written = pulled_before_the_first_write(
+        lambda rows, stream: render_result(rows, _OUTPUT, stream, table=False)
+    )
+    assert pulled == 1
+    assert written == '{"id":0}\n{"id":1}\n{"id":2}\n'
 
 
 def test_rows_from_a_generator_are_a_table_too() -> None:

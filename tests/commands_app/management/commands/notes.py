@@ -208,13 +208,7 @@ class MyNotes:
     """A declaration in another library's vocabulary, compiled to a selector spec."""
 
     def as_kernel_spec(self) -> SelectorSpec:
-        return SelectorSpec(
-            kind=SelectorKind.LIST,
-            selector=notes_of,
-            permissions=[IsSignedIn()],
-            reads=Parameters.of(Parameter("search", "string")),
-            presenter=DataclassPresenter(NoteOut),
-        )
+        return list_notes_spec
 
 
 registry = SpecRegistry()

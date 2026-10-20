@@ -41,10 +41,11 @@ def check_unguarded_specs(
       ``Error`` would stop ``migrate`` on a project working as intended.
       ``SILENCED_SYSTEM_CHECKS`` silences it by id, so for every spec at once.
     - ``django_spec_cli.W003``, one per command that could not be loaded or
-      whose parser could not be built, naming it and the error. Without this app nothing loads that command
-      until somebody runs it, so failing the check on it would make a broken
-      command nobody runs stop ``migrate``; and dropping it silently would
-      leave its specs unchecked with nothing saying so.
+      whose parser could not be built, naming it and the error. Without this
+      app nothing loads that command until somebody runs it, so failing the
+      check on it would make a broken command nobody runs stop ``migrate``;
+      and dropping it silently would leave its specs unchecked with nothing
+      saying so.
 
     With ``app_configs``, as ``manage.py check <app_label>`` passes, only
     those apps' commands are loaded.
@@ -122,10 +123,11 @@ def _spec_commands(
                 command,
                 unguarded_specs(command.registry),
             )
-        # Anything a module, a constructor or the parser's construction raises: an ``ImportError`` from a
-        # missing dependency, an ``ImproperlyConfigured`` from a registry
-        # refusing a spec at import, or the command's own bug. Not
-        # ``BaseException``, so an interrupt still stops the check.
+        # Anything a module, a constructor or the parser's construction
+        # raises: an ``ImportError`` from a missing dependency, an
+        # ``ImproperlyConfigured`` from a registry refusing a spec at import,
+        # or the command's own bug. Not ``BaseException``, so an interrupt
+        # still stops the check.
         except Exception as error:
             loaded = error
         yield name, app_name, loaded
