@@ -291,5 +291,6 @@ execute_from_command_line(["manage.py", "unguarded_plain"])
         # only the kernel's app reports no command, moved or not.
         completed = run_project([*BASE_APPS, "django_service_specs"], CHECK)
         assert completed.returncode == 0, completed.stderr
+        # The one assertion that holds the claim: on a kernel still carrying its
+        # copy, this fails on the kernel's W003 for the unloadable command.
         assert "django_service_specs." not in completed.stdout
-        assert "authorizes nothing" not in completed.stdout

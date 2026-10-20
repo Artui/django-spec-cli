@@ -12,11 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   release without its own copy of the command.** Below it the kernel still
   shipped `django_service_specs.commands` and registered its own `W001` and
   `W003` over its own `SpecCommand`, so a project listing both
-  `"django_service_specs"` and `"django_spec_cli"` saw each warning under both
-  `django_service_specs.` and `django_spec_cli.` ids. From 0.11.0 the kernel's
-  app registers no check, so a project that still lists
-  `"django_service_specs"` sees nothing from it, and the checks are reported
-  once, under `django_spec_cli.`, by listing `"django_spec_cli"`.
+  `"django_service_specs"` and `"django_spec_cli"` saw each id for the
+  commands subclassing its own class, and a command that could not be loaded
+  was reported under both. From 0.11.0 the kernel's app registers no check, so
+  a project that still lists `"django_service_specs"` sees nothing from it, and
+  the checks are reported once, under `django_spec_cli.`, by listing
+  `"django_spec_cli"`.
 
 ## [0.1.0] — 2026-10-20
 
