@@ -8,12 +8,11 @@ from decimal import Decimal
 from typing import Any
 
 import pytest
+from django_service_specs import FieldMarking, Output, OutputField
+from django_service_specs.adapters.pydantic import PydanticPresenter
 from pydantic import BaseModel, Field
 
-from django_service_specs.adapters.pydantic.pydantic_presenter import PydanticPresenter
-from django_service_specs.commands.render.render_result import render_result
-from django_service_specs.output.field_marking import FieldMarking
-from django_service_specs.output.output import Output, OutputField
+from django_spec_cli.render.render_result import render_result
 
 _OUTPUT = Output(
     (

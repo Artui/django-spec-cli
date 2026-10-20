@@ -14,15 +14,19 @@ import pytest
 from django.core.management.base import OutputWrapper
 from django.utils import translation
 from django.utils.translation import gettext_lazy
+from django_service_specs import (
+    UNSET,
+    DataclassPresenter,
+    FieldAudience,
+    FieldMarking,
+    Output,
+    OutputField,
+    UnsetType,
+    ValueFormatter,
+)
 
-from django_service_specs.adapters.dataclass.dataclass_presenter import DataclassPresenter
-from django_service_specs.commands.render.render_table import render_table
-from django_service_specs.output.field_marking import FieldMarking
-from django_service_specs.output.output import Output, OutputField
-from django_service_specs.types.field_audience import FieldAudience
-from django_service_specs.types.unset import UNSET, UnsetType
-from django_service_specs.types.value_formatter import ValueFormatter
-from tests.adapter_app.models import Status
+from django_spec_cli.render.render_table import render_table
+from tests.render.utils import Status
 
 _STATUS = (("draft", "Draft"), ("published", "Published"))
 

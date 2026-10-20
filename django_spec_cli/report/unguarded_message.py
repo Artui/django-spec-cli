@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from django_service_specs.registry.unguarded_spec import UnguardedSpec
-from django_service_specs.types.unguarded_reason import UnguardedReason
+from django_service_specs import UnguardedReason, UnguardedSpec
 
 # One clause per reason, indexed rather than branched on, so a member added
 # without its sentence fails test_every_reason_has_its_own_wording instead of

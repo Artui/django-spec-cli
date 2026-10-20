@@ -19,18 +19,17 @@ from django.core.checks import CheckMessage, Warning
 from django.core.management import call_command, get_commands, load_command_class
 from django.core.management.base import SystemCheckError
 from django.test import override_settings
+from django_service_specs import UnguardedReason, UnguardedSpec
 
-from django_service_specs.checks import check_unguarded_specs
-from django_service_specs.commands.report.unguarded_message import unguarded_message
-from django_service_specs.registry.unguarded_spec import UnguardedSpec
-from django_service_specs.types.unguarded_reason import UnguardedReason
+from django_spec_cli.checks import check_unguarded_specs
+from django_spec_cli.report.unguarded_message import unguarded_message
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 APP = "tests.commands_app"
 OWN = "unguarded_"
 HINT = (
     "Declare a PermissionCheck that refuses someone in the spec's permissions, or add "
-    "'django_service_specs.W001' to SILENCED_SYSTEM_CHECKS if the spec is meant to be open."
+    "'django_spec_cli.W001' to SILENCED_SYSTEM_CHECKS if the spec is meant to be open."
 )
 
 
@@ -43,7 +42,7 @@ def _own(messages: list[CheckMessage]) -> list[CheckMessage]:
         message
         for message in messages
         if message.id is not None
-        and message.id.startswith("django_service_specs.")
+        and message.id.startswith("django_spec_cli.")
         and f"'{OWN}" in message.msg
     ]
 
@@ -52,7 +51,7 @@ def _own_w001(messages: list[CheckMessage]) -> list[CheckMessage]:
     return [
         message
         for message in messages
-        if message.id == "django_service_specs.W001"
+        if message.id == "django_spec_cli.W001"
         and message.obj is _command_class("unguarded_report")
     ]
 
@@ -67,7 +66,7 @@ class TestTheReport:
                 ),
                 hint=HINT,
                 obj=command,
-                id="django_service_specs.W001",
+                id="django_spec_cli.W001",
             )
             for name in ("open_service", "open_twice", "open_subclass")
         ]
@@ -94,7 +93,7 @@ class TestACommandThatDoesNotLoad:
         return [
             message.msg
             for message in check_unguarded_specs(None)
-            if message.id == "django_service_specs.W003" and f"'{name}'" in message.msg
+            if message.id == "django_spec_cli.W003" and f"'{name}'" in message.msg
         ]
 
     def test_an_import_error_is_reported_with_its_cause(self) -> None:
@@ -133,7 +132,7 @@ class TestACommandThatDoesNotLoad:
         [message] = [
             m
             for m in check_unguarded_specs(None)
-            if m.id == "django_service_specs.W003" and "'unguarded_broken_import'" in m.msg
+            if m.id == "django_spec_cli.W003" and "'unguarded_broken_import'" in m.msg
         ]
         assert message.hint == (
             "Run manage.py unguarded_broken_import to see the traceback. Until it loads, "
@@ -167,7 +166,7 @@ class TestDjangoSOwnCommands:
             loaded.append(app_name)
             return load_command_class(app_name, name)
 
-        monkeypatch.setattr("django_service_specs.checks.load_command_class", recording)
+        monkeypatch.setattr("django_spec_cli.checks.load_command_class", recording)
         check_unguarded_specs(None)
         assert APP in loaded
         assert "django.core" not in loaded
@@ -177,9 +176,9 @@ class TestDjangoSOwnCommands:
     ) -> None:
         # ``get_commands`` maps an overridden name to the app overriding it, so
         # the walk skips by app, never by name.
-        monkeypatch.setattr("django_service_specs.checks.get_commands", lambda: {"shell": APP})
+        monkeypatch.setattr("django_spec_cli.checks.get_commands", lambda: {"shell": APP})
         monkeypatch.setattr(
-            "django_service_specs.checks.load_command_class",
+            "django_spec_cli.checks.load_command_class",
             lambda app_name, name: load_command_class(app_name, "unguarded_report"),
         )
         assert [m.msg.split(" authorizes")[0] for m in check_unguarded_specs(None)] == [
@@ -195,18 +194,16 @@ class TestThroughTheCheckCommand:
     def test_call_command_check_runs_it(self) -> None:
         err = io.StringIO()
         call_command("check", "commands_app", stderr=err)
-        assert "(django_service_specs.W001) 'open_service' in manage.py unguarded_report" in (
+        assert "(django_spec_cli.W001) 'open_service' in manage.py unguarded_report" in (
             err.getvalue()
         )
 
-    @override_settings(SILENCED_SYSTEM_CHECKS=["django_service_specs.W001"])
+    @override_settings(SILENCED_SYSTEM_CHECKS=["django_spec_cli.W001"])
     def test_silencing_w001_keeps_w003(self) -> None:
         err = io.StringIO()
         call_command("check", "commands_app", stderr=err)
         assert "in manage.py unguarded_report" not in err.getvalue()
-        assert "(django_service_specs.W003) The command 'unguarded_broken_import'" in (
-            err.getvalue()
-        )
+        assert "(django_spec_cli.W003) The command 'unguarded_broken_import'" in (err.getvalue())
 
 
 class TestCallCommand:
@@ -278,27 +275,60 @@ class TestTheAppIsTheOptIn:
     """A fresh interpreter each: the check registry is process-wide, and this one has the app."""
 
     def test_listing_the_app_registers_the_check(self) -> None:
-        completed = _probe([*BASE_APPS, "django_service_specs"], CHECK)
+        completed = _probe([*BASE_APPS, "django_spec_cli"], CHECK)
         assert completed.returncode == 0, completed.stderr
         assert "'open_service' in manage.py unguarded_report" in completed.stdout
 
     def test_a_project_not_listing_it_gets_no_check(self) -> None:
         completed = _probe(BASE_APPS, CHECK)
         assert completed.returncode == 0, completed.stderr
-        assert "django_service_specs." not in completed.stdout
+        assert "django_spec_cli." not in completed.stdout
 
     def test_a_manage_py_command_runs_it_before_its_own_handle(self) -> None:
         # The command line, unlike ``call_command``, does not skip system
         # checks, so a command keeping ``requires_system_checks`` prints the
         # report to stderr on every run.
         completed = _probe(
-            [*BASE_APPS, "django_service_specs"],
+            [*BASE_APPS, "django_spec_cli"],
             """
 from django.core.management import execute_from_command_line
 execute_from_command_line(["manage.py", "unguarded_plain"])
 """,
         )
         assert completed.returncode == 0, completed.stderr
-        assert "(django_service_specs.W001) 'open_service' in manage.py unguarded_report" in (
+        assert "(django_spec_cli.W001) 'open_service' in manage.py unguarded_report" in (
             completed.stderr
+        )
+
+
+class TestBesideTheKernelsCopy:
+    """Kernel 0.10.x still ships the command and registers its own check over its own class.
+
+    A fresh interpreter each, listing the kernel's app, which the suite's own
+    settings never do. When the kernel's copy goes, these fail, and the page's
+    paragraph on running both goes with them.
+    """
+
+    def test_listing_both_apps_reports_each_copy_s_commands_under_its_own_id(self) -> None:
+        completed = _probe([*BASE_APPS, "django_service_specs", "django_spec_cli"], CHECK)
+        assert completed.returncode == 0, completed.stderr
+        # The commands here subclass this package's class, which the kernel's
+        # walk does not recognise, so their open spec is reported once.
+        assert "(django_spec_cli.W001) 'open_service' in manage.py unguarded_report" in (
+            completed.stdout
+        )
+        assert "django_service_specs.W001" not in completed.stdout
+        # Both walks load every command, so one that cannot be loaded is
+        # reported by each.
+        for check in ("django_spec_cli.W003", "django_service_specs.W003"):
+            assert f"({check}) The command 'unguarded_broken_import'" in completed.stdout
+
+    def test_listing_only_the_kernel_s_app_checks_no_moved_command(self) -> None:
+        completed = _probe([*BASE_APPS, "django_service_specs"], CHECK)
+        assert completed.returncode == 0, completed.stderr
+        assert "authorizes nothing" not in completed.stdout
+        assert "django_spec_cli." not in completed.stdout
+        # Not a probe that ran no check: the kernel's own walk did run.
+        assert "(django_service_specs.W003) The command 'unguarded_broken_import'" in (
+            completed.stdout
         )

@@ -5,9 +5,10 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any, TextIO
 
-from django_service_specs.commands.render.render_json_lines import render_json_lines
-from django_service_specs.commands.render.render_table import render_table
-from django_service_specs.output.output import Output
+from django_service_specs import Output
+
+from django_spec_cli.render.render_json_lines import render_json_lines
+from django_spec_cli.render.render_table import render_table
 
 # The column a value that is no row is shown under in a table.
 _RESULT = "result"
@@ -37,9 +38,9 @@ def render_result(presented: Any, output: Output | None, stream: TextIO, *, tabl
       row, or one line holding its JSON (``42``, ``"done"``, ``true``).
 
     A table reads every row before writing its first line; see
-    [`render_table`][django_service_specs.commands.render.render_table.render_table]
+    [`render_table`][django_spec_cli.render.render_table.render_table]
     for its columns, cells and markings, and
-    [`render_json_lines`][django_service_specs.commands.render.render_json_lines.render_json_lines]
+    [`render_json_lines`][django_spec_cli.render.render_json_lines.render_json_lines]
     for the encoding. Only ``stream`` is written to.
     """
     if presented is None:

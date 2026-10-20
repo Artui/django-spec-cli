@@ -8,15 +8,14 @@ from typing import Any
 from django.apps import AppConfig
 from django.core.checks import CheckMessage, Warning
 from django.core.management import get_commands, load_command_class
+from django_service_specs import UnguardedSpec, unguarded_specs
 
-from django_service_specs.commands.report.unguarded_message import unguarded_message
-from django_service_specs.commands.spec_command import SpecCommand
-from django_service_specs.registry.unguarded_spec import UnguardedSpec
-from django_service_specs.registry.unguarded_specs import unguarded_specs
+from django_spec_cli.report.unguarded_message import unguarded_message
+from django_spec_cli.spec_command import SpecCommand
 
 _HINT = (
     "Declare a PermissionCheck that refuses someone in the spec's permissions, or add "
-    "'django_service_specs.W001' to SILENCED_SYSTEM_CHECKS if the spec is meant to be open."
+    "'django_spec_cli.W001' to SILENCED_SYSTEM_CHECKS if the spec is meant to be open."
 )
 
 
@@ -26,7 +25,7 @@ def check_unguarded_specs(
     """Warn once per spec that authorizes nothing, in every ``SpecCommand`` of the project.
 
     Registered by the app's ``ready()``, so a project gets it by listing
-    ``django_service_specs`` in ``INSTALLED_APPS`` and not otherwise. There is
+    ``django_spec_cli`` in ``INSTALLED_APPS`` and not otherwise. There is
     no global registry to read: each ``SpecCommand`` subclass names its own,
     so the check finds them the way ``manage.py`` does, by loading every
     command the installed apps serve and keeping the ``SpecCommand`` ones.
@@ -34,14 +33,14 @@ def check_unguarded_specs(
     commands included; Django's own are not loaded, since none is a
     ``SpecCommand``.
 
-    - ``django_service_specs.W001``, one per spec that
+    - ``django_spec_cli.W001``, one per spec that
       [`unguarded_specs`][django_service_specs.registry.unguarded_specs.unguarded_specs]
       reports, naming the command an operator types and the spec, with the
       command class as ``obj``. A ``Warning``, never an ``Error``: an open
       spec is a decision or an accident the check cannot tell apart, and an
       ``Error`` would stop ``migrate`` on a project working as intended.
       ``SILENCED_SYSTEM_CHECKS`` silences it by id, so for every spec at once.
-    - ``django_service_specs.W003``, one per command that could not be loaded or
+    - ``django_spec_cli.W003``, one per command that could not be loaded or
       whose parser could not be built, naming it and the error. Without this app nothing loads that command
       until somebody runs it, so failing the check on it would make a broken
       command nobody runs stop ``migrate``; and dropping it silently would
@@ -66,7 +65,7 @@ def check_unguarded_specs(
                         f"Run manage.py {name} to see the traceback. Until it loads, the specs "
                         "it serves are not checked."
                     ),
-                    id="django_service_specs.W003",
+                    id="django_spec_cli.W003",
                 )
             )
             continue
@@ -76,7 +75,7 @@ def check_unguarded_specs(
                 unguarded_message(spec, name),
                 hint=_HINT,
                 obj=type(command),
-                id="django_service_specs.W001",
+                id="django_spec_cli.W001",
             )
             for spec in specs
         )

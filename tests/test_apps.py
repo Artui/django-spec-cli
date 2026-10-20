@@ -9,9 +9,9 @@ from pathlib import Path
 from django.apps import AppConfig, apps
 from django.core.checks.registry import registry
 
-import django_service_specs.apps
-from django_service_specs.apps import DjangoServiceSpecsConfig
-from django_service_specs.checks import check_unguarded_specs
+import django_spec_cli.apps
+from django_spec_cli.apps import DjangoSpecCliConfig
+from django_spec_cli.checks import check_unguarded_specs
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -22,17 +22,17 @@ def test_apps_py_declares_exactly_one_app_config() -> None:
     # ``ready()`` registers nothing.
     declared = [
         value
-        for value in vars(django_service_specs.apps).values()
+        for value in vars(django_spec_cli.apps).values()
         if inspect.isclass(value) and issubclass(value, AppConfig) and value is not AppConfig
     ]
-    assert declared == [DjangoServiceSpecsConfig]
-    assert type(apps.get_app_config("django_service_specs")) is DjangoServiceSpecsConfig
+    assert declared == [DjangoSpecCliConfig]
+    assert type(apps.get_app_config("django_spec_cli")) is DjangoSpecCliConfig
 
 
 def test_the_app_is_named_for_the_package_and_owns_no_models() -> None:
-    config = apps.get_app_config("django_service_specs")
-    assert (config.name, config.label) == ("django_service_specs", "django_service_specs")
-    assert "default_auto_field" not in vars(DjangoServiceSpecsConfig)
+    config = apps.get_app_config("django_spec_cli")
+    assert (config.name, config.label) == ("django_spec_cli", "django_spec_cli")
+    assert "default_auto_field" not in vars(DjangoSpecCliConfig)
     assert list(config.get_models()) == []
 
 
@@ -52,7 +52,7 @@ import json, sys
 from django.conf import settings
 settings.configure(INSTALLED_APPS=["django.contrib.contenttypes", "django.contrib.auth"])
 from django.apps import apps
-import django_service_specs.apps
+import django_spec_cli.apps
 print(json.dumps([apps.ready, sorted(m for m in sys.modules if m.endswith(".models"))]))
 """
     completed = subprocess.run(

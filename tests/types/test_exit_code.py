@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from django_service_specs.types.exit_code import ExitCode
+from django_spec_cli.types.exit_code import ExitCode
 
 
 def test_each_code_is_the_number_the_docs_publish() -> None:

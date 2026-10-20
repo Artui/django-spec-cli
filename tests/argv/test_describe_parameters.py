@@ -7,13 +7,11 @@ import math
 from typing import Any, Literal
 
 import pytest
+from django_service_specs import UNSET, DataclassValidator, Parameter, Parameters
 
-from django_service_specs.adapters.dataclass.dataclass_validator import DataclassValidator
-from django_service_specs.commands.argv.describe_parameters import describe_parameters
-from django_service_specs.commands.argv.parameter_descriptor import ParameterDescriptor
-from django_service_specs.parameters.parameters import Parameter, Parameters
-from django_service_specs.types.unset import UNSET
-from tests.commands.argv.utils import FLAT, UNSENDABLE
+from django_spec_cli.argv.describe_parameters import describe_parameters
+from django_spec_cli.argv.parameter_descriptor import ParameterDescriptor
+from tests.argv.utils import FLAT, UNSENDABLE
 
 
 def describe_one(parameter: Parameter) -> ParameterDescriptor:

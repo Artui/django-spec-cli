@@ -5,10 +5,10 @@ import argparse
 import pytest
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.translation import gettext_lazy
+from django_service_specs import Parameter, Parameters
 
-from django_service_specs.commands.argv.add_spec_arguments import add_spec_arguments
-from django_service_specs.parameters.parameters import Parameter, Parameters
-from tests.commands.argv.utils import FLAT, UNSENDABLE, parser_for
+from django_spec_cli.argv.add_spec_arguments import add_spec_arguments
+from tests.argv.utils import FLAT, UNSENDABLE, parser_for
 
 # Django's BaseCommand options and the ones a spec command adds, as a caller
 # passes them.

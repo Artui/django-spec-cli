@@ -9,12 +9,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from django_service_specs.authorization.permission_check import PermissionCheck
-from django_service_specs.authorization.unrestricted import Unrestricted
-from django_service_specs.registry.spec_registry import SpecRegistry
-from django_service_specs.specs.selector_spec import SelectorSpec
-from django_service_specs.specs.service_spec import ServiceSpec
-from django_service_specs.types.selector_kind import SelectorKind
+from django_service_specs import (
+    PermissionCheck,
+    SelectorKind,
+    SelectorSpec,
+    ServiceSpec,
+    SpecRegistry,
+    Unrestricted,
+)
 
 
 class StaffOnly(PermissionCheck):

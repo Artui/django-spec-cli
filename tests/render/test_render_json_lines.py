@@ -14,10 +14,9 @@ from typing import Any
 
 from django.core.management.base import OutputWrapper
 from django.utils.translation import gettext_lazy
+from django_service_specs import UNSET, DataclassPresenter, UnsetType
 
-from django_service_specs.adapters.dataclass.dataclass_presenter import DataclassPresenter
-from django_service_specs.commands.render.render_json_lines import render_json_lines
-from django_service_specs.types.unset import UNSET, UnsetType
+from django_spec_cli.render.render_json_lines import render_json_lines
 
 
 def _lines(stream: io.StringIO) -> list[str]:

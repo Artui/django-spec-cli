@@ -9,7 +9,7 @@ import pytest
 from django.core.management.base import OutputWrapper
 from django.test import override_settings
 
-from django_service_specs.commands.render.wants_table import wants_table
+from django_spec_cli.render.wants_table import wants_table
 
 
 class _Terminal(io.StringIO):
@@ -68,12 +68,12 @@ def test_the_flag_beats_the_setting_and_the_setting_beats_the_stream(
     requested: Any, setting: str, terminal: bool, expected: bool
 ) -> None:
     stream = _Terminal() if terminal else io.StringIO()
-    with override_settings(SERVICE_SPECS_COMMAND_OUTPUT=setting):
+    with override_settings(SPEC_CLI_OUTPUT=setting):
         assert wants_table(stream, requested=requested) is expected
 
 
 def test_a_flag_is_answered_without_reading_a_misconfigured_setting() -> None:
     # The setting is read only when no flag decides, so a bad value in it does
     # not stop an operator who has said which format they want.
-    with override_settings(SERVICE_SPECS_COMMAND_OUTPUT="TABLE"):
+    with override_settings(SPEC_CLI_OUTPUT="TABLE"):
         assert wants_table(io.StringIO(), requested="table") is True
