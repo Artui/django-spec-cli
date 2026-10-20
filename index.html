@@ -624,7 +624,7 @@ nothing else.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span>django-spec-cli
 </span></code></pre></div>
 <p>It installs <a href="https://artui.github.io/django-service-specs/"><code>django-service-specs</code></a>, the kernel whose specs it serves,
-from 0.10.0, on Python 3.10 and Django 4.2 or later. The command line was the
+from 0.11.0, on Python 3.10 and Django 4.2 or later. The command line was the
 kernel's <code>commands/</code> subpackage, and moved here so the kernel carries no
 transport.</p>
 <h2 id="what-it-is-not">What it is not<a class="headerlink" href="#what-it-is-not" title="Permanent link">&para;</a></h2>
@@ -865,14 +865,8 @@ be loaded to be checked as <code>django_spec_cli.W003</code>. There is no
 <code>W002</code>: a spec with an empty <code>permissions</code> is refused when it is built, so
 none reaches a registry. Both are warnings, and <code>SILENCED_SYSTEM_CHECKS</code>
 silences one by id.</p>
-<p>Until the kernel removes its own copy of the command, kernel 0.10.x still
-registers <code>django_service_specs.W001</code> and <code>W003</code>, over its own <code>SpecCommand</code>
-class rather than this package's. A project that lists both
-<code>"django_service_specs"</code> and <code>"django_spec_cli"</code> sees both ids, the kernel's
-for commands still subclassing its copy and this package's for commands
-subclassing <code>django_spec_cli.SpecCommand</code>, and a command that cannot be loaded
-gets a <code>W003</code> from each. A project that moves its imports here and lists only
-<code>"django_service_specs"</code> gets no check for the moved commands at all, so list
+<p>The kernel keeps no check of its own: its app registers nothing, so a project
+listing only <code>"django_service_specs"</code> gets no check for a command. List
 <code>"django_spec_cli"</code>.</p>
 <p>A <code>SpecCommand</code> keeps Django's system checks on, so on the command line the
 report is printed to stderr before every run of every command. The runs on
