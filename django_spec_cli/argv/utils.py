@@ -1,4 +1,4 @@
-"""Helpers the command modules share: how a parameter's name becomes argv and back."""
+"""Helpers ``argv/`` and ``SpecCommand`` share: how a parameter's name becomes argv and back."""
 
 from __future__ import annotations
 

@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import json
 from collections.abc import Iterable, Mapping
 from typing import Any, TextIO
 
-from django.core.serializers.json import DjangoJSONEncoder
+from django_spec_cli.render.utils import compact_json
 
 # JSON escapes every C0 control character and leaves these three raw. Each is
 # a line break to some readers - Python's ``str.splitlines`` among them - so a
@@ -37,7 +36,7 @@ def render_json_lines(rows: Iterable[Mapping[str, Any]], stream: TextIO) -> None
     one, so a line written in pieces would come out broken.
     """
     for row in rows:
-        line = json.dumps(row, cls=DjangoJSONEncoder, ensure_ascii=False, separators=(",", ":"))
+        line = compact_json(row)
         for raw, escaped in _LINE_BREAKS.items():
             line = line.replace(raw, escaped)
         stream.write(line + "\n")

@@ -9,9 +9,6 @@ from __future__ import annotations
 
 import importlib
 import io
-import subprocess
-import sys
-from pathlib import Path
 
 import pytest
 from django.apps import apps
@@ -23,8 +20,8 @@ from django_service_specs import UnguardedReason, UnguardedSpec
 
 from django_spec_cli.checks import check_unguarded_specs
 from django_spec_cli.report.unguarded_message import unguarded_message
+from tests.utils import run_project
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
 APP = "tests.commands_app"
 OWN = "unguarded_"
 HINT = (
@@ -72,15 +69,19 @@ class TestTheReport:
         ]
         assert _own_w001(check_unguarded_specs(None)) == expected
 
-    def test_a_command_that_is_no_spec_command_is_not_read(self) -> None:
-        # Its class carries the same open registry as the report's, so reading
-        # it would add three more W001s naming it.
-        plain = _command_class("unguarded_plain")
-        assert [m for m in check_unguarded_specs(None) if m.obj is plain] == []
-
-    def test_an_empty_registry_reports_nothing(self) -> None:
-        empty = _command_class("unguarded_empty")
-        assert [m for m in check_unguarded_specs(None) if m.obj is empty] == []
+    @pytest.mark.parametrize(
+        "name",
+        [
+            # Its class carries the same open registry as the report's, so
+            # reading it would add three more W001s naming it.
+            "unguarded_plain",
+            "unguarded_empty",
+        ],
+        ids=["no-spec-command", "empty-registry"],
+    )
+    def test_a_command_with_nothing_to_report_reports_nothing(self, name: str) -> None:
+        command = _command_class(name)
+        assert [m for m in check_unguarded_specs(None) if m.obj is command] == []
 
     def test_never_an_error(self) -> None:
         assert all(not message.is_serious() for message in _own(check_unguarded_specs(None)))
@@ -89,29 +90,33 @@ class TestTheReport:
 class TestACommandThatDoesNotLoad:
     """Skipped and reported, because without this app nothing loads it at check time."""
 
-    def _w003(self, name: str) -> list[str]:
+    def _w003(self, name: str) -> list[CheckMessage]:
         return [
-            message.msg
+            message
             for message in check_unguarded_specs(None)
             if message.id == "django_spec_cli.W003" and f"'{name}'" in message.msg
         ]
 
-    def test_an_import_error_is_reported_with_its_cause(self) -> None:
-        assert self._w003("unguarded_broken_import") == [
-            "The command 'unguarded_broken_import' from tests.commands_app could not be set up, "
-            "so its specs were not checked: RuntimeError: this command module cannot be imported"
-        ]
-
-    def test_a_constructor_error_is_reported_with_its_cause(self) -> None:
-        assert self._w003("unguarded_broken_init") == [
-            "The command 'unguarded_broken_init' from tests.commands_app could not be set up, "
-            "so its specs were not checked: ValueError: this command cannot be constructed"
+    @pytest.mark.parametrize(
+        ("name", "cause"),
+        [
+            ("unguarded_broken_import", "RuntimeError: this command module cannot be imported"),
+            ("unguarded_broken_init", "ValueError: this command cannot be constructed"),
+        ],
+        ids=["import", "constructor"],
+    )
+    def test_an_import_or_constructor_error_is_reported_with_its_cause(
+        self, name: str, cause: str
+    ) -> None:
+        assert [message.msg for message in self._w003(name)] == [
+            f"The command {name!r} from tests.commands_app could not be set up, "
+            f"so its specs were not checked: {cause}"
         ]
 
     def test_a_parser_that_cannot_be_built_is_reported_with_its_cause(self) -> None:
         # The command constructs, so only building its parser finds the clash
         # between a parameter and the option the command owns.
-        [message] = self._w003("unguarded_bad_parser")
+        [message] = [m.msg for m in self._w003("unguarded_bad_parser")]
         assert message.startswith(
             "The command 'unguarded_bad_parser' from tests.commands_app could not be set up, "
             "so its specs were not checked: ImproperlyConfigured: "
@@ -123,17 +128,13 @@ class TestACommandThatDoesNotLoad:
         # fails - reading it, constructing it, declaring it - is the command's
         # to decide, and each is caught by the same walk.
         [message] = self._w003("unguarded_no_registry")
-        assert message.startswith(
+        assert message.msg.startswith(
             "The command 'unguarded_no_registry' from tests.commands_app could not be set up, "
             "so its specs were not checked: "
         )
 
     def test_the_warning_says_how_to_see_the_traceback(self) -> None:
-        [message] = [
-            m
-            for m in check_unguarded_specs(None)
-            if m.id == "django_spec_cli.W003" and "'unguarded_broken_import'" in m.msg
-        ]
+        [message] = self._w003("unguarded_broken_import")
         assert message.hint == (
             "Run manage.py unguarded_broken_import to see the traceback. Until it loads, "
             "the specs it serves are not checked."
@@ -244,22 +245,6 @@ class TestTheDjangoInternalsTheWalkReads:
             load_command_class(APP, "unguarded_broken_import")
 
 
-def _probe(installed: list[str], body: str) -> subprocess.CompletedProcess[str]:
-    probe = f"""
-import django
-from django.conf import settings
-settings.configure(
-    INSTALLED_APPS={installed!r},
-    SECRET_KEY="probe",
-    DATABASES={{"default": {{"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}}}},
-)
-{body}
-"""
-    return subprocess.run(
-        [sys.executable, "-c", probe], cwd=REPO_ROOT, capture_output=True, text=True
-    )
-
-
 BASE_APPS = ["django.contrib.contenttypes", "django.contrib.auth", APP]
 CHECK = """
 import io
@@ -275,12 +260,12 @@ class TestTheAppIsTheOptIn:
     """A fresh interpreter each: the check registry is process-wide, and this one has the app."""
 
     def test_listing_the_app_registers_the_check(self) -> None:
-        completed = _probe([*BASE_APPS, "django_spec_cli"], CHECK)
+        completed = run_project([*BASE_APPS, "django_spec_cli"], CHECK)
         assert completed.returncode == 0, completed.stderr
         assert "'open_service' in manage.py unguarded_report" in completed.stdout
 
     def test_a_project_not_listing_it_gets_no_check(self) -> None:
-        completed = _probe(BASE_APPS, CHECK)
+        completed = run_project(BASE_APPS, CHECK)
         assert completed.returncode == 0, completed.stderr
         assert "django_spec_cli." not in completed.stdout
 
@@ -288,7 +273,7 @@ class TestTheAppIsTheOptIn:
         # The command line, unlike ``call_command``, does not skip system
         # checks, so a command keeping ``requires_system_checks`` prints the
         # report to stderr on every run.
-        completed = _probe(
+        completed = run_project(
             [*BASE_APPS, "django_spec_cli"],
             """
 from django.core.management import execute_from_command_line
@@ -310,7 +295,7 @@ class TestBesideTheKernelsCopy:
     """
 
     def test_listing_both_apps_reports_each_copy_s_commands_under_its_own_id(self) -> None:
-        completed = _probe([*BASE_APPS, "django_service_specs", "django_spec_cli"], CHECK)
+        completed = run_project([*BASE_APPS, "django_service_specs", "django_spec_cli"], CHECK)
         assert completed.returncode == 0, completed.stderr
         # The commands here subclass this package's class, which the kernel's
         # walk does not recognise, so their open spec is reported once.
@@ -324,7 +309,7 @@ class TestBesideTheKernelsCopy:
             assert f"({check}) The command 'unguarded_broken_import'" in completed.stdout
 
     def test_listing_only_the_kernel_s_app_checks_no_moved_command(self) -> None:
-        completed = _probe([*BASE_APPS, "django_service_specs"], CHECK)
+        completed = run_project([*BASE_APPS, "django_service_specs"], CHECK)
         assert completed.returncode == 0, completed.stderr
         assert "authorizes nothing" not in completed.stdout
         assert "django_spec_cli." not in completed.stdout

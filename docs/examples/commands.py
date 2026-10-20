@@ -5,9 +5,9 @@
 ``manage.py`` would, and asserts the output and exit status printed beside
 it, so the page cannot show a run the command does not produce.
 
-The two note specs above the page's markers are the kernel's own documentation
-examples, a selector and a write, declared here so this site's examples import
-nothing from another repository's docs.
+The two note specs above the page's markers, a selector and a write, are
+declared here rather than imported, so the examples depend on nothing but the
+installed packages.
 """
 
 from __future__ import annotations

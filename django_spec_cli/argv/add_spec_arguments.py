@@ -93,6 +93,7 @@ def _check_options(descriptors: list[ParameterDescriptor], reserved: frozenset[s
 
 
 def _add_option(parser: argparse.ArgumentParser, descriptor: ParameterDescriptor) -> None:
+    option = option_string(descriptor.name)
     common: dict[str, Any] = {
         "dest": destination(descriptor.name),
         "default": argparse.SUPPRESS,
@@ -101,12 +102,10 @@ def _add_option(parser: argparse.ArgumentParser, descriptor: ParameterDescriptor
     if descriptor.type == "boolean":
         # No ``metavar``, ``type`` or ``choices``: a flag takes no value, and
         # Python 3.12 deprecates passing them to this action.
-        parser.add_argument(
-            option_string(descriptor.name), action=argparse.BooleanOptionalAction, **common
-        )
+        parser.add_argument(option, action=argparse.BooleanOptionalAction, **common)
         return
     parser.add_argument(
-        option_string(descriptor.name),
+        option,
         action="append" if descriptor.type == "array" else "store",
         # Set, or argparse prints the namespaced destination in its place.
         metavar=_metavar(descriptor),

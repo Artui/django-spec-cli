@@ -8,8 +8,9 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, TextIO
 
-from django.core.serializers.json import DjangoJSONEncoder
 from django_service_specs import FieldAudience, Output, OutputField
+
+from django_spec_cli.render.utils import compact_json
 
 # Two spaces between columns: one reads as a space inside a value.
 _GAP = "  "
@@ -119,31 +120,28 @@ def render_table(rows: Sequence[Mapping[str, Any]], output: Output | None, strea
 def _columns(rows: Sequence[Mapping[str, Any]], output: Output | None) -> tuple[_Column, ...]:
     if output is None:
         return tuple(_Column(str(key), str(key)) for key in rows[0]) if rows else ()
-    return tuple(_column(field) for field in output if not _hidden(field))
+    return tuple(_column(field) for field in output if _audience(field) is not FieldAudience.HIDDEN)
 
 
-def _hidden(field: OutputField) -> bool:
-    # One branch to coverage, so each condition is held by its own test:
-    # test_an_unmarked_field_without_choices_is_shown_as_presented (the first, an
-    # unmarked field, without which ``None.audience`` raises) and
-    # test_a_hidden_field_is_no_column_and_every_other_audience_is_one (the
-    # second, without which every marked field is dropped).
-    return field.marking is not None and field.marking.audience is FieldAudience.HIDDEN
+def _audience(field: OutputField) -> FieldAudience | None:
+    # Coverage sees no branch in a conditional expression, so each arm is
+    # named: test_an_unmarked_field_without_choices_is_shown_as_presented holds
+    # the ``None`` (without it ``None.audience`` raises), and
+    # test_a_hidden_field_is_no_column_and_every_other_audience_is_one the
+    # marking's own audience.
+    return None if field.marking is None else field.marking.audience
 
 
 def _column(field: OutputField) -> _Column:
-    # One branch to coverage, so each condition is held by its own test:
-    # test_a_choice_is_shown_by_its_display_and_an_unknown_value_as_itself
-    # (the first, an unmarked field, without which ``None.audience`` raises)
-    # and test_a_label_with_choices_is_shown_by_its_display (the second,
-    # without which every marked field keeps its value).
-    handle = field.marking is not None and field.marking.audience is FieldAudience.HANDLE
+    # Only a handle keeps its value, not every marked field:
+    # test_a_handle_keeps_its_value_even_with_choices and
+    # test_a_label_with_choices_is_shown_by_its_display.
     return _Column(
         field.name,
         # ``str()`` for a lazy translation, read in the active language.
         field.name if field.label is None else str(field.label),
         right=field.type in _NUMERIC,
-        choices=None if handle else field.choices,
+        choices=None if _audience(field) is FieldAudience.HANDLE else field.choices,
     )
 
 
@@ -154,7 +152,7 @@ def _cell(value: Any, choices: tuple[tuple[Any, Any], ...] | None) -> str:
         value = _display(value, choices)
     if isinstance(value, str):
         return _text(value)
-    encoded = json.dumps(value, cls=DjangoJSONEncoder, ensure_ascii=False, separators=(",", ":"))
+    encoded = compact_json(value)
     # A value the encoder writes as a JSON string - a Decimal, a date-time, a
     # UUID, a lazy translation - is shown without its quotes, as text is.
     return _text(json.loads(encoded) if encoded.startswith('"') else encoded)
