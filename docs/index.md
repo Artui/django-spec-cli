@@ -27,7 +27,7 @@ pip install django-spec-cli
 ```
 
 It installs [`django-service-specs`](https://artui.github.io/django-service-specs/), the kernel whose specs it serves,
-from 0.10.0, on Python 3.10 and Django 4.2 or later. The command line was the
+from 0.11.0, on Python 3.10 and Django 4.2 or later. The command line was the
 kernel's `commands/` subpackage, and moved here so the kernel carries no
 transport.
 
@@ -247,14 +247,8 @@ be loaded to be checked as `django_spec_cli.W003`. There is no
 none reaches a registry. Both are warnings, and `SILENCED_SYSTEM_CHECKS`
 silences one by id.
 
-Until the kernel removes its own copy of the command, kernel 0.10.x still
-registers `django_service_specs.W001` and `W003`, over its own `SpecCommand`
-class rather than this package's. A project that lists both
-`"django_service_specs"` and `"django_spec_cli"` sees both ids, the kernel's
-for commands still subclassing its copy and this package's for commands
-subclassing `django_spec_cli.SpecCommand`, and a command that cannot be loaded
-gets a `W003` from each. A project that moves its imports here and lists only
-`"django_service_specs"` gets no check for the moved commands at all, so list
+The kernel keeps no check of its own: its app registers nothing, so a project
+listing only `"django_service_specs"` gets no check for a command. List
 `"django_spec_cli"`.
 
 A `SpecCommand` keeps Django's system checks on, so on the command line the

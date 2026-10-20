@@ -285,35 +285,11 @@ execute_from_command_line(["manage.py", "unguarded_plain"])
             completed.stderr
         )
 
-
-class TestBesideTheKernelsCopy:
-    """Kernel 0.10.x still ships the command and registers its own check over its own class.
-
-    A fresh interpreter each, listing the kernel's app, which the suite's own
-    settings never do. When the kernel's copy goes, these fail, and the page's
-    paragraph on running both goes with them.
-    """
-
-    def test_listing_both_apps_reports_each_copy_s_commands_under_its_own_id(self) -> None:
-        completed = run_project([*BASE_APPS, "django_service_specs", "django_spec_cli"], CHECK)
-        assert completed.returncode == 0, completed.stderr
-        # The commands here subclass this package's class, which the kernel's
-        # walk does not recognise, so their open spec is reported once.
-        assert "(django_spec_cli.W001) 'open_service' in manage.py unguarded_report" in (
-            completed.stdout
-        )
-        assert "django_service_specs.W001" not in completed.stdout
-        # Both walks load every command, so one that cannot be loaded is
-        # reported by each.
-        for check in ("django_spec_cli.W003", "django_service_specs.W003"):
-            assert f"({check}) The command 'unguarded_broken_import'" in completed.stdout
-
-    def test_listing_only_the_kernel_s_app_checks_no_moved_command(self) -> None:
+    def test_the_kernel_s_app_registers_no_check_of_its_own(self) -> None:
+        # The kernel keeps an ``AppConfig`` so a project listing it still
+        # starts, but it registers nothing: the checks live here, so listing
+        # only the kernel's app reports no command, moved or not.
         completed = run_project([*BASE_APPS, "django_service_specs"], CHECK)
         assert completed.returncode == 0, completed.stderr
+        assert "django_service_specs." not in completed.stdout
         assert "authorizes nothing" not in completed.stdout
-        assert "django_spec_cli." not in completed.stdout
-        # Not a probe that ran no check: the kernel's own walk did run.
-        assert "(django_service_specs.W003) The command 'unguarded_broken_import'" in (
-            completed.stdout
-        )
