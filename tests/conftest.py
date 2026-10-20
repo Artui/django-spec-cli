@@ -43,7 +43,13 @@ def _within(name: str, packages: tuple[str, ...]) -> bool:
 
 
 def _kernel_copy_of(value: Any) -> str | None:
-    """The kernel module ``value`` comes from, when that module is the kernel's copy."""
+    """The kernel module ``value`` comes from, when that module is the kernel's copy.
+
+    The ``command_output`` name condition is held by
+    test_the_guard_passes_the_kernel_s_settings_reader_that_stays_the_kernel_s,
+    the module condition beside it by
+    test_the_guard_passes_this_package_s_own_setting_reader.
+    """
     if isinstance(value, ModuleType):
         origin = value.__name__
     else:
@@ -57,8 +63,13 @@ def _kernel_copy_of(value: Any) -> str | None:
     return origin if _within(origin, _KERNEL_COPY) else None
 
 
-def kernel_copies_loaded(modules: dict[str, ModuleType]) -> list[str]:
-    """Every place in ``modules`` that reaches the kernel's copy of this package."""
+def kernel_copies_loaded(modules: dict[str, ModuleType | None]) -> list[str]:
+    """Every place in ``modules`` that reaches the kernel's copy of this package.
+
+    The ``module is None`` condition is held by
+    test_the_guard_skips_a_module_import_blocked_with_none, the package
+    condition beside it by test_the_guard_reads_only_this_repository_s_modules.
+    """
     found = [f"{name} is imported" for name in _NEVER_IMPORTED if name in modules]
     for name, module in sorted(modules.items()):
         if not _within(name, _OURS) or module is None:

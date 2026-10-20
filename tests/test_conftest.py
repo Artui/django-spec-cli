@@ -44,3 +44,20 @@ def test_the_guard_finds_the_kernel_s_checks_imported_at_all() -> None:
 def test_the_guard_reads_only_this_repository_s_modules() -> None:
     copy = django_service_specs.SpecCommand
     assert kernel_copies_loaded({"elsewhere": _module("elsewhere", SpecCommand=copy)}) == []
+
+
+def test_the_guard_passes_the_kernel_s_settings_reader_that_stays_the_kernel_s() -> None:
+    # ``settings.py`` does not move: only ``command_output`` in it is the copy.
+    reader = sys.modules["django_service_specs.settings"].max_array_length
+    assert kernel_copies_loaded({"tests.stray": _module("tests.stray", reader=reader)}) == []
+
+
+def test_the_guard_skips_a_module_import_blocked_with_none() -> None:
+    # ``sys.modules[name] = None`` is how an import is blocked, and such an
+    # entry has no namespace to read.
+    assert kernel_copies_loaded({"tests.blocked": None}) == []
+
+
+def test_the_guard_passes_this_package_s_own_setting_reader() -> None:
+    reader = sys.modules["django_spec_cli.settings"].command_output
+    assert kernel_copies_loaded({"tests.own": _module("tests.own", reader=reader)}) == []
