@@ -680,3 +680,35 @@ execute_from_command_line(["manage.py", "notes", "ping", "--as-user", "999"])
         completed.stderr
     )
     assert completed.stderr.endswith("CommandError: No principal with identifier '999'.\n")
+
+
+def test_a_command_runs_with_neither_package_s_app_installed() -> None:
+    """The page's claim: listing ``django_spec_cli`` adds the check and nothing the command needs."""
+    probe = """
+import django
+from django.conf import settings
+settings.configure(
+    INSTALLED_APPS=[
+        "django.contrib.contenttypes", "django.contrib.auth",
+        "tests.commands_app", "tests.dispatch_app",
+    ],
+    SECRET_KEY="probe",
+    DATABASES={"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}},
+)
+django.setup()
+from django.apps import apps
+assert not apps.is_installed("django_spec_cli")
+assert not apps.is_installed("django_service_specs")
+from django.contrib.auth import get_user_model
+from django.core.management import call_command, execute_from_command_line
+call_command("migrate", verbosity=0, run_syncdb=True)
+user = get_user_model().objects.create_user("ada")
+execute_from_command_line(["manage.py", "notes", "ping", "--as-user", str(user.pk)])
+"""
+    completed = subprocess.run(
+        [sys.executable, "-c", probe], cwd=REPO_ROOT, capture_output=True, text=True
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert completed.stdout == '"pong"\n'
+    # No check ran: neither app registered one.
+    assert "W001" not in completed.stderr
