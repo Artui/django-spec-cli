@@ -24,11 +24,11 @@ from django_service_specs.commands.report.unguarded_message import unguarded_mes
 from django_service_specs.commands.report.unguarded_specs import unguarded_specs
 from django_service_specs.dispatch.dispatch import dispatch
 from django_service_specs.dispatch.present import present
-from django_service_specs.dispatch.utils import relax_partial
+from django_service_specs.dispatch.relax_partial import relax_partial
 from django_service_specs.parameters.coerce_flat import coerce_flat
 from django_service_specs.parameters.invalid_arguments import InvalidArguments
 from django_service_specs.parameters.parameters import Parameters
-from django_service_specs.parameters.utils import refusal_messages
+from django_service_specs.parameters.refusal_messages import refusal_messages
 from django_service_specs.pool.pool_seeds import DEFAULT_POOL_SEEDS, PoolSeeds
 from django_service_specs.registry.registered_spec import RegisteredSpec
 from django_service_specs.registry.spec_registry import SpecRegistry
