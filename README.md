@@ -25,7 +25,7 @@ the import path, the system check ids and the setting key are this package's.
 pip install django-spec-cli
 ```
 
-Python 3.10 or later, Django 4.2 or later, and `django-service-specs` 0.10.0 or
+Python 3.10 or later, Django 4.2 or later, and `django-service-specs` 0.11.0 or
 later, which it installs.
 
 ## Quickstart
@@ -60,13 +60,9 @@ every open spec a `SpecCommand` serves as `django_spec_cli.W001`, and a command
 that could not be loaded as `django_spec_cli.W003`. The command itself needs no
 app listed.
 
-Until the kernel removes its own copy of the command, kernel 0.10.x still
-registers `django_service_specs.W001` and `W003` over its own `SpecCommand`. A
-project listing both `"django_service_specs"` and `"django_spec_cli"` sees both
-ids: each walk reports the commands subclassing its own class, and a command
-that cannot be loaded is reported by each. A project that moves its imports
-here and lists only `"django_service_specs"` gets no check for the moved
-commands, so list `"django_spec_cli"`.
+The kernel keeps no check of its own: its app registers nothing, so a project
+listing only `"django_service_specs"` gets no check for a command. List
+`"django_spec_cli"`.
 
 ## Documentation
 

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-10-20
+
+### Changed
+- **The kernel floor is `django-service-specs>=0.11.0`, the first kernel
+  release without its own copy of the command.** Below it the kernel still
+  shipped `django_service_specs.commands` and registered its own `W001` and
+  `W003` over its own `SpecCommand`, so a project listing both
+  `"django_service_specs"` and `"django_spec_cli"` saw each id for the
+  commands subclassing its own class, and a command that could not be loaded
+  was reported under both. From 0.11.0 the kernel's app registers no check, so
+  a project that still lists `"django_service_specs"` sees nothing from it, and
+  the checks are reported once, under `django_spec_cli.`, by listing
+  `"django_spec_cli"`.
+
 ## [0.1.0] — 2026-10-20
 
 ### Added
@@ -31,5 +45,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `django-service-specs>=0.10.0`, the first kernel release with every name the
   command reads at its root.
 
-[Unreleased]: https://github.com/Artui/django-spec-cli/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Artui/django-spec-cli/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Artui/django-spec-cli/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Artui/django-spec-cli/compare/v0.0.0...v0.1.0

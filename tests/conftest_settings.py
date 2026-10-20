@@ -3,9 +3,7 @@
 SQLite, and no DRF anywhere: the kernel this package serves exists for
 dispatch without it, and a suite that could import it could not notice either
 package reaching for it. No kernel app is listed either: the command needs
-nothing of the kernel switched on, and with the kernel's app out its own copy
-of the system check never runs beside this package's. The two contrib apps are
-the ones a spec's permission check and principal resolution reach, since a
+nothing of the kernel switched on. The two contrib apps are the ones a spec's permission check and principal resolution reach, since a
 principal is a Django user.
 
 The test database is a **file**, not ``:memory:``. An in-memory SQLite database
