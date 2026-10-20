@@ -1,0 +1,957 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Run a django-spec-cli registry from manage.py: one subcommand per spec, options generated from its parameters, exit codes for every refusal.">
+      
+      
+      
+        <link rel="canonical" href="https://artui.github.io/django-spec-cli/">
+      
+      
+      
+        <link rel="next" href="reference/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>django-spec-cli</title>
+      
+    
+    
+      <link rel="stylesheet" href="assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#running-operations-from-the-command-line" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="." title="django-spec-cli" class="md-header__button md-logo" aria-label="django-spec-cli" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            django-spec-cli
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Home
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Artui/django-spec-cli" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Artui/django-spec-cli
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="." title="django-spec-cli" class="md-nav__button md-logo" aria-label="django-spec-cli" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    django-spec-cli
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Artui/django-spec-cli" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Artui/django-spec-cli
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="." class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#installing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-it-is-not" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What it is not
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#declaring-a-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Declaring a command
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#subcommands-and-their-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Subcommands and their options
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-user-a-run-is-made-as" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The user a run is made as
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Output
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exit-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exit codes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#open-specs-explain" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Open specs: --explain and the system check
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-it-does-not-do" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What it does not do
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#installing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-it-is-not" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What it is not
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#declaring-a-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Declaring a command
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#subcommands-and-their-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Subcommands and their options
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-user-a-run-is-made-as" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The user a run is made as
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#output" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Output
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#exit-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Exit codes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#open-specs-explain" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Open specs: --explain and the system check
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-it-does-not-do" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What it does not do
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/Artui/django-spec-cli/edit/main/docs/index.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="running-operations-from-the-command-line">Running operations from the command line<a class="headerlink" href="#running-operations-from-the-command-line" title="Permanent link">&para;</a></h1>
+<p><a class="autorefs autorefs-internal" title="SpecCommand" href="reference/#django_spec_cli.spec_command.SpecCommand"><code>SpecCommand</code></a> serves
+every spec in a <a href="https://artui.github.io/django-service-specs/registry/">registry</a> as one management command, with one
+subcommand per spec. An operator runs an operation as a named user, with
+arguments as options, and gets its presented result as a table or as JSON
+Lines:</p>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">$ </span>python<span class="w"> </span>manage.py<span class="w"> </span>notes<span class="w"> </span>rename-note<span class="w"> </span>--as-user<span class="w"> </span><span class="m">1</span><span class="w"> </span>--pk<span class="w"> </span><span class="m">1</span><span class="w"> </span>--title<span class="w"> </span>Final<span class="w"> </span>--json
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="go">{"id":1,"title":"Final"}</span>
+</span></code></pre></div>
+<p>The run goes through <a href="https://artui.github.io/django-service-specs/dispatching/"><code>dispatch</code></a> as every other transport's
+does: the same shape check and Validator, the same permission checks, enforced,
+for the user <code>--as-user</code> names, the same presenter. It needs Django and
+nothing else.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">django_spec_cli</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExitCode</span><span class="p">,</span> <span class="n">SpecCommand</span><span class="p">,</span> <span class="n">exit_code_for</span>
+</span></code></pre></div>
+<h2 id="installing">Installing<a class="headerlink" href="#installing" title="Permanent link">&para;</a></h2>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span>django-spec-cli
+</span></code></pre></div>
+<p>It installs <a href="https://artui.github.io/django-service-specs/"><code>django-service-specs</code></a>, the kernel whose specs it serves,
+from 0.10.0, on Python 3.10 and Django 4.2 or later. The command line was the
+kernel's <code>commands/</code> subpackage, and moved here so the kernel carries no
+transport.</p>
+<h2 id="what-it-is-not">What it is not<a class="headerlink" href="#what-it-is-not" title="Permanent link">&para;</a></h2>
+<p><strong>The command is not an authorization boundary.</strong> Whoever can run
+<code>manage.py</code> can already run any code the project can, open <code>manage.py shell</code>,
+and name any user they like with <code>--as-user</code>. What the command offers is
+mistake prevention and attribution: every run is made as a named user, is
+checked against the permissions that user holds, and records that user
+wherever the operation records who acted. Refusing to run an open spec would
+stop nobody, so the command <a href="#open-specs-explain">reports</a> open specs instead.</p>
+<h2 id="declaring-a-command">Declaring a command<a class="headerlink" href="#declaring-a-command" title="Permanent link">&para;</a></h2>
+<p>A project declares the command by subclassing, in one of its own apps'
+<code>management/commands/</code> modules, and names the registry. The module's name is
+the command's:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">whoami</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">    </span><span class="sd">"""The username of the user the command runs as."""</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="k">return</span> <span class="n">user</span><span class="o">.</span><span class="n">get_username</span><span class="p">()</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">notes</span> <span class="o">=</span> <span class="n">SpecRegistry</span><span class="p">()</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">notes</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">"rename_note"</span><span class="p">,</span> <span class="n">rename_note_spec</span><span class="p">)</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="n">notes</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">"list_notes"</span><span class="p">,</span> <span class="n">list_notes_spec</span><span class="p">)</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="n">notes</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">"whoami"</span><span class="p">,</span> <span class="n">ServiceSpec</span><span class="p">(</span><span class="n">service</span><span class="o">=</span><span class="n">whoami</span><span class="p">,</span> <span class="n">permissions</span><span class="o">=</span><span class="p">[</span><span class="n">Unrestricted</span><span class="p">()]))</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="c1"># yourapp/management/commands/notes.py</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="k">class</span><span class="w"> </span><span class="nc">Command</span><span class="p">(</span><span class="n">SpecCommand</span><span class="p">):</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>    <span class="n">registry</span> <span class="o">=</span> <span class="n">notes</span>
+</span></code></pre></div>
+<p>One project can serve two registries as two commands, each with its own name.
+The registry is read when the command's parser is built, on every run; a
+command naming none is refused then with <code>ImproperlyConfigured</code>, as is a
+registry where two names would be one subcommand (<code>a_b</code> and <code>a-b</code>).</p>
+<p>A registry whose callables read a seed of their own - an affordance's <code>when</code>,
+a selector - names the seeds on the class, as
+<code>SpecView</code> does:
+<code>pool_seeds = DEFAULT_POOL_SEEDS.extend(tenant=current_tenant)</code>. Without it a
+callable asking for a seed nobody registered fails as it would in <code>dispatch</code>.</p>
+<p>The command does not need <code>django_spec_cli</code> or <code>django_service_specs</code> in
+<code>INSTALLED_APPS</code>. Listing <code>django_spec_cli</code> adds the
+<a href="#open-specs-explain">system check</a>.</p>
+<h2 id="subcommands-and-their-options">Subcommands and their options<a class="headerlink" href="#subcommands-and-their-options" title="Permanent link">&para;</a></h2>
+<p>Each registry entry is a subcommand named after it, with each <code>_</code> shown as
+<code>-</code>: <code>rename_note</code> is <code>rename-note</code>. Its options are the spec's
+<a href="https://artui.github.io/django-service-specs/arguments/">parameters</a>, spelled by
+<a class="autorefs autorefs-internal" title="add_spec_arguments" href="reference/#django_spec_cli.argv.add_spec_arguments.add_spec_arguments"><code>add_spec_arguments</code></a>:
+<code>--due-at</code> for <code>due_at</code>, a <code>--flag</code>/<code>--no-flag</code> pair for a boolean, and an
+array as a repeated option, <code>--tag a --tag b</code>. Every value reaches
+<a class="autorefs autorefs-external" href="https://artui.github.io/django-service-specs/reference/#django_service_specs.parameters.coerce_flat.coerce_flat"><code>coerce_flat</code></a> as
+the string typed, and is refused as a query string's would be. A value that
+starts with <code>-</code> is read by argparse as an option, so it is attached with an
+equals sign: <code>--tag=-x</code>.</p>
+<p><code>manage.py notes --help</code> lists the subcommands, each with the first paragraph
+of its service's or selector's docstring and whether it reads or writes, or
+its registered name when the function says nothing. <code>manage.py notes
+rename-note --help</code> lists its options, with <code>(required)</code> where leaving one
+out is refused. On a <code>partial</code> spec, that is only what names the row: the
+Validator's fields may be left out, as dispatch allows.</p>
+<p>Some parameters have no option:</p>
+<ul>
+<li><strong>A key the server fills</strong>, one a <code>kwargs</code> provider is annotated to answer
+  (<a class="autorefs autorefs-external" href="https://artui.github.io/django-service-specs/reference/#django_service_specs.specs.server_owned_keys.server_owned_keys"><code>server_owned_keys</code></a>),
+  since a value sent for it would be dropped.</li>
+<li><strong>A parameter with no flat spelling</strong>: an object, an array of objects or of
+  arrays, and a file. The subcommand's help names them. A spec that requires
+  one, such as any <code>many</code> spec, cannot be run from the command line.</li>
+</ul>
+<p>No option is matched by a prefix. Argparse reads <code>--titl</code> as <code>--title</code> by
+default, and beside a parameter <code>as_user_id</code> a mistyped <code>--as-user-i 7</code> would
+have been read as that parameter rather than refused. Here every prefix is
+refused, Django's own options' included.</p>
+<p>A spec parameter may not map to an option the command owns: <code>--as-user</code>,
+<code>--json</code>, <code>--table</code>, or one of Django's, such as <code>--verbosity</code> or
+<code>--settings</code>. <code>manage.py</code> reads <code>--settings</code> from anywhere on the line, so a
+spec option of that name would configure Django instead. Such a parameter is
+refused with <code>ImproperlyConfigured</code> when the parser is built.</p>
+<h2 id="the-user-a-run-is-made-as">The user a run is made as<a class="headerlink" href="#the-user-a-run-is-made-as" title="Permanent link">&para;</a></h2>
+<p><code>--as-user</code> is required. There is no default user, no system user of the
+command's own, and no fallback to an anonymous user. Its value goes through
+the command's
+<a class="autorefs autorefs-internal" title="resolve_as_user" href="reference/#django_spec_cli.spec_command.SpecCommand.resolve_as_user"><code>resolve_as_user</code></a>
+method, which by default looks a user up by primary key with
+<a class="autorefs autorefs-external" href="https://artui.github.io/django-service-specs/reference/#django_service_specs.authorization.resolve_principal.resolve_principal"><code>resolve_principal</code></a>.
+A project whose runbooks name people by username overrides the method:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">ByUsername</span><span class="p">(</span><span class="n">SpecCommand</span><span class="p">):</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">registry</span> <span class="o">=</span> <span class="n">notes</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">resolve_as_user</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>        <span class="n">users</span> <span class="o">=</span> <span class="n">get_user_model</span><span class="p">()</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>        <span class="k">try</span><span class="p">:</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>            <span class="k">return</span> <span class="n">users</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">username</span><span class="o">=</span><span class="n">value</span><span class="p">)</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>        <span class="k">except</span> <span class="n">users</span><span class="o">.</span><span class="n">DoesNotExist</span><span class="p">:</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>            <span class="k">raise</span> <span class="n">PrincipalUnavailable</span><span class="p">(</span><span class="sa">f</span><span class="s2">"No user named </span><span class="si">{</span><span class="n">value</span><span class="si">!r}</span><span class="s2">."</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="kc">None</span>
+</span></code></pre></div>
+<p>The contract is: return a user, or raise <code>PrincipalUnavailable</code>, which ends
+the run with exit status 5. Anything else the method raises is a bug in it,
+and propagates with its traceback. An override need not refuse a deactivated
+user itself, since <code>dispatch</code> refuses one whatever the lookup returns.</p>
+<p>The command passes no <code>Grant</code>, so the spec's permission checks run for that
+user as they would for a request from them:</p>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="gp">$ </span>python<span class="w"> </span>manage.py<span class="w"> </span>notes<span class="w"> </span>rename-note<span class="w"> </span>--as-user<span class="w"> </span><span class="m">2</span><span class="w"> </span>--pk<span class="w"> </span><span class="m">1</span><span class="w"> </span>--title<span class="w"> </span>Final
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="go">CommandError: Only the note's owner may rename it.</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="gp">$ </span><span class="nb">echo</span><span class="w"> </span><span class="nv">$?</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="go">4</span>
+</span></code></pre></div>
+<h2 id="output">Output<a class="headerlink" href="#output" title="Permanent link">&para;</a></h2>
+<p>A run's result goes through the spec's presenter, then is written in one of
+two formats, decided in this order:</p>
+<ol>
+<li><code>--table</code> or <code>--json</code> on the command line.</li>
+<li>The <code>SPEC_CLI_OUTPUT</code> setting: <code>"table"</code> or <code>"json"</code> pins one
+   project-wide; <code>"auto"</code>, the default, leaves it to the next step.</li>
+<li>A table when stdout is a terminal, JSON Lines when it is a pipe or a file.</li>
+</ol>
+<p>That last step means an interactive run and CI print different things by
+default, which is what the flag and the setting are for:</p>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="gp">$ </span>python<span class="w"> </span>manage.py<span class="w"> </span>notes<span class="w"> </span>list-notes<span class="w"> </span>--as-user<span class="w"> </span><span class="m">1</span><span class="w"> </span>--json
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="go">{"id":1,"title":"Final"}</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="go">{"id":2,"title":"Shopping"}</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="gp">$ </span>python<span class="w"> </span>manage.py<span class="w"> </span>notes<span class="w"> </span>list-notes<span class="w"> </span>--as-user<span class="w"> </span><span class="m">1</span><span class="w"> </span>--table
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="go">id  title</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="go"> 1  Final</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="go"> 2  Shopping</span>
+</span></code></pre></div>
+<p>The table's columns come from the spec's <code>Output</code>, never from the first row;
+see <a class="autorefs autorefs-internal" title="render_table" href="reference/#django_spec_cli.render.render_table.render_table"><code>render_table</code></a>
+for what a field's marking does to them. JSON Lines are written one row at a
+time, but <code>present</code> builds a list result whole before the first row is
+written, so a large read is held in memory once, as an HTTP response holds
+it. A service that returns nothing writes nothing.</p>
+<h2 id="exit-codes">Exit codes<a class="headerlink" href="#exit-codes" title="Permanent link">&para;</a></h2>
+<p>A refusal ends the run with a <code>CommandError</code> whose message goes to stderr and
+whose
+<a class="autorefs autorefs-internal" title="ExitCode" href="reference/#django_spec_cli.types.exit_code.ExitCode"><code>ExitCode</code></a> is the
+process's exit status. The codes are a public contract, for a script to
+branch on:</p>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th><code>ExitCode</code></th>
+<th>The run</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td><code>SUCCESS</code></td>
+<td>ran, and its result was written</td>
+</tr>
+<tr>
+<td>1</td>
+<td><code>ERROR</code></td>
+<td>failed in a way nobody declared: the traceback is printed</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>USAGE</code></td>
+<td>never started: the command line was malformed</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>INVALID_ARGUMENTS</code></td>
+<td><code>InvalidArguments</code>, <code>ServiceValidationError</code>, any other <code>DispatchError</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>NOT_PERMITTED</code></td>
+<td><code>NotPermitted</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>PRINCIPAL_UNAVAILABLE</code></td>
+<td><code>PrincipalUnavailable</code>: no such user, or a deactivated one</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>NOT_FOUND</code></td>
+<td>the row named does not exist, or the service raised <code>ServiceNotFound</code></td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>CONFLICT</code></td>
+<td><code>ServiceConflict</code>, and <code>ActionUnavailable</code> with its code in the message</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>INPUT_REQUIRED</code></td>
+<td><code>AdditionalInputRequired</code></td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>REFUSED</code></td>
+<td>any other <code>ServiceError</code></td>
+</tr>
+</tbody>
+</table>
+<p><a class="autorefs autorefs-internal" title="exit_code_for" href="reference/#django_spec_cli.exit_code_for.exit_code_for"><code>exit_code_for</code></a>
+is the mapping, for a project that runs specs from a command of its own.</p>
+<p>An invalid argument prints one line per refused field, after its path:</p>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="gp">$ </span>python<span class="w"> </span>manage.py<span class="w"> </span>notes<span class="w"> </span>rename-note<span class="w"> </span>--as-user<span class="w"> </span><span class="m">1</span><span class="w"> </span>--pk<span class="w"> </span><span class="m">1</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="go">CommandError: Invalid arguments.</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="go">title: This field is required.</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="gp">$ </span><span class="nb">echo</span><span class="w"> </span><span class="nv">$?</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="go">3</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="gp">$ </span>python<span class="w"> </span>manage.py<span class="w"> </span>notes<span class="w"> </span>rename-note<span class="w"> </span>--as-user<span class="w"> </span><span class="m">1</span><span class="w"> </span>--pk<span class="w"> </span>one<span class="w"> </span>--title<span class="w"> </span>Final
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="go">CommandError: Invalid arguments.</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="go">pk: Enter a whole number.</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="gp">$ </span><span class="nb">echo</span><span class="w"> </span><span class="nv">$?</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="go">3</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="gp">$ </span>python<span class="w"> </span>manage.py<span class="w"> </span>notes<span class="w"> </span>rename-note<span class="w"> </span>--as-user<span class="w"> </span><span class="m">1</span><span class="w"> </span>--pk<span class="w"> </span><span class="m">99</span><span class="w"> </span>--title<span class="w"> </span>Final
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="go">CommandError: Not found.</span>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="gp">$ </span><span class="nb">echo</span><span class="w"> </span><span class="nv">$?</span>
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="go">6</span>
+</span></code></pre></div>
+<p>A command line cannot ask a question, so <code>AdditionalInputRequired</code> ends the
+run with code 8 and names the options its <code>schema</code> asks for. The operator, or
+a script that knows the answer, runs the command again with them.</p>
+<p>Through <code>call_command</code> the <code>CommandError</code> is raised to the caller rather than
+printed, with the code as its <code>returncode</code>. A malformed command line is a
+<code>CommandError</code> there too, as Django makes every parser error, with
+<code>returncode</code> 1 rather than 2.</p>
+<h2 id="open-specs-explain">Open specs: <code>--explain</code> and the system check<a class="headerlink" href="#open-specs-explain" title="Permanent link">&para;</a></h2>
+<p><code>whoami</code> is open to every active user, which is what it is for:</p>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="gp">$ </span>python<span class="w"> </span>manage.py<span class="w"> </span>notes<span class="w"> </span>whoami<span class="w"> </span>--as-user<span class="w"> </span><span class="m">2</span><span class="w"> </span>--json
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="go">"grace"</span>
+</span></code></pre></div>
+<p><code>--explain</code> runs no spec. It prints one line for each spec the command serves
+that <a href="https://artui.github.io/django-service-specs/registry/#open-specs-reported">authorizes nothing</a>, every check it
+declares being <code>Unrestricted</code>:</p>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="gp">$ </span>python<span class="w"> </span>manage.py<span class="w"> </span>notes<span class="w"> </span>--explain
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="go">'whoami' in manage.py notes authorizes nothing: every permission check it declares is Unrestricted, so any active user named by --as-user may run it.</span>
+</span></code></pre></div>
+<p>Listing <code>"django_spec_cli"</code> in <code>INSTALLED_APPS</code> reports the same
+sentence from <code>manage.py check</code>, as <code>django_spec_cli.W001</code>, once per
+open spec of every <code>SpecCommand</code> in the project, and a command that could not
+be loaded to be checked as <code>django_spec_cli.W003</code>. There is no
+<code>W002</code>: a spec with an empty <code>permissions</code> is refused when it is built, so
+none reaches a registry. Both are warnings, and <code>SILENCED_SYSTEM_CHECKS</code>
+silences one by id.</p>
+<p>Until the kernel removes its own copy of the command, kernel 0.10.x still
+registers <code>django_service_specs.W001</code> and <code>W003</code>, over its own <code>SpecCommand</code>
+class rather than this package's. A project that lists both
+<code>"django_service_specs"</code> and <code>"django_spec_cli"</code> sees both ids, the kernel's
+for commands still subclassing its copy and this package's for commands
+subclassing <code>django_spec_cli.SpecCommand</code>, and a command that cannot be loaded
+gets a <code>W003</code> from each. A project that moves its imports here and lists only
+<code>"django_service_specs"</code> gets no check for the moved commands at all, so list
+<code>"django_spec_cli"</code>.</p>
+<p>A <code>SpecCommand</code> keeps Django's system checks on, so on the command line the
+report is printed to stderr before every run of every command. The runs on
+this page are shown without it; in a project listing the app, each would be
+preceded by the warning for <code>whoami</code>. <code>call_command</code> skips
+system checks for every command but <code>check</code>, so a command run through it
+does not print them.</p>
+<h2 id="what-it-does-not-do">What it does not do<a class="headerlink" href="#what-it-does-not-do" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>No payload file.</strong> Arguments are options; an object or a list of rows has
+  none, and there is no <code>--from-json</code>.</li>
+<li><strong>No <code>--dry-run</code>.</strong> A run that resolves and validates without running the
+  service is not offered.</li>
+<li><strong>Sync only.</strong> The command dispatches with <code>dispatch</code>, never <code>adispatch</code>,
+  so an <code>async def</code> service is run as <code>dispatch</code> runs one.</li>
+<li><strong>No transaction of its own.</strong> A spec's <code>atomic</code> is dispatch's to honour.</li>
+<li><strong>No Typer.</strong> The command is argparse, as <code>manage.py</code> is, and needs nothing
+  beyond Django.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": ["navigation.instant", "navigation.tracking", "navigation.sections", "navigation.top", "search.highlight", "search.suggest", "content.code.copy", "content.code.annotate", "content.action.edit", "toc.follow"], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
