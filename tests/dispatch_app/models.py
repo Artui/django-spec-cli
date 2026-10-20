@@ -1,9 +1,9 @@
 """The row the suite's commands act on.
 
 One row type owned by a user: enough for a selector to scope rows to its
-principal, a retrieve to miss, and a write to change or be refused. The app has
-no migrations, so the test database creates its table directly, as Django does
-for any unmigrated app.
+principal, a retrieve to miss, a queryset to shape through ``select_related``,
+and a write to change or be refused. The app has no migrations, so the test
+database creates its table directly, as Django does for any unmigrated app.
 """
 
 from __future__ import annotations
