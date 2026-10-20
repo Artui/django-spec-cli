@@ -6,7 +6,6 @@ import datetime as dt
 import io
 import json
 import uuid
-from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from decimal import Decimal
 from types import SimpleNamespace
@@ -17,38 +16,41 @@ from django.utils.translation import gettext_lazy
 from django_service_specs import UNSET, DataclassPresenter, UnsetType
 
 from django_spec_cli.render.render_json_lines import render_json_lines
+from tests.render.utils import pulled_before_the_first_write
 
 
-def _lines(stream: io.StringIO) -> list[str]:
+def _written(rows: list[Any]) -> str:
+    stream = io.StringIO()
+    render_json_lines(rows, stream)
+    return stream.getvalue()
+
+
+def _lines(rows: list[Any]) -> list[str]:
     # ``split("\n")`` rather than ``splitlines()``, which also splits on the
     # separators JSON leaves raw, so it would read lines no JSON Lines reader does.
-    text = stream.getvalue()
+    text = _written(rows)
     assert text.endswith("\n")
     return text[:-1].split("\n")
 
 
 def test_each_row_is_one_line_of_json() -> None:
-    stream = io.StringIO()
-    render_json_lines([{"id": 1, "title": "a"}, {"id": 2, "title": "b"}], stream)
-    assert stream.getvalue() == '{"id":1,"title":"a"}\n{"id":2,"title":"b"}\n'
+    assert (
+        _written([{"id": 1, "title": "a"}, {"id": 2, "title": "b"}])
+        == '{"id":1,"title":"a"}\n{"id":2,"title":"b"}\n'
+    )
 
 
 def test_key_order_is_the_row_s_own() -> None:
-    stream = io.StringIO()
-    render_json_lines([{"z": 1, "a": 2, "m": 3}], stream)
-    assert list(json.loads(_lines(stream)[0])) == ["z", "a", "m"]
+    assert list(json.loads(_written([{"z": 1, "a": 2, "m": 3}]))) == ["z", "a", "m"]
 
 
 def test_text_is_written_as_itself_rather_than_escaped() -> None:
-    stream = io.StringIO()
-    render_json_lines([{"city": "Zürich", "name": "東京"}], stream)
-    assert _lines(stream) == ['{"city":"Zürich","name":"東京"}']
+    assert _lines([{"city": "Zürich", "name": "東京"}]) == ['{"city":"Zürich","name":"東京"}']
 
 
 def test_values_json_has_no_type_for_are_encoded_as_django_encodes_them() -> None:
-    stream = io.StringIO()
     key = uuid.UUID("12345678-1234-5678-1234-567812345678")
-    render_json_lines(
+    [line] = _lines(
         [
             {
                 "price": Decimal("12.50"),
@@ -57,10 +59,9 @@ def test_values_json_has_no_type_for_are_encoded_as_django_encodes_them() -> Non
                 "key": key,
                 "status": gettext_lazy("Draft"),
             }
-        ],
-        stream,
+        ]
     )
-    assert json.loads(_lines(stream)[0]) == {
+    assert json.loads(line) == {
         "price": "12.50",
         "at": "2024-06-01T12:00:00Z",
         "on": "2024-06-01",
@@ -73,41 +74,21 @@ def test_a_line_separator_inside_a_value_never_ends_a_line() -> None:
     # JSON escapes the C0 controls and leaves U+2028, U+2029 and NEL raw, all
     # three of which some line readers break on. Each is escaped, so every
     # reader sees the row as one line and decodes the same value.
-    stream = io.StringIO()
     value = "a b c\x85d\ne"
-    render_json_lines([{"note": value}], stream)
-    (line,) = stream.getvalue().splitlines()
+    (line,) = _written([{"note": value}]).splitlines()
     assert json.loads(line) == {"note": value}
 
 
 def test_rows_are_streamed_one_at_a_time() -> None:
     # A generator of rows is a LIST selector's queryset being read: turning it
     # into a list first would hold every row in memory before the first byte.
-    pulled = 0
-    pulled_at_first_write: list[int] = []
-
-    def rows() -> Iterator[Mapping[str, Any]]:
-        nonlocal pulled
-        for n in range(3):
-            pulled += 1
-            yield {"n": n}
-
-    class _Recording(io.StringIO):
-        def write(self, text: str) -> int:
-            if not pulled_at_first_write:
-                pulled_at_first_write.append(pulled)
-            return super().write(text)
-
-    stream = _Recording()
-    render_json_lines(rows(), stream)
-    assert pulled_at_first_write == [1]
-    assert _lines(stream) == ['{"n":0}', '{"n":1}', '{"n":2}']
+    pulled, written = pulled_before_the_first_write(render_json_lines)
+    assert pulled == 1
+    assert written == '{"id":0}\n{"id":1}\n{"id":2}\n'
 
 
 def test_no_rows_write_nothing() -> None:
-    stream = io.StringIO()
-    render_json_lines([], stream)
-    assert stream.getvalue() == ""
+    assert _written([]) == ""
 
 
 def test_each_line_is_one_write_so_django_s_wrapper_adds_no_blank_lines() -> None:
@@ -133,6 +114,4 @@ def test_a_dataclass_presenter_s_rows_keep_an_absent_key_absent_and_a_null_null(
         presenter.present(SimpleNamespace(id=1, body=None, bio=UNSET)),
         presenter.present(SimpleNamespace(id=2, body="b", bio="x")),
     ]
-    stream = io.StringIO()
-    render_json_lines(rows, stream)
-    assert _lines(stream) == ['{"id":1,"body":null}', '{"id":2,"body":"b","bio":"x"}']
+    assert _lines(rows) == ['{"id":1,"body":null}', '{"id":2,"body":"b","bio":"x"}']

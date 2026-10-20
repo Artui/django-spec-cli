@@ -1,5 +1,7 @@
 """Suite-wide hooks: the guard that the suite tests this package and not the kernel's copy.
 
+It also holds the one fixture two modules share, ``keep_the_test_connection``.
+
 Kernel 0.10.x still ships the command half this package was moved out of:
 ``django_service_specs.commands``, ``types/exit_code.py``, ``checks.py`` and
 ``apps.py``, and its root re-exports every moving name. A missed import rewrite
@@ -74,11 +76,21 @@ def kernel_copies_loaded(modules: dict[str, ModuleType | None]) -> list[str]:
     for name, module in sorted(modules.items()):
         if not _within(name, _OURS) or module is None:
             continue
-        for attribute, value in sorted(vars(module).items(), key=lambda item: item[0]):
+        for attribute, value in sorted(vars(module).items()):
             origin = _kernel_copy_of(value)
             if origin is not None:
                 found.append(f"{name}.{attribute} is the kernel's {origin}")
     return found
+
+
+@pytest.fixture
+def keep_the_test_connection(monkeypatch: pytest.MonkeyPatch) -> None:
+    """For a test calling ``run_from_argv``, which closes every connection when it ends.
+
+    That would close the one the test's transaction is on. Opt-in rather than
+    autouse, so no other test runs with ``close_all`` patched out.
+    """
+    monkeypatch.setattr("django.db.connections.close_all", lambda: None)
 
 
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:

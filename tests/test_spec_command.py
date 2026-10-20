@@ -9,9 +9,6 @@ from __future__ import annotations
 import functools
 import io
 import json
-import subprocess
-import sys
-from pathlib import Path
 from typing import Any, TypedDict
 
 import pytest
@@ -40,11 +37,9 @@ from django_spec_cli.report.unguarded_message import unguarded_message
 from django_spec_cli.spec_command import SpecCommand
 from tests.commands_app.management.commands import notes
 from tests.dispatch_app.models import Note
+from tests.utils import run_project
 
 pytestmark = pytest.mark.django_db
-
-REPO_ROOT = Path(__file__).resolve().parents[1]
-
 
 # --- helpers -------------------------------------------------------------------------------------
 
@@ -77,6 +72,17 @@ def help_of(capsys: pytest.CaptureFixture[str], *argv: str, command: SpecCommand
 def command_over(registry: SpecRegistry, **attributes: Any) -> SpecCommand:
     """A ``SpecCommand`` over ``registry``, declared as a project declares one."""
     return type("Command", (SpecCommand,), {"registry": registry, **attributes})()
+
+
+def registry_of(**specs: Any) -> SpecRegistry:
+    registry = SpecRegistry()
+    for name, spec in specs.items():
+        registry.register(name, spec)
+    return registry
+
+
+def open_spec(service: Any) -> ServiceSpec:
+    return ServiceSpec(service=service, permissions=[Unrestricted()])
 
 
 def echo_spec(*parameters: Parameter, **declared: Any) -> ServiceSpec:
@@ -147,10 +153,9 @@ class TestDeclaring:
         "name", ["as_user", "json", "table", "settings", "pythonpath", "verbosity", "traceback"]
     )
     def test_a_parameter_on_an_option_the_command_owns_is_refused(self, name: str) -> None:
-        registry = SpecRegistry()
-        registry.register("echo", echo_spec(Parameter(name, "string")))
+        command = command_over(registry_of(echo=echo_spec(Parameter(name, "string"))))
         with pytest.raises(ImproperlyConfigured, match="is the command's own"):
-            command_over(registry).create_parser("manage.py", "notes")
+            command.create_parser("manage.py", "notes")
 
     def test_a_spec_declared_by_a_source_is_read_as_the_spec_it_compiles_to(
         self, owner: Any, note: Note
@@ -259,28 +264,23 @@ class TestRunning:
         def archive_all() -> None:
             return None
 
-        registry = SpecRegistry()
-        registry.register("archive", ServiceSpec(service=archive_all, permissions=[Unrestricted()]))
-        assert run("archive", "--as-user", str(owner.pk), command=command_over(registry)) == ""
+        command = command_over(registry_of(archive=open_spec(archive_all)))
+        assert run("archive", "--as-user", str(owner.pk), command=command) == ""
 
     def test_an_async_service_is_run_as_dispatch_runs_one(self, owner: Any) -> None:
         async def aping() -> str:
             return "pong"
 
-        registry = SpecRegistry()
-        registry.register("aping", ServiceSpec(service=aping, permissions=[Unrestricted()]))
-        assert run("aping", "--as-user", str(owner.pk), command=command_over(registry)) == (
-            '"pong"\n'
-        )
+        command = command_over(registry_of(aping=open_spec(aping)))
+        assert run("aping", "--as-user", str(owner.pk), command=command) == '"pong"\n'
 
     def test_an_error_nothing_maps_is_left_to_propagate(self, owner: Any) -> None:
         def broken() -> None:
             raise RuntimeError("a bug")
 
-        registry = SpecRegistry()
-        registry.register("broken", ServiceSpec(service=broken, permissions=[Unrestricted()]))
+        command = command_over(registry_of(broken=open_spec(broken)))
         with pytest.raises(RuntimeError, match="a bug"):
-            run("broken", "--as-user", str(owner.pk), command=command_over(registry))
+            run("broken", "--as-user", str(owner.pk), command=command)
 
 
 class TestSeeds:
@@ -288,9 +288,7 @@ class TestSeeds:
         def greet(*, tenant: str) -> str:
             return f"hello {tenant}"
 
-        registry = SpecRegistry()
-        registry.register("greet", ServiceSpec(service=greet, permissions=[Unrestricted()]))
-        return registry
+        return registry_of(greet=open_spec(greet))
 
     def test_the_seeds_a_command_names_resolve_the_services_callables(self, owner: Any) -> None:
         # The HTTP entry points take ``pool_seeds``; a command over the same
@@ -313,11 +311,8 @@ class TestAbbreviation:
 
     @pytest.fixture
     def command(self) -> SpecCommand:
-        registry = SpecRegistry()
-        registry.register(
-            "echo", echo_spec(Parameter("as_user_id", "integer"), Parameter("title", "string"))
-        )
-        return command_over(registry)
+        echo = echo_spec(Parameter("as_user_id", "integer"), Parameter("title", "string"))
+        return command_over(registry_of(echo=echo))
 
     def test_as_user_names_the_principal_and_never_the_parameter(
         self, command: SpecCommand, owner: Any, other: Any
@@ -376,9 +371,8 @@ class TestHelp:
         def discount() -> None:
             """Take 10% off."""
 
-        registry = SpecRegistry()
-        registry.register("discount", ServiceSpec(service=discount, permissions=[Unrestricted()]))
-        assert "Take 10% off. (write)" in help_of(capsys, command=command_over(registry))
+        command = command_over(registry_of(discount=open_spec(discount)))
+        assert "Take 10% off. (write)" in help_of(capsys, command=command)
 
     def test_each_subcommand_says_what_its_spec_s_callable_says_and_its_kind(
         self, capsys: pytest.CaptureFixture[str]
@@ -394,13 +388,10 @@ class TestHelp:
             def tidy(self) -> None:
                 """Put every note back in order."""
 
-        registry = SpecRegistry()
         # A method's own docstring describes the operation; a ``partial``'s is
         # the class's, which describes ``partial``.
-        registry.register("tidy", ServiceSpec(service=Shelf().tidy, permissions=[Unrestricted()]))
-        registry.register(
-            "later",
-            ServiceSpec(service=functools.partial(notes.ping), permissions=[Unrestricted()]),
+        registry = registry_of(
+            tidy=open_spec(Shelf().tidy), later=open_spec(functools.partial(notes.ping))
         )
         text = help_of(capsys, command=command_over(registry))
         assert "Put every note back in order. (write)" in text
@@ -422,9 +413,8 @@ class TestHelp:
     def test_a_parameter_argv_cannot_send_is_named_in_the_epilog(
         self, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        registry = SpecRegistry()
-        registry.register("echo", echo_spec(Parameter("meta", "object"), Parameter("n", "integer")))
-        text = help_of(capsys, "echo", command=command_over(registry))
+        echo = echo_spec(Parameter("meta", "object"), Parameter("n", "integer"))
+        text = help_of(capsys, "echo", command=command_over(registry_of(echo=echo)))
         assert "--meta" not in text
         assert "Takes arguments a command line cannot send: meta." in text
 
@@ -434,9 +424,7 @@ class TestHelp:
             Parameter("n", "integer"),
             kwargs=fill_project,
         )
-        registry = SpecRegistry()
-        registry.register("echo", spec)
-        text = help_of(capsys, "echo", command=command_over(registry))
+        text = help_of(capsys, "echo", command=command_over(registry_of(echo=spec)))
         assert "--project" not in text
         assert "--n INTEGER" in text
 
@@ -594,14 +582,9 @@ class TestExplain:
 # --- from argv, as manage.py runs it -------------------------------------------------------------
 
 
+@pytest.mark.usefixtures("keep_the_test_connection")
 class TestFromArgv:
     """``run_from_argv``: a ``CommandError``'s message to stderr, its code to ``sys.exit``."""
-
-    @pytest.fixture(autouse=True)
-    def _keep_the_test_connection(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        # run_from_argv closes every connection when it ends, which would close
-        # the one this test's transaction is on.
-        monkeypatch.setattr("django.db.connections.close_all", lambda: None)
 
     def argv_exit(
         self, capsys: pytest.CaptureFixture[str], *argv: str
@@ -654,26 +637,20 @@ class TestFromArgv:
         assert err.startswith("usage: manage.py notes ping")
 
 
+CONTRIB_APPS = ["django.contrib.contenttypes", "django.contrib.auth"]
+TEST_APPS = ["tests.commands_app", "tests.dispatch_app"]
+
+
 def test_manage_py_exits_with_the_code_and_runs_the_system_check() -> None:
     """A real ``manage.py`` run in a fresh interpreter: system checks on, Django's own exit."""
-    probe = """
-import django
-from django.conf import settings
-settings.configure(
-    INSTALLED_APPS=[
-        "django.contrib.contenttypes", "django.contrib.auth", "django_spec_cli",
-        "tests.commands_app", "tests.dispatch_app",
-    ],
-    SECRET_KEY="probe",
-    DATABASES={"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}},
-)
+    completed = run_project(
+        [*CONTRIB_APPS, "django_spec_cli", *TEST_APPS],
+        """
 django.setup()
 from django.core.management import call_command, execute_from_command_line
 call_command("migrate", verbosity=0, run_syncdb=True)
 execute_from_command_line(["manage.py", "notes", "ping", "--as-user", "999"])
-"""
-    completed = subprocess.run(
-        [sys.executable, "-c", probe], cwd=REPO_ROOT, capture_output=True, text=True
+""",
     )
     assert completed.returncode == 5, completed.stderr
     assert "(django_spec_cli.W001) 'ping' in manage.py notes authorizes nothing" in (
@@ -684,17 +661,9 @@ execute_from_command_line(["manage.py", "notes", "ping", "--as-user", "999"])
 
 def test_a_command_runs_with_neither_package_s_app_installed() -> None:
     """The page's claim: listing ``django_spec_cli`` adds the check and nothing the command needs."""
-    probe = """
-import django
-from django.conf import settings
-settings.configure(
-    INSTALLED_APPS=[
-        "django.contrib.contenttypes", "django.contrib.auth",
-        "tests.commands_app", "tests.dispatch_app",
-    ],
-    SECRET_KEY="probe",
-    DATABASES={"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}},
-)
+    completed = run_project(
+        [*CONTRIB_APPS, *TEST_APPS],
+        """
 django.setup()
 from django.apps import apps
 assert not apps.is_installed("django_spec_cli")
@@ -704,9 +673,7 @@ from django.core.management import call_command, execute_from_command_line
 call_command("migrate", verbosity=0, run_syncdb=True)
 user = get_user_model().objects.create_user("ada")
 execute_from_command_line(["manage.py", "notes", "ping", "--as-user", str(user.pk)])
-"""
-    completed = subprocess.run(
-        [sys.executable, "-c", probe], cwd=REPO_ROOT, capture_output=True, text=True
+""",
     )
     assert completed.returncode == 0, completed.stderr
     assert completed.stdout == '"pong"\n'

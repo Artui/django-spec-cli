@@ -2,9 +2,6 @@ from __future__ import annotations
 
 import inspect
 import json
-import subprocess
-import sys
-from pathlib import Path
 
 from django.apps import AppConfig, apps
 from django.core.checks.registry import registry
@@ -12,8 +9,7 @@ from django.core.checks.registry import registry
 import django_spec_cli.apps
 from django_spec_cli.apps import DjangoSpecCliConfig
 from django_spec_cli.checks import check_unguarded_specs
-
-REPO_ROOT = Path(__file__).resolve().parents[1]
+from tests.utils import run_python
 
 
 def test_apps_py_declares_exactly_one_app_config() -> None:
@@ -55,10 +51,7 @@ from django.apps import apps
 import django_spec_cli.apps
 print(json.dumps([apps.ready, sorted(m for m in sys.modules if m.endswith(".models"))]))
 """
-    completed = subprocess.run(
-        [sys.executable, "-c", probe], cwd=REPO_ROOT, capture_output=True, text=True
-    )
-
+    completed = run_python(probe)
     assert completed.returncode == 0, completed.stderr
     ready, models = json.loads(completed.stdout)
     assert ready is False

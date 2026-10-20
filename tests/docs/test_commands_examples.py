@@ -26,7 +26,7 @@ from django_spec_cli.report.unguarded_message import unguarded_message
 from docs.examples import commands
 from tests.dispatch_app.models import Note
 
-pytestmark = pytest.mark.django_db
+pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("keep_the_test_connection")]
 
 PAGE = Path(__file__).resolve().parents[2] / "docs" / "index.md"
 PROMPT = "$ python manage.py notes "
@@ -62,13 +62,6 @@ def world(django_user_model: Any) -> None:
     django_user_model.objects.create_user(pk=2, username="grace")
     Note.objects.create(pk=1, owner=ada, title="Draft")
     Note.objects.create(pk=2, owner=ada, title="Shopping")
-
-
-@pytest.fixture(autouse=True)
-def _keep_the_test_connection(monkeypatch: pytest.MonkeyPatch) -> None:
-    # run_from_argv closes every connection when it ends, which would close
-    # the one this test's transaction is on.
-    monkeypatch.setattr("django.db.connections.close_all", lambda: None)
 
 
 def test_the_page_shows_runs_of_every_outcome_it_documents() -> None:

@@ -20,8 +20,7 @@ import django_service_specs
 import pytest
 
 import django_spec_cli
-
-REPO_ROOT = Path(__file__).resolve().parents[1]
+from tests.utils import REPO_ROOT
 
 KERNEL = "django_service_specs"
 _MOVED_MODULES = ("commands", "checks", "apps")
