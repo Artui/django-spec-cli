@@ -3,9 +3,9 @@ from __future__ import annotations
 import dataclasses
 
 import pytest
+from django_service_specs import UNSET
 
-from django_service_specs.commands.argv.parameter_descriptor import ParameterDescriptor
-from django_service_specs.types.unset import UNSET
+from django_spec_cli.argv.parameter_descriptor import ParameterDescriptor
 
 
 def test_the_option_is_the_name_with_dashes() -> None:

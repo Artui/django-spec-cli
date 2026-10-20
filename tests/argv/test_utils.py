@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from django_service_specs.commands.argv.utils import destination, option_string
+from django_spec_cli.argv.utils import destination, option_string
 
 
 def test_an_option_is_two_dashes_and_the_name_with_dashes() -> None:

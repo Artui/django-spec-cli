@@ -11,8 +11,9 @@ by `--as-user`, the result as a table or JSON Lines, and an exit code for every
 refusal. Two system checks, `django_spec_cli.W001` and `W003`, report a served
 spec that authorizes nothing and a command that cannot be loaded.
 
-It was the kernel's `commands/` subpackage and moved out with its history, so
-the kernel carries no transport. Two positions follow from that:
+It is the kernel's `commands/` subpackage, moved out with its history so that
+the kernel can carry no transport. Kernel 0.10.x still ships its own copy, until
+a later kernel release removes it. Two positions follow from the move:
 
 - **The kernel is read through its root and nothing else.** Every kernel name
   this package uses is in `django_service_specs.__all__`, and every import of
@@ -86,9 +87,17 @@ Each of these reads as an oversight and is not.
   another transport can ask the same question of a registry.
 - **Until the kernel removes its own copy of the command, both copies exist.**
   Kernel 0.10.x still ships `commands/` and registers `django_service_specs.W001`
-  over its own `SpecCommand`. A test asserts the suite never imports
-  `django_service_specs.commands`, because a missed import rewrite would
-  resolve against the kernel's copy and pass while testing the wrong code.
+  over its own `SpecCommand`, and its root re-exports every moved name, so a
+  missed import rewrite resolves against the kernel's copy and passes while
+  testing the wrong code. The suite cannot keep `django_service_specs.commands`
+  out of `sys.modules`, since the kernel's root imports it. Two guards hold the
+  line instead. `tests/test_kernel_copy_references.py` parses every module and
+  every python block in the docs and fails on any reference through
+  `django_service_specs` to a name this package also exports, to
+  `check_unguarded_specs` or `command_output`, or to a moved module. The
+  session-finish hook in `tests/conftest.py` fails the run if the kernel's
+  `checks` or `apps` was imported, or if a module of this repository holds an
+  object from the kernel's copy.
 - **The test settings list no kernel app.** The package needs nothing of the
   kernel switched on, and the suite shows it.
 

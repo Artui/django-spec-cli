@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from django_service_specs.commands.argv.parameter_descriptor import ParameterDescriptor
-from django_service_specs.parameters.parameters import Parameter, Parameters
-from django_service_specs.types.unset import UNSET
+from django_service_specs import UNSET, Parameter, Parameters
+
+from django_spec_cli.argv.parameter_descriptor import ParameterDescriptor
 
 _FLAT_TYPES = ("string", "integer", "number", "boolean", "any")
 """The types one string on a command line spells: ``coerce_flat`` reads it as one
@@ -19,7 +19,7 @@ declared ``items``, whose elements stay the strings given."""
 
 
 def describe_parameters(parameters: Parameters) -> tuple[ParameterDescriptor, ...]:
-    """One [`ParameterDescriptor`][django_service_specs.commands.argv.parameter_descriptor.ParameterDescriptor] per parameter, in declaration order.
+    """One [`ParameterDescriptor`][django_spec_cli.argv.parameter_descriptor.ParameterDescriptor] per parameter, in declaration order.
 
     Never refuses a declaration: a parameter with no flat spelling is
     described with ``argv=False`` rather than left out, so a command can still

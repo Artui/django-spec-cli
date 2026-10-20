@@ -7,15 +7,18 @@ import decimal
 from typing import Any
 
 import pytest
+from django_service_specs import (
+    DataclassValidator,
+    InvalidArguments,
+    Parameter,
+    Parameters,
+    ValidationContext,
+    check_arguments,
+    coerce_flat,
+)
 
-from django_service_specs.adapters.dataclass.dataclass_validator import DataclassValidator
-from django_service_specs.commands.argv.parsed_arguments import parsed_arguments
-from django_service_specs.parameters.check_arguments import check_arguments
-from django_service_specs.parameters.coerce_flat import coerce_flat
-from django_service_specs.parameters.invalid_arguments import InvalidArguments
-from django_service_specs.parameters.parameters import Parameter, Parameters
-from django_service_specs.validation.validation_context import ValidationContext
-from tests.commands.argv.utils import FLAT, UNSENDABLE, parser_for
+from django_spec_cli.argv.parsed_arguments import parsed_arguments
+from tests.argv.utils import FLAT, UNSENDABLE, parser_for
 
 
 @dataclasses.dataclass

@@ -5,10 +5,10 @@ from __future__ import annotations
 from django.apps import AppConfig
 from django.core.checks import register
 
-from django_service_specs.checks import check_unguarded_specs
+from django_spec_cli.checks import check_unguarded_specs
 
 
-class DjangoServiceSpecsConfig(AppConfig):
+class DjangoSpecCliConfig(AppConfig):
     """Registers the unguarded-spec system check, and does nothing else.
 
     Optional: the package works unlisted, and a project that does not list it
@@ -25,7 +25,7 @@ class DjangoServiceSpecsConfig(AppConfig):
     (test_importing_the_app_before_setup_loads_no_model).
     """
 
-    name = "django_service_specs"
+    name = "django_spec_cli"
 
     def ready(self) -> None:
         register(check_unguarded_specs)

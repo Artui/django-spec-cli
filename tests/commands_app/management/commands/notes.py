@@ -15,24 +15,27 @@ from typing import Any, Literal
 
 from django import forms
 from django.db.models import QuerySet
+from django_service_specs import (
+    ActionUnavailable,
+    AdditionalInputRequired,
+    DataclassPresenter,
+    DataclassValidator,
+    FormValidator,
+    Parameter,
+    Parameters,
+    PermissionCheck,
+    SelectorKind,
+    SelectorSpec,
+    ServiceConflict,
+    ServiceError,
+    ServiceNotFound,
+    ServiceSpec,
+    ServiceValidationError,
+    SpecRegistry,
+    Unrestricted,
+)
 
-from django_service_specs.adapters.dataclass.dataclass_presenter import DataclassPresenter
-from django_service_specs.adapters.dataclass.dataclass_validator import DataclassValidator
-from django_service_specs.adapters.forms.form_validator import FormValidator
-from django_service_specs.authorization.permission_check import PermissionCheck
-from django_service_specs.authorization.unrestricted import Unrestricted
-from django_service_specs.commands.spec_command import SpecCommand
-from django_service_specs.parameters.parameters import Parameter, Parameters
-from django_service_specs.registry.spec_registry import SpecRegistry
-from django_service_specs.services.action_unavailable import ActionUnavailable
-from django_service_specs.services.additional_input_required import AdditionalInputRequired
-from django_service_specs.services.service_conflict import ServiceConflict
-from django_service_specs.services.service_error import ServiceError
-from django_service_specs.services.service_not_found import ServiceNotFound
-from django_service_specs.services.service_validation_error import ServiceValidationError
-from django_service_specs.specs.selector_spec import SelectorSpec
-from django_service_specs.specs.service_spec import ServiceSpec
-from django_service_specs.types.selector_kind import SelectorKind
+from django_spec_cli.spec_command import SpecCommand
 from tests.dispatch_app.models import Note
 
 

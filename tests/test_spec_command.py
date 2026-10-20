@@ -21,26 +21,29 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import override_settings
+from django_service_specs import (
+    DEFAULT_POOL_SEEDS,
+    Parameter,
+    Parameters,
+    PrincipalUnavailable,
+    ServiceSpec,
+    SpecRegistry,
+    UnguardedReason,
+    UnguardedSpec,
+    Unrestricted,
+    dispatch,
+    present,
+)
 
-from django_service_specs.authorization.principal_unavailable import PrincipalUnavailable
-from django_service_specs.authorization.unrestricted import Unrestricted
-from django_service_specs.commands.render.render_json_lines import render_json_lines
-from django_service_specs.commands.report.unguarded_message import unguarded_message
-from django_service_specs.commands.spec_command import SpecCommand
-from django_service_specs.dispatch.dispatch import dispatch
-from django_service_specs.dispatch.present import present
-from django_service_specs.parameters.parameters import Parameter, Parameters
-from django_service_specs.pool.pool_seeds import DEFAULT_POOL_SEEDS
-from django_service_specs.registry.spec_registry import SpecRegistry
-from django_service_specs.registry.unguarded_spec import UnguardedSpec
-from django_service_specs.specs.service_spec import ServiceSpec
-from django_service_specs.types.unguarded_reason import UnguardedReason
+from django_spec_cli.render.render_json_lines import render_json_lines
+from django_spec_cli.report.unguarded_message import unguarded_message
+from django_spec_cli.spec_command import SpecCommand
 from tests.commands_app.management.commands import notes
 from tests.dispatch_app.models import Note
 
 pytestmark = pytest.mark.django_db
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 # --- helpers -------------------------------------------------------------------------------------
@@ -453,7 +456,7 @@ class TestOutput:
         out = run(*argv, "--table")
         assert out.splitlines()[0].split() == ["id", "title"]
 
-    @override_settings(SERVICE_SPECS_COMMAND_OUTPUT="table")
+    @override_settings(SPEC_CLI_OUTPUT="table")
     def test_table_by_setting_and_json_by_flag_over_it(self, argv: tuple[str, ...]) -> None:
         assert run(*argv).splitlines()[0].split() == ["id", "title"]
         assert lines(run(*argv, "--json"))[0]["title"] == "draft"
@@ -512,7 +515,7 @@ class TestRefusals:
         # Read after the run, it failed a rename that had already committed.
         note = Note.objects.create(owner=owner, title="draft")
         with (
-            override_settings(SERVICE_SPECS_COMMAND_OUTPUT="TABLE"),
+            override_settings(SPEC_CLI_OUTPUT="TABLE"),
             pytest.raises(ImproperlyConfigured),
         ):
             run(
@@ -658,7 +661,7 @@ import django
 from django.conf import settings
 settings.configure(
     INSTALLED_APPS=[
-        "django.contrib.contenttypes", "django.contrib.auth", "django_service_specs",
+        "django.contrib.contenttypes", "django.contrib.auth", "django_spec_cli",
         "tests.commands_app", "tests.dispatch_app",
     ],
     SECRET_KEY="probe",
@@ -673,7 +676,39 @@ execute_from_command_line(["manage.py", "notes", "ping", "--as-user", "999"])
         [sys.executable, "-c", probe], cwd=REPO_ROOT, capture_output=True, text=True
     )
     assert completed.returncode == 5, completed.stderr
-    assert "(django_service_specs.W001) 'ping' in manage.py notes authorizes nothing" in (
+    assert "(django_spec_cli.W001) 'ping' in manage.py notes authorizes nothing" in (
         completed.stderr
     )
     assert completed.stderr.endswith("CommandError: No principal with identifier '999'.\n")
+
+
+def test_a_command_runs_with_neither_package_s_app_installed() -> None:
+    """The page's claim: listing ``django_spec_cli`` adds the check and nothing the command needs."""
+    probe = """
+import django
+from django.conf import settings
+settings.configure(
+    INSTALLED_APPS=[
+        "django.contrib.contenttypes", "django.contrib.auth",
+        "tests.commands_app", "tests.dispatch_app",
+    ],
+    SECRET_KEY="probe",
+    DATABASES={"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": ":memory:"}},
+)
+django.setup()
+from django.apps import apps
+assert not apps.is_installed("django_spec_cli")
+assert not apps.is_installed("django_service_specs")
+from django.contrib.auth import get_user_model
+from django.core.management import call_command, execute_from_command_line
+call_command("migrate", verbosity=0, run_syncdb=True)
+user = get_user_model().objects.create_user("ada")
+execute_from_command_line(["manage.py", "notes", "ping", "--as-user", str(user.pk)])
+"""
+    completed = subprocess.run(
+        [sys.executable, "-c", probe], cwd=REPO_ROOT, capture_output=True, text=True
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert completed.stdout == '"pong"\n'
+    # No check ran: neither app registered one.
+    assert "W001" not in completed.stderr

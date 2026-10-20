@@ -3,8 +3,9 @@ from __future__ import annotations
 import argparse
 from collections.abc import Collection
 
-from django_service_specs.commands.argv.add_spec_arguments import add_spec_arguments
-from django_service_specs.parameters.parameters import Parameter, Parameters
+from django_service_specs import Parameter, Parameters
+
+from django_spec_cli.argv.add_spec_arguments import add_spec_arguments
 
 ROW = Parameters.of(Parameter("title", "string", required=True))
 

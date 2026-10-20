@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal, TextIO
 
-from django_service_specs.settings import command_output
+from django_spec_cli.settings import command_output
 
 
 def wants_table(stream: TextIO, *, requested: Literal["table", "json"] | None) -> bool:
@@ -15,7 +15,7 @@ def wants_table(stream: TextIO, *, requested: Literal["table", "json"] | None) -
     1. ``requested``: what the operator asked for with ``--table`` or
        ``--json``. The setting is not read at all when the flag decides, so a
        misconfigured setting never overrides an explicit request.
-    2. The project's ``SERVICE_SPECS_COMMAND_OUTPUT`` setting, when it pins
+    2. The project's ``SPEC_CLI_OUTPUT`` setting, when it pins
        ``"table"`` or ``"json"``.
     3. ``stream.isatty()``: a table for a person at a terminal, JSON Lines for
        a pipe, a file or a test's buffer. A stream with no ``isatty`` cannot

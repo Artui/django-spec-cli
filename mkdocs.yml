@@ -48,6 +48,12 @@ plugins:
   - mkdocstrings:
       handlers:
         python:
+          # The docstrings cite the kernel's objects by their kernel paths, and
+          # the kernel's site is where those resolve. A cross-reference into a
+          # kernel release this machine has not fetched can fail --strict from
+          # mkdocs' cached copy of the inventory while CI, with no cache, passes.
+          inventories:
+            - https://artui.github.io/django-service-specs/objects.inv
           options:
             docstring_style: google
             show_root_heading: true
@@ -87,3 +93,4 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - API reference: reference.md

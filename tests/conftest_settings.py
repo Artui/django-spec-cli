@@ -1,8 +1,10 @@
 """Settings for the test suite.
 
-SQLite, and no DRF anywhere: the kernel's reason to exist is dispatch without
-it, and a suite that could import it could not notice the kernel doing so. The
-two contrib apps are the ones a spec's permission check and principal
+SQLite, and no DRF anywhere: the kernel this package serves exists for
+dispatch without it, and a suite that could import it could not notice either
+package reaching for it. No kernel app is listed either: the command needs
+nothing of the kernel switched on, and with the kernel's app out its own
+copy of the system check never runs beside this package's. The two contrib apps are the ones a spec's permission check and principal
 resolution reach, since a principal is a Django user.
 
 The test database is a **file**, not ``:memory:``. An in-memory SQLite database
@@ -25,11 +27,9 @@ SECRET_KEY = "not-a-secret-this-is-the-test-suite"
 INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.auth",
-    "django_service_specs",
-    "tests.adapter_app",
+    "django_spec_cli",
     "tests.commands_app",
     "tests.dispatch_app",
-    "tests.relations_app",
 ]
 
 DATABASES = {
@@ -38,7 +38,7 @@ DATABASES = {
         "NAME": ":memory:",
         "TEST": {
             "NAME": os.path.join(
-                tempfile.gettempdir(), f"django_service_specs_tests_{os.getpid()}.sqlite3"
+                tempfile.gettempdir(), f"django_spec_cli_tests_{os.getpid()}.sqlite3"
             ),
         },
     }

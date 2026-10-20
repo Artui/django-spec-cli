@@ -1,7 +1,7 @@
 # Running operations from the command line
 
-[`SpecCommand`][django_service_specs.commands.spec_command.SpecCommand] serves
-every spec in a [registry](registry.md) as one management command, with one
+[`SpecCommand`][django_spec_cli.spec_command.SpecCommand] serves
+every spec in a [registry](https://artui.github.io/django-service-specs/registry/) as one management command, with one
 subcommand per spec. An operator runs an operation as a named user, with
 arguments as options, and gets its presented result as a table or as JSON
 Lines:
@@ -11,14 +11,25 @@ $ python manage.py notes rename-note --as-user 1 --pk 1 --title Final --json
 {"id":1,"title":"Final"}
 ```
 
-The run goes through [`dispatch`](dispatching.md) as every other transport's
+The run goes through [`dispatch`](https://artui.github.io/django-service-specs/dispatching/) as every other transport's
 does: the same shape check and Validator, the same permission checks, enforced,
 for the user `--as-user` names, the same presenter. It needs Django and
 nothing else.
 
 ```python
-from django_service_specs import ExitCode, SpecCommand, exit_code_for
+from django_spec_cli import ExitCode, SpecCommand, exit_code_for
 ```
+
+## Installing
+
+```bash
+pip install django-spec-cli
+```
+
+It installs [`django-service-specs`](https://artui.github.io/django-service-specs/), the kernel whose specs it serves,
+from 0.10.0, on Python 3.10 and Django 4.2 or later. The command line was the
+kernel's `commands/` subpackage, and moved here so the kernel carries no
+transport.
 
 ## What it is not
 
@@ -49,19 +60,20 @@ registry where two names would be one subcommand (`a_b` and `a-b`).
 
 A registry whose callables read a seed of their own - an affordance's `when`,
 a selector - names the seeds on the class, as
-[`SpecView`][django_service_specs.http.spec_view.SpecView] does:
+`SpecView` does:
 `pool_seeds = DEFAULT_POOL_SEEDS.extend(tenant=current_tenant)`. Without it a
 callable asking for a seed nobody registered fails as it would in `dispatch`.
 
-The command does not need `django_service_specs` in `INSTALLED_APPS`. Listing
-it adds the [system check](#open-specs-explain).
+The command does not need `django_spec_cli` or `django_service_specs` in
+`INSTALLED_APPS`. Listing `django_spec_cli` adds the
+[system check](#open-specs-explain).
 
 ## Subcommands and their options
 
 Each registry entry is a subcommand named after it, with each `_` shown as
 `-`: `rename_note` is `rename-note`. Its options are the spec's
-[parameters](arguments.md), spelled by
-[`add_spec_arguments`][django_service_specs.commands.argv.add_spec_arguments.add_spec_arguments]:
+[parameters](https://artui.github.io/django-service-specs/arguments/), spelled by
+[`add_spec_arguments`][django_spec_cli.argv.add_spec_arguments.add_spec_arguments]:
 `--due-at` for `due_at`, a `--flag`/`--no-flag` pair for a boolean, and an
 array as a repeated option, `--tag a --tag b`. Every value reaches
 [`coerce_flat`][django_service_specs.parameters.coerce_flat.coerce_flat] as
@@ -101,7 +113,7 @@ refused with `ImproperlyConfigured` when the parser is built.
 `--as-user` is required. There is no default user, no system user of the
 command's own, and no fallback to an anonymous user. Its value goes through
 the command's
-[`resolve_as_user`][django_service_specs.commands.spec_command.SpecCommand.resolve_as_user]
+[`resolve_as_user`][django_spec_cli.spec_command.SpecCommand.resolve_as_user]
 method, which by default looks a user up by primary key with
 [`resolve_principal`][django_service_specs.authorization.resolve_principal.resolve_principal].
 A project whose runbooks name people by username overrides the method:
@@ -133,7 +145,7 @@ A run's result goes through the spec's presenter, then is written in one of
 two formats, decided in this order:
 
 1. `--table` or `--json` on the command line.
-2. The `SERVICE_SPECS_COMMAND_OUTPUT` setting: `"table"` or `"json"` pins one
+2. The `SPEC_CLI_OUTPUT` setting: `"table"` or `"json"` pins one
    project-wide; `"auto"`, the default, leaves it to the next step.
 3. A table when stdout is a terminal, JSON Lines when it is a pipe or a file.
 
@@ -151,7 +163,7 @@ id  title
 ```
 
 The table's columns come from the spec's `Output`, never from the first row;
-see [`render_table`][django_service_specs.commands.render.render_table.render_table]
+see [`render_table`][django_spec_cli.render.render_table.render_table]
 for what a field's marking does to them. JSON Lines are written one row at a
 time, but `present` builds a list result whole before the first row is
 written, so a large read is held in memory once, as an HTTP response holds
@@ -161,7 +173,7 @@ it. A service that returns nothing writes nothing.
 
 A refusal ends the run with a `CommandError` whose message goes to stderr and
 whose
-[`ExitCode`][django_service_specs.types.exit_code.ExitCode] is the
+[`ExitCode`][django_spec_cli.types.exit_code.ExitCode] is the
 process's exit status. The codes are a public contract, for a script to
 branch on:
 
@@ -178,7 +190,7 @@ branch on:
 | 8 | `INPUT_REQUIRED` | `AdditionalInputRequired` |
 | 9 | `REFUSED` | any other `ServiceError` |
 
-[`exit_code_for`][django_service_specs.commands.exit_code_for.exit_code_for]
+[`exit_code_for`][django_spec_cli.exit_code_for.exit_code_for]
 is the mapping, for a project that runs specs from a command of its own.
 
 An invalid argument prints one line per refused field, after its path:
@@ -219,7 +231,7 @@ $ python manage.py notes whoami --as-user 2 --json
 ```
 
 `--explain` runs no spec. It prints one line for each spec the command serves
-that [authorizes nothing](registry.md#open-specs-reported), every check it
+that [authorizes nothing](https://artui.github.io/django-service-specs/registry/#open-specs-reported), every check it
 declares being `Unrestricted`:
 
 ```console
@@ -227,13 +239,23 @@ $ python manage.py notes --explain
 'whoami' in manage.py notes authorizes nothing: every permission check it declares is Unrestricted, so any active user named by --as-user may run it.
 ```
 
-Listing `"django_service_specs"` in `INSTALLED_APPS` reports the same
-sentence from `manage.py check`, as `django_service_specs.W001`, once per
+Listing `"django_spec_cli"` in `INSTALLED_APPS` reports the same
+sentence from `manage.py check`, as `django_spec_cli.W001`, once per
 open spec of every `SpecCommand` in the project, and a command that could not
-be loaded to be checked as `django_service_specs.W003`. There is no
+be loaded to be checked as `django_spec_cli.W003`. There is no
 `W002`: a spec with an empty `permissions` is refused when it is built, so
 none reaches a registry. Both are warnings, and `SILENCED_SYSTEM_CHECKS`
 silences one by id.
+
+Until the kernel removes its own copy of the command, kernel 0.10.x still
+registers `django_service_specs.W001` and `W003`, over its own `SpecCommand`
+class rather than this package's. A project that lists both
+`"django_service_specs"` and `"django_spec_cli"` sees both ids, the kernel's
+for commands still subclassing its copy and this package's for commands
+subclassing `django_spec_cli.SpecCommand`, and a command that cannot be loaded
+gets a `W003` from each. A project that moves its imports here and lists only
+`"django_service_specs"` gets no check for the moved commands at all, so list
+`"django_spec_cli"`.
 
 A `SpecCommand` keeps Django's system checks on, so on the command line the
 report is printed to stderr before every run of every command. The runs on

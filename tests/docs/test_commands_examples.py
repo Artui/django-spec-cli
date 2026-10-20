@@ -1,6 +1,6 @@
 """The command line page's examples, run from argv as ``manage.py`` runs them.
 
-``docs/commands.md`` includes its command classes from
+``docs/index.md`` includes its command classes from
 ``docs/examples/commands.py`` and shows runs in ``console`` blocks. Every
 ``$ python manage.py notes ...`` line there is run here through the example's
 ``Command``, from argv, and what it prints - stdout and stderr, as a terminal
@@ -20,16 +20,15 @@ from typing import Any
 import pytest
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django_service_specs import UnguardedReason, UnguardedSpec
 
-from django_service_specs.commands.report.unguarded_message import unguarded_message
-from django_service_specs.registry.unguarded_spec import UnguardedSpec
-from django_service_specs.types.unguarded_reason import UnguardedReason
+from django_spec_cli.report.unguarded_message import unguarded_message
 from docs.examples import commands
 from tests.dispatch_app.models import Note
 
 pytestmark = pytest.mark.django_db
 
-PAGE = Path(__file__).resolve().parents[2] / "docs" / "commands.md"
+PAGE = Path(__file__).resolve().parents[2] / "docs" / "index.md"
 PROMPT = "$ python manage.py notes "
 
 

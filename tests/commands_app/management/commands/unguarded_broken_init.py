@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from django_service_specs.commands.spec_command import SpecCommand
+from django_spec_cli.spec_command import SpecCommand
 from tests.commands_app.unguarded_registries import mixed_registry
 
 

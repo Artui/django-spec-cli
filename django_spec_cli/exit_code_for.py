@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
-from django_service_specs.authorization.not_permitted import NotPermitted
-from django_service_specs.authorization.principal_unavailable import PrincipalUnavailable
-from django_service_specs.services.additional_input_required import AdditionalInputRequired
-from django_service_specs.services.service_conflict import ServiceConflict
-from django_service_specs.services.service_error import ServiceError
-from django_service_specs.services.service_not_found import ServiceNotFound
-from django_service_specs.services.service_validation_error import ServiceValidationError
-from django_service_specs.types.dispatch_error import DispatchError
-from django_service_specs.types.exit_code import ExitCode
+from django_service_specs import (
+    AdditionalInputRequired,
+    DispatchError,
+    NotPermitted,
+    PrincipalUnavailable,
+    ServiceConflict,
+    ServiceError,
+    ServiceNotFound,
+    ServiceValidationError,
+)
+
+from django_spec_cli.types.exit_code import ExitCode
 
 _CODES: tuple[tuple[type[Exception], ExitCode], ...] = (
     (NotPermitted, ExitCode.NOT_PERMITTED),
@@ -28,11 +31,11 @@ A subclass sits above its base, or the base's row would answer for it. Only
 rows that change the answer are listed: ``InvalidArguments`` and
 ``ActionUnavailable`` take their base's code, so the base's row is theirs.
 Coverage sees one expression, not eight rows, so each row is held by its own
-case of test_every_refusal_in_the_package_has_its_code."""
+case of test_every_refusal_the_kernel_raises_has_its_code."""
 
 
 def exit_code_for(error: BaseException) -> ExitCode:
-    """The [`ExitCode`][django_service_specs.types.exit_code.ExitCode] ``error`` ends a run with.
+    """The [`ExitCode`][django_spec_cli.types.exit_code.ExitCode] ``error`` ends a run with.
 
     Every [`DispatchError`][django_service_specs.types.dispatch_error.DispatchError]
     and [`ServiceError`][django_service_specs.services.service_error.ServiceError]

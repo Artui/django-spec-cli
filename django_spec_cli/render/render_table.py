@@ -9,9 +9,7 @@ from dataclasses import dataclass
 from typing import Any, TextIO
 
 from django.core.serializers.json import DjangoJSONEncoder
-
-from django_service_specs.output.output import Output, OutputField
-from django_service_specs.types.field_audience import FieldAudience
+from django_service_specs import FieldAudience, Output, OutputField
 
 # Two spaces between columns: one reads as a space inside a value.
 _GAP = "  "

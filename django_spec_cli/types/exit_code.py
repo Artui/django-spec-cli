@@ -6,7 +6,7 @@ from enum import IntEnum
 
 
 class ExitCode(IntEnum):
-    """The exit status of a [`SpecCommand`][django_service_specs.commands.spec_command.SpecCommand] run, a public contract.
+    """The exit status of a [`SpecCommand`][django_spec_cli.spec_command.SpecCommand] run, a public contract.
 
     A script branches on these, so a member's number never changes and a
     number is never reused. Each says who refused and what the caller can do
