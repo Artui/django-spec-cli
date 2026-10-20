@@ -21,7 +21,6 @@ from django_service_specs.commands.exit_code_for import exit_code_for
 from django_service_specs.commands.render.render_result import render_result
 from django_service_specs.commands.render.wants_table import wants_table
 from django_service_specs.commands.report.unguarded_message import unguarded_message
-from django_service_specs.commands.report.unguarded_specs import unguarded_specs
 from django_service_specs.dispatch.dispatch import dispatch
 from django_service_specs.dispatch.present import present
 from django_service_specs.dispatch.relax_partial import relax_partial
@@ -32,6 +31,7 @@ from django_service_specs.parameters.refusal_messages import refusal_messages
 from django_service_specs.pool.pool_seeds import DEFAULT_POOL_SEEDS, PoolSeeds
 from django_service_specs.registry.registered_spec import RegisteredSpec
 from django_service_specs.registry.spec_registry import SpecRegistry
+from django_service_specs.registry.unguarded_specs import unguarded_specs
 from django_service_specs.services.action_unavailable import ActionUnavailable
 from django_service_specs.services.additional_input_required import AdditionalInputRequired
 from django_service_specs.services.service_error import ServiceError

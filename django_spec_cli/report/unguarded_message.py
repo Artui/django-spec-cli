@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from django_service_specs.commands.report.unguarded_spec import UnguardedSpec
+from django_service_specs.registry.unguarded_spec import UnguardedSpec
 from django_service_specs.types.unguarded_reason import UnguardedReason
 
 # One clause per reason, indexed rather than branched on, so a member added

@@ -26,13 +26,13 @@ from django_service_specs.authorization.principal_unavailable import PrincipalUn
 from django_service_specs.authorization.unrestricted import Unrestricted
 from django_service_specs.commands.render.render_json_lines import render_json_lines
 from django_service_specs.commands.report.unguarded_message import unguarded_message
-from django_service_specs.commands.report.unguarded_spec import UnguardedSpec
 from django_service_specs.commands.spec_command import SpecCommand
 from django_service_specs.dispatch.dispatch import dispatch
 from django_service_specs.dispatch.present import present
 from django_service_specs.parameters.parameters import Parameter, Parameters
 from django_service_specs.pool.pool_seeds import DEFAULT_POOL_SEEDS
 from django_service_specs.registry.spec_registry import SpecRegistry
+from django_service_specs.registry.unguarded_spec import UnguardedSpec
 from django_service_specs.specs.service_spec import ServiceSpec
 from django_service_specs.types.unguarded_reason import UnguardedReason
 from tests.commands_app.management.commands import notes

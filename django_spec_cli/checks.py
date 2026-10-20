@@ -10,9 +10,9 @@ from django.core.checks import CheckMessage, Warning
 from django.core.management import get_commands, load_command_class
 
 from django_service_specs.commands.report.unguarded_message import unguarded_message
-from django_service_specs.commands.report.unguarded_spec import UnguardedSpec
-from django_service_specs.commands.report.unguarded_specs import unguarded_specs
 from django_service_specs.commands.spec_command import SpecCommand
+from django_service_specs.registry.unguarded_spec import UnguardedSpec
+from django_service_specs.registry.unguarded_specs import unguarded_specs
 
 _HINT = (
     "Declare a PermissionCheck that refuses someone in the spec's permissions, or add "
@@ -35,7 +35,7 @@ def check_unguarded_specs(
     ``SpecCommand``.
 
     - ``django_service_specs.W001``, one per spec that
-      [`unguarded_specs`][django_service_specs.commands.report.unguarded_specs.unguarded_specs]
+      [`unguarded_specs`][django_service_specs.registry.unguarded_specs.unguarded_specs]
       reports, naming the command an operator types and the spec, with the
       command class as ``obj``. A ``Warning``, never an ``Error``: an open
       spec is a decision or an accident the check cannot tell apart, and an
