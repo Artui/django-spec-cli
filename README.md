@@ -7,7 +7,7 @@
 [![Docs](https://img.shields.io/badge/docs-artui.github.io-blue.svg)](https://artui.github.io/django-spec-cli/)
 [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Artui/django-spec-cli/gh-pages/coverage.json)](https://github.com/Artui/django-spec-cli/actions/workflows/tests.yml)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![License](https://img.shields.io/pypi/l/django-spec-cli.svg)](LICENSE)
+[![License](https://img.shields.io/pypi/l/django-spec-cli.svg)](https://github.com/Artui/django-spec-cli/blob/main/LICENSE)
 
 Run a [`django-service-specs`](https://github.com/Artui/django-service-specs)
 registry from `manage.py`: one subcommand per spec, an option for each of its
@@ -70,4 +70,4 @@ listing only `"django_service_specs"` gets no check for a command. List
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](https://github.com/Artui/django-spec-cli/blob/main/LICENSE).

@@ -63,7 +63,8 @@ class SpecCommand(BaseCommand):
     registries under two command names. It is read when the parser is built,
     and a command naming none is refused then, as ``ImproperlyConfigured``.
     ``pool_seeds`` names the seeds the specs' callables are resolved with, as
-    ``SpecView.pool_seeds`` does, for a registry whose callables read one.
+    ``pool_seeds`` on django-spec-html's ``SpecView`` does, for a registry
+    whose callables read one.
 
     It is run as ``manage.py <command> <spec> --as-user USER [--json|--table]
     [--option value ...]``, or ``manage.py <command> --explain``:
