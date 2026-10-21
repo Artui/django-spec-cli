@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-10-21
+
+### Fixed
+- **The documentation names the right packages.** The site description said the
+  command runs a django-spec-cli registry, where the registry is
+  django-service-specs'; the `SpecCommand` docstring and the index page compared
+  `pool_seeds` to `SpecView`'s as if the kernel still shipped it, where it now
+  lives in django-spec-html; and the README's LICENSE links were relative, which
+  break on PyPI. No code changes.
+
 ## [0.2.0] — 2026-10-20
 
 ### Changed
@@ -45,6 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `django-service-specs>=0.10.0`, the first kernel release with every name the
   command reads at its root.
 
-[Unreleased]: https://github.com/Artui/django-spec-cli/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Artui/django-spec-cli/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/Artui/django-spec-cli/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/Artui/django-spec-cli/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Artui/django-spec-cli/compare/v0.0.0...v0.1.0
