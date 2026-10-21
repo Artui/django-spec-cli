@@ -1,5 +1,5 @@
 site_name: django-spec-cli
-site_description: "Run a django-spec-cli registry from manage.py: one subcommand per spec, options generated from its parameters, exit codes for every refusal."
+site_description: "Run a django-service-specs registry from manage.py: one subcommand per spec, options generated from its parameters, exit codes for every refusal."
 site_url: https://artui.github.io/django-spec-cli/
 repo_url: https://github.com/Artui/django-spec-cli
 repo_name: Artui/django-spec-cli
