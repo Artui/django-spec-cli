@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Run a django-spec-cli registry from manage.py: one subcommand per spec, options generated from its parameters, exit codes for every refusal.">
+        <meta name="description" content="Run a django-service-specs registry from manage.py: one subcommand per spec, options generated from its parameters, exit codes for every refusal.">
       
       
       
@@ -994,7 +994,8 @@ module, which names the registry::</p>
 registries under two command names. It is read when the parser is built,
 and a command naming none is refused then, as <code>ImproperlyConfigured</code>.
 <code>pool_seeds</code> names the seeds the specs' callables are resolved with, as
-<code>SpecView.pool_seeds</code> does, for a registry whose callables read one.</p>
+<code>pool_seeds</code> on django-spec-html's <code>SpecView</code> does, for a registry
+whose callables read one.</p>
 <p>It is run as <code>manage.py &lt;command&gt; &lt;spec&gt; --as-user USER [--json|--table]
 [--option value ...]</code>, or <code>manage.py &lt;command&gt; --explain</code>:</p>
 <ul>

@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Run a django-spec-cli registry from manage.py: one subcommand per spec, options generated from its parameters, exit codes for every refusal.">
+        <meta name="description" content="Run a django-service-specs registry from manage.py: one subcommand per spec, options generated from its parameters, exit codes for every refusal.">
       
       
       
@@ -660,7 +660,8 @@ command naming none is refused then with <code>ImproperlyConfigured</code>, as i
 registry where two names would be one subcommand (<code>a_b</code> and <code>a-b</code>).</p>
 <p>A registry whose callables read a seed of their own - an affordance's <code>when</code>,
 a selector - names the seeds on the class, as
-<code>SpecView</code> does:
+<a href="https://artui.github.io/django-spec-html/http/#the-class-form">django-spec-html's <code>SpecView</code></a>
+does:
 <code>pool_seeds = DEFAULT_POOL_SEEDS.extend(tenant=current_tenant)</code>. Without it a
 callable asking for a seed nobody registered fails as it would in <code>dispatch</code>.</p>
 <p>The command does not need <code>django_spec_cli</code> or <code>django_service_specs</code> in
