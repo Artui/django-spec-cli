@@ -295,7 +295,10 @@ def _sendable(spec: ServiceSpec | SelectorSpec, pool_seeds: PoolSeeds) -> Parame
     marks ``(required)`` exactly where an omission is refused: on a
     ``partial`` spec (test_a_partial_spec_requires_only_what_names_its_row)
     and beside a provider that may fill it
-    (test_a_read_a_provider_may_fill_is_offered_and_not_required). Only
+    (test_a_read_a_provider_may_fill_is_offered_and_not_required). A read
+    stays declared required where the provider takes it by name with no
+    default, since that provider cannot be the one to fill it
+    (test_a_read_a_provider_requires_itself_is_required). Only
     relaxed, never made required, so a declared default still answers.
     """
     schema = spec_caller_input_schema(spec, pool_seeds=pool_seeds)
