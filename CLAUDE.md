@@ -8,8 +8,9 @@ The management-command transport for `django-service-specs`. A project
 subclasses `SpecCommand`, names a `SpecRegistry`, and `manage.py <command>`
 serves one subcommand per spec: an option for each parameter, a principal named
 by `--as-user`, the result as a table or JSON Lines, and an exit code for every
-refusal. Two system checks, `django_spec_cli.W001` and `W003`, report a served
-spec that authorizes nothing and a command that cannot be loaded.
+refusal. Three system checks, `django_spec_cli.W001`, `W003` and `W004`,
+report a served spec that authorizes nothing, a command that cannot be loaded,
+and a spec the kernel's `check_seeds` refuses, whose run is refused too.
 
 It is the kernel's `commands/` subpackage, moved out with its history so that
 the kernel can carry no transport, and the kernel carries no copy of it from
@@ -82,11 +83,12 @@ so do the check ids and the setting key, `SPEC_CLI_OUTPUT`.
 Each of these reads as an oversight and is not.
 
 - **The checks are registered by this package's own `AppConfig`.** A project
-  lists `"django_spec_cli"` in `INSTALLED_APPS` to get `W001` and `W003`. The
-  kernel keeps the registry fact the check reads, `unguarded_specs`, because
-  another transport can ask the same question of a registry. The kernel's own
-  app stays importable and registers nothing, so listing only it gets no check
-  (`tests/test_checks.py`, `test_the_kernel_s_app_registers_no_check_of_its_own`).
+  lists `"django_spec_cli"` in `INSTALLED_APPS` to get `W001`, `W003` and
+  `W004`. The kernel keeps the registry fact the check reads,
+  `unguarded_specs`, because another transport can ask the same question of a
+  registry. The kernel's own app stays importable and registers nothing, so
+  listing only it gets no check (`tests/test_checks.py`,
+  `test_the_kernel_s_app_registers_no_check_of_its_own`).
 - **The test settings list no kernel app.** The package needs nothing of the
   kernel switched on, and the suite shows it.
 

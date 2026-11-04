@@ -56,9 +56,11 @@ authorize nothing.
 ## The system check
 
 List `"django_spec_cli"` in `INSTALLED_APPS` and `manage.py check` reports
-every open spec a `SpecCommand` serves as `django_spec_cli.W001`, and a command
-that could not be loaded as `django_spec_cli.W003`. The command itself needs no
-app listed.
+every open spec a `SpecCommand` serves as `django_spec_cli.W001`, a command
+that could not be loaded as `django_spec_cli.W003`, and a spec the kernel's
+`check_seeds` refuses under the command's `pool_seeds` as `django_spec_cli.W004`.
+A run of a spec W004 reports is refused whether or not the app is listed. The
+command itself needs no app listed.
 
 The kernel keeps no check of its own: its app registers nothing, so a project
 listing only `"django_service_specs"` gets no check for a command. List
