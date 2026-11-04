@@ -292,7 +292,7 @@ listing only `"django_service_specs"` gets no check for a command. List
 A `SpecCommand` keeps Django's system checks on, so on the command line the
 report is printed to stderr before every run of every command. The runs on
 this page are shown without it; in a project listing the app, each would be
-preceded by the warning for `whoami`. `call_command` skips
+preceded by the warnings for `whoami` and `retitle`. `call_command` skips
 system checks for every command but `check`, so a command run through it
 does not print them.
 

@@ -8,9 +8,9 @@ shows them - must be the lines printed under it, and its exit status the
 number an ``echo $?`` after it shows. So the page cannot show an option, an
 output or an exit code the command does not have.
 
-The page's one ``text`` block is the sentence for the example's ``Drafts``,
-whose spec the kernel refuses: it must be the ``django_spec_cli.W004`` the
-system check reports and the refusal a run of the spec raises.
+The sentence the page prints for the example's ``Drafts``, whose spec the
+kernel refuses, must be the ``django_spec_cli.W004`` the system check reports
+and the refusal a run of the spec raises.
 """
 
 from __future__ import annotations
@@ -37,6 +37,7 @@ pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("keep_the_test_conn
 
 PAGE = Path(__file__).resolve().parents[2] / "docs" / "index.md"
 PROMPT = "$ python manage.py notes "
+RETITLE_ARGV = "retitle --as-user 1 --title Final"
 
 
 def _runs() -> list[tuple[str, list[str], int]]:
@@ -120,8 +121,16 @@ def test_the_username_lookup_runs_as_the_user_it_names() -> None:
 
 
 def _refused_line() -> str:
-    """The one line of the page's ``text`` block under the W004 example."""
-    (line,) = re.findall(r"```text\n(.*?)\n```", PAGE.read_text(), re.S)
+    """The line the page prints for the W004 example: the one opening with its spec and command.
+
+    Found by that opening rather than by its block, so another ``text`` block
+    on the page leaves it alone, and a page no longer printing it fails here.
+    """
+    (line,) = [
+        line
+        for line in PAGE.read_text().splitlines()
+        if line.startswith("'retitle' in manage.py drafts ")
+    ]
     return line
 
 
@@ -150,12 +159,12 @@ def test_the_refused_spec_is_reported_as_w004_with_the_page_s_sentence(
 
 @pytest.mark.usefixtures("world")
 def test_a_run_of_the_refused_spec_raises_the_page_s_sentence() -> None:
-    # Every option it declares is sent, and the run is still refused.
+    # The run the page names, which sends every option the spec declares, and
+    # is still refused.
+    assert f"`manage.py drafts {RETITLE_ARGV}`" in PAGE.read_text()
     command = commands.Drafts()
     with pytest.raises(ImproperlyConfigured) as caught:
-        command.run_from_argv(
-            ["manage.py", "drafts", "--skip-checks", "retitle", "--as-user", "1", "--title", "x"]
-        )
+        command.run_from_argv(["manage.py", "drafts", "--skip-checks", *shlex.split(RETITLE_ARGV)])
     assert str(caught.value) == _refused_line()
 
 
