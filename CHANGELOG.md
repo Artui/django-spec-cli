@@ -14,8 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   release that keeps a read a provider requires itself demanded of the
   caller.** From 0.3.1 `--help` reads its options, and which are marked
   `(required)`, from the kernel's `spec_caller_input_schema`, so it repeats
-  what the installed kernel answers. On kernel 0.24.x a read that a `kwargs`
-  provider takes by name with no default, such as
+  what the installed kernel answers. On kernel 0.24.x a read declared
+  required that a `kwargs` provider takes by name with no default, such as
   `def needs_project(*, project: int)`, was offered without `(required)`, and
   a run leaving it out crashed in the provider with a `TypeError`. From 0.25.0
   it is marked `(required)`, and that run is refused as invalid arguments,

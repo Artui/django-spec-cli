@@ -92,7 +92,9 @@ under the command's `pool_seeds`, so the command asks for what dispatch asks
 for. On a `partial` spec, `(required)` is only what names the row: the
 Validator's fields may be left out, as dispatch allows. A parameter a provider
 may fill, such as a read beside a `kwargs` provider whose return names no keys,
-is an option and is not required.
+is an option and is not required, unless the provider takes that read by name
+with no default: only the caller can fill it then, so a read declared required
+stays `(required)`.
 
 Some parameters have no option:
 
