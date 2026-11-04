@@ -881,6 +881,36 @@ takes by name with no default, among others. A run of that spec is refused
 with the same sentence, raised as <code>ImproperlyConfigured</code> (exit code 1,
 with a traceback) before <code>--as-user</code> is looked up, even when the options sent
 would let it run. The command's other specs are unaffected.</p>
+<p>A <code>Parameter</code> is optional unless it says <code>required=True</code>, so a read declared
+plainly over a keyword with no default is one such declaration:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">retitle</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">title</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="k">return</span> <span class="n">title</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="n">drafts</span> <span class="o">=</span> <span class="n">SpecRegistry</span><span class="p">()</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="n">drafts</span><span class="o">.</span><span class="n">register</span><span class="p">(</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>    <span class="s2">"retitle"</span><span class="p">,</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>    <span class="n">ServiceSpec</span><span class="p">(</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>        <span class="n">service</span><span class="o">=</span><span class="n">retitle</span><span class="p">,</span>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>        <span class="n">permissions</span><span class="o">=</span><span class="p">[</span><span class="n">IsSignedIn</span><span class="p">()],</span>
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>        <span class="c1"># Optional, as a Parameter is unless it says otherwise, over a keyword</span>
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>        <span class="c1"># with no default: a call leaving it out could not run, so the kernel's</span>
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>        <span class="c1"># check_seeds refuses the spec, and manage.py check reports it as</span>
+</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>        <span class="c1"># django_spec_cli.W004.</span>
+</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>        <span class="n">reads</span><span class="o">=</span><span class="n">Parameters</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">Parameter</span><span class="p">(</span><span class="s2">"title"</span><span class="p">,</span> <span class="s2">"string"</span><span class="p">)),</span>
+</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a>    <span class="p">),</span>
+</span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a><span class="p">)</span>
+</span><span id="__span-10-18"><a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a>
+</span><span id="__span-10-19"><a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a>
+</span><span id="__span-10-20"><a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a><span class="c1"># yourapp/management/commands/drafts.py</span>
+</span><span id="__span-10-21"><a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a><span class="k">class</span><span class="w"> </span><span class="nc">Drafts</span><span class="p">(</span><span class="n">SpecCommand</span><span class="p">):</span>
+</span><span id="__span-10-22"><a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a>    <span class="n">registry</span> <span class="o">=</span> <span class="n">drafts</span>
+</span></code></pre></div>
+<p><code>manage.py check</code> reports it as <code>django_spec_cli.W004</code>, and
+<code>manage.py drafts retitle --as-user 1 --title Final</code> is refused with the same
+sentence:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>'retitle' in manage.py drafts cannot run as declared, and a run of it is refused: ServiceSpec.service requires the keyword(s) ['title'], declared as optional reads that nothing else fills, so a call leaving one out is refused as missing. Declare the read required, or give the keyword a default.
+</span></code></pre></div>
 <p>All three are warnings, so a spec nobody runs never stops <code>migrate</code>, and
 <code>SILENCED_SYSTEM_CHECKS</code> silences one by id. Silencing <code>W004</code> hides the report
 and does not let the spec run.</p>
@@ -890,7 +920,7 @@ listing only <code>"django_service_specs"</code> gets no check for a command. Li
 <p>A <code>SpecCommand</code> keeps Django's system checks on, so on the command line the
 report is printed to stderr before every run of every command. The runs on
 this page are shown without it; in a project listing the app, each would be
-preceded by the warning for <code>whoami</code>. <code>call_command</code> skips
+preceded by the warnings for <code>whoami</code> and <code>retitle</code>. <code>call_command</code> skips
 system checks for every command but <code>check</code>, so a command run through it
 does not print them.</p>
 <h2 id="what-it-does-not-do">What it does not do<a class="headerlink" href="#what-it-does-not-do" title="Permanent link">&para;</a></h2>
