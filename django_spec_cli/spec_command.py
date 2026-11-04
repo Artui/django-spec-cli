@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import inspect
 from collections.abc import Mapping
+from dataclasses import replace
 from typing import Any, TextIO, cast
 
 from django.core.exceptions import ImproperlyConfigured
@@ -30,9 +31,8 @@ from django_service_specs import (
     kernel_spec,
     present,
     refusal_messages,
-    relax_partial,
     resolve_principal,
-    server_owned_keys,
+    spec_caller_input_schema,
     unguarded_specs,
 )
 
@@ -72,8 +72,10 @@ class SpecCommand(BaseCommand):
     - **One subcommand per registry entry**, named after the entry with each
       ``_`` shown as ``-``. Its options are the spec's parameters, as
       [`add_spec_arguments`][django_spec_cli.argv.add_spec_arguments.add_spec_arguments]
-      spells them, less any key the server fills
-      ([`server_owned_keys`][django_service_specs.specs.server_owned_keys.server_owned_keys]).
+      spells them, as the input schema a transport advertises asks for them
+      ([`spec_caller_input_schema`][django_service_specs.schema.spec_caller_input_schema.spec_caller_input_schema]
+      under ``pool_seeds``): less any key the server fills, and required only
+      where dispatch refuses leaving it out.
       No option is matched by a prefix: an abbreviation is refused rather
       than read as whichever option it begins.
     - **``--as-user`` is required.** Its value goes through
@@ -162,7 +164,7 @@ class SpecCommand(BaseCommand):
                 )
             self._entries[name] = entry
             spec = kernel_spec(entry.spec)
-            parameters = _sendable(spec)
+            parameters = _sendable(spec, self.pool_seeds)
             summary = _summary(spec, entry.name)
             subparser = subparsers.add_parser(
                 name,
@@ -281,18 +283,30 @@ class SpecCommand(BaseCommand):
             self.stdout.write(unguarded_message(unguarded, label))
 
 
-def _sendable(spec: ServiceSpec | SelectorSpec) -> Parameters:
-    """What a caller may send, as the shape check reads it: required only where dispatch demands it.
+def _sendable(spec: ServiceSpec | SelectorSpec, pool_seeds: PoolSeeds) -> Parameters:
+    """What a caller may send, as the kernel's caller schema reads it: required only where dispatch demands it.
 
-    Relaxed for ``partial`` by the shape check's own reading, so ``--help``
-    marks ``(required)`` exactly where an omission is refused
-    (test_a_partial_spec_requires_only_what_names_its_row), and without the
-    keys the server fills, whose value a caller's would never replace
-    (test_a_key_the_server_fills_is_no_option).
+    The parameters ``spec_caller_input_schema`` offers under the command's
+    ``pool_seeds``, so no key the server fills is an option: one a provider
+    is annotated to fill (test_a_key_the_server_fills_is_no_option), and a
+    reflected read a registered seed fills
+    (test_a_reflected_read_a_seed_fills_is_an_option_only_without_the_seed).
+    Each is relaxed where the schema does not require it, so ``--help``
+    marks ``(required)`` exactly where an omission is refused: on a
+    ``partial`` spec (test_a_partial_spec_requires_only_what_names_its_row)
+    and beside a provider that may fill it
+    (test_a_read_a_provider_may_fill_is_offered_and_not_required). Only
+    relaxed, never made required, so a declared default still answers.
     """
-    owned = server_owned_keys(spec)
-    relaxed = relax_partial(spec, spec.parameters())
-    return Parameters.of(*(param for param in relaxed if param.name not in owned))
+    schema = spec_caller_input_schema(spec, pool_seeds=pool_seeds)
+    required = frozenset(schema.get("required", ()))
+    return Parameters.of(
+        *(
+            param if param.name in required else replace(param, required=False)
+            for param in spec.parameters()
+            if param.name in schema["properties"]
+        )
+    )
 
 
 def _summary(spec: ServiceSpec | SelectorSpec, name: str) -> str:
