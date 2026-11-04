@@ -7,6 +7,10 @@
 shows them - must be the lines printed under it, and its exit status the
 number an ``echo $?`` after it shows. So the page cannot show an option, an
 output or an exit code the command does not have.
+
+The page's one ``text`` block is the sentence for the example's ``Drafts``,
+whose spec the kernel refuses: it must be the ``django_spec_cli.W004`` the
+system check reports and the refusal a run of the spec raises.
 """
 
 from __future__ import annotations
@@ -18,10 +22,13 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from django.core.checks import Warning
+from django.core.exceptions import ImproperlyConfigured
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django_service_specs import UnguardedReason, UnguardedSpec
 
+from django_spec_cli.checks import check_unguarded_specs
 from django_spec_cli.report.unguarded_message import unguarded_message
 from docs.examples import commands
 from tests.dispatch_app.models import Note
@@ -110,6 +117,46 @@ def test_the_username_lookup_runs_as_the_user_it_names() -> None:
     with pytest.raises(CommandError) as caught:
         call_command(commands.ByUsername(), "whoami", "--as-user", "nobody")
     assert (caught.value.returncode, str(caught.value)) == (5, "No user named 'nobody'.")
+
+
+def _refused_line() -> str:
+    """The one line of the page's ``text`` block under the W004 example."""
+    (line,) = re.findall(r"```text\n(.*?)\n```", PAGE.read_text(), re.S)
+    return line
+
+
+def test_the_refused_spec_is_reported_as_w004_with_the_page_s_sentence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # The examples are no installed app, so the walk is pointed at the one
+    # command; it would otherwise never load it, and no other test's check
+    # sees this command.
+    monkeypatch.setattr("django_spec_cli.checks.get_commands", lambda: {"drafts": "yourapp"})
+    monkeypatch.setattr(
+        "django_spec_cli.checks.load_command_class", lambda app_name, name: commands.Drafts()
+    )
+    assert check_unguarded_specs(None) == [
+        Warning(
+            _refused_line(),
+            hint=(
+                "Change the declaration as the message says. Until then a run of the spec "
+                "is refused, whether or not django_spec_cli.W004 is silenced."
+            ),
+            obj=commands.Drafts,
+            id="django_spec_cli.W004",
+        )
+    ]
+
+
+@pytest.mark.usefixtures("world")
+def test_a_run_of_the_refused_spec_raises_the_page_s_sentence() -> None:
+    # Every option it declares is sent, and the run is still refused.
+    command = commands.Drafts()
+    with pytest.raises(ImproperlyConfigured) as caught:
+        command.run_from_argv(
+            ["manage.py", "drafts", "--skip-checks", "retitle", "--as-user", "1", "--title", "x"]
+        )
+    assert str(caught.value) == _refused_line()
 
 
 @pytest.mark.usefixtures("world")
