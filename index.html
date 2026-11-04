@@ -682,13 +682,19 @@ equals sign: <code>--tag=-x</code>.</p>
 of its service's or selector's docstring and whether it reads or writes, or
 its registered name when the function says nothing. <code>manage.py notes
 rename-note --help</code> lists its options, with <code>(required)</code> where leaving one
-out is refused. On a <code>partial</code> spec, that is only what names the row: the
-Validator's fields may be left out, as dispatch allows.</p>
+out is refused. Both are read from the input schema a transport advertises,
+<a class="autorefs autorefs-external" href="https://artui.github.io/django-service-specs/reference/#django_service_specs.schema.spec_caller_input_schema.spec_caller_input_schema"><code>spec_caller_input_schema</code></a>,
+under the command's <code>pool_seeds</code>, so the command asks for what dispatch asks
+for. On a <code>partial</code> spec, <code>(required)</code> is only what names the row: the
+Validator's fields may be left out, as dispatch allows. A parameter a provider
+may fill, such as a read beside a <code>kwargs</code> provider whose return names no keys,
+is an option and is not required.</p>
 <p>Some parameters have no option:</p>
 <ul>
-<li><strong>A key the server fills</strong>, one a <code>kwargs</code> provider is annotated to answer
-  (<a class="autorefs autorefs-external" href="https://artui.github.io/django-service-specs/reference/#django_service_specs.specs.server_owned_keys.server_owned_keys"><code>server_owned_keys</code></a>),
-  since a value sent for it would be dropped.</li>
+<li><strong>A key the server fills</strong>: one a <code>kwargs</code> provider is annotated to answer,
+  since a value sent for it would be dropped, and a <code>reflected</code> read named like
+  a seed <code>pool_seeds</code> registers, since the seed fills it and dispatch refuses an
+  argument of its name.</li>
 <li><strong>A parameter with no flat spelling</strong>: an object, an array of objects or of
   arrays, and a file. The subcommand's help names them. A spec that requires
   one, such as any <code>many</code> spec, cannot be run from the command line.</li>

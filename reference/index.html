@@ -1002,8 +1002,10 @@ whose callables read one.</p>
 <li><strong>One subcommand per registry entry</strong>, named after the entry with each
   <code>_</code> shown as <code>-</code>. Its options are the spec's parameters, as
   <a class="autorefs autorefs-internal" title="add_spec_arguments" href="#django_spec_cli.argv.add_spec_arguments.add_spec_arguments"><code>add_spec_arguments</code></a>
-  spells them, less any key the server fills
-  (<a class="autorefs autorefs-external" href="https://artui.github.io/django-service-specs/reference/#django_service_specs.specs.server_owned_keys.server_owned_keys"><code>server_owned_keys</code></a>).
+  spells them, as the input schema a transport advertises asks for them
+  (<a class="autorefs autorefs-external" href="https://artui.github.io/django-service-specs/reference/#django_service_specs.schema.spec_caller_input_schema.spec_caller_input_schema"><code>spec_caller_input_schema</code></a>
+  under <code>pool_seeds</code>): less any key the server fills, and required only
+  where dispatch refuses leaving it out.
   No option is matched by a prefix: an abbreviation is refused rather
   than read as whichever option it begins.</li>
 <li><strong><code>--as-user</code> is required.</strong> Its value goes through
