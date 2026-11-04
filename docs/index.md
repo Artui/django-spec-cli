@@ -27,7 +27,7 @@ pip install django-spec-cli
 ```
 
 It installs [`django-service-specs`](https://artui.github.io/django-service-specs/), the kernel whose specs it serves,
-from 0.11.0, on Python 3.10 and Django 4.2 or later. The command line was the
+from 0.24.0, on Python 3.10 and Django 4.2 or later. The command line was the
 kernel's `commands/` subpackage, and moved here so the kernel carries no
 transport.
 
@@ -184,7 +184,7 @@ branch on:
 | 1 | `ERROR` | failed in a way nobody declared: the traceback is printed |
 | 2 | `USAGE` | never started: the command line was malformed |
 | 3 | `INVALID_ARGUMENTS` | `InvalidArguments`, `ServiceValidationError`, any other `DispatchError` |
-| 4 | `NOT_PERMITTED` | `NotPermitted` |
+| 4 | `NOT_PERMITTED` | `NotPermitted`, and `PermissionCheckDenied`, a declared check's denial |
 | 5 | `PRINCIPAL_UNAVAILABLE` | `PrincipalUnavailable`: no such user, or a deactivated one |
 | 6 | `NOT_FOUND` | the row named does not exist, or the service raised `ServiceNotFound` |
 | 7 | `CONFLICT` | `ServiceConflict`, and `ActionUnavailable` with its code in the message |
