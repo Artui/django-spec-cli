@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **The kernel floor is `django-service-specs>=0.24.0`, the first kernel
+  release with `PermissionCheckDenied` in `REFUSALS`.** The kernel raises it,
+  a subclass of `NotPermitted`, when a permission check the spec declares
+  answers `False`. A run it refuses still exits `NOT_PERMITTED`, through the
+  `NotPermitted` row, as it did on every earlier kernel, so no exit code
+  changes. The test holding the exit codes against the kernel's list now
+  decides that refusal's code by name, and the lowest-declared-versions job
+  runs the suite on 0.24.0.
+
 ## [0.2.1] — 2026-10-21
 
 ### Fixed

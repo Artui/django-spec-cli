@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from django_service_specs import (
     REFUSALS,
     ActionUnavailable,
@@ -7,7 +9,11 @@ from django_service_specs import (
     DispatchError,
     InvalidArguments,
     NotPermitted,
+    PermissionCheck,
+    PermissionCheckDenied,
     PrincipalUnavailable,
+    SelectorKind,
+    SelectorSpec,
     ServiceConflict,
     ServiceError,
     ServiceNotFound,
@@ -22,6 +28,7 @@ EXPECTED: dict[type[Exception], ExitCode] = {
     DispatchError: ExitCode.INVALID_ARGUMENTS,
     InvalidArguments: ExitCode.INVALID_ARGUMENTS,
     NotPermitted: ExitCode.NOT_PERMITTED,
+    PermissionCheckDenied: ExitCode.NOT_PERMITTED,
     PrincipalUnavailable: ExitCode.PRINCIPAL_UNAVAILABLE,
     ServiceError: ExitCode.REFUSED,
     ServiceValidationError: ExitCode.INVALID_ARGUMENTS,
@@ -33,9 +40,20 @@ EXPECTED: dict[type[Exception], ExitCode] = {
 """Every refusal the kernel raises, and its code, decided one by one."""
 
 
+class _Denies(PermissionCheck):
+    def has_permission(self, principal: Any, spec: Any) -> bool:
+        return False
+
+
 def _instance(kind: type[Exception]) -> Exception:
     if kind is InvalidArguments:
         return InvalidArguments({"title": ["Required."]})
+    if kind is PermissionCheckDenied:
+        # Built as ``authorize`` raises it: the check that answered and the
+        # spec declaring it.
+        check = _Denies()
+        spec = SelectorSpec(kind=SelectorKind.LIST, selector=list, permissions=[check])
+        return PermissionCheckDenied(check=check, spec=spec)
     if kind is ServiceValidationError:
         return ServiceValidationError("Taken.")
     if kind is ActionUnavailable:

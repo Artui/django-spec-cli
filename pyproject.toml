@@ -40,14 +40,14 @@ dependencies = [
     # kernel's specs, so this package cannot support a Django the kernel does
     # not.
     "django>=4.2",
-    # The first kernel release without its own copy of the command. A separate
-    # distribution reads only the kernel's root surface, and below 0.11.0 the
-    # kernel still ships ``commands/``, registers its own ``W001`` and ``W003``
-    # and re-exports every moved name, so a project listing both apps sees two
-    # sets of ids and a missed import rewrite resolves against the wrong code.
-    # ``relax_partial``, ``refusal_messages`` and ``unguarded_specs`` are at its
-    # root from 0.10.0.
-    "django-service-specs>=0.11.0",
+    # The first kernel release with ``PermissionCheckDenied`` in ``REFUSALS``.
+    # ``tests/test_exit_code_for.py`` holds the exit codes against that list
+    # and decides the new refusal's code by name, so the suite, and the floor
+    # job running it, cannot import below 0.24.0. The code itself is
+    # ``NotPermitted``'s on every kernel. Below 0.11.0 the kernel also still
+    # shipped its own copy of the command and registered its own ``W001`` and
+    # ``W003``.
+    "django-service-specs>=0.24.0",
 ]
 
 [project.urls]

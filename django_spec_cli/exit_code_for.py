@@ -28,8 +28,9 @@ _CODES: tuple[tuple[type[Exception], ExitCode], ...] = (
 """Each refusal's code, read top to bottom, first match wins.
 
 A subclass sits above its base, or the base's row would answer for it. Only
-rows that change the answer are listed: ``InvalidArguments`` and
-``ActionUnavailable`` take their base's code, so the base's row is theirs.
+rows that change the answer are listed: ``InvalidArguments``,
+``PermissionCheckDenied`` and ``ActionUnavailable`` take their base's code, so
+the base's row is theirs.
 Coverage sees one expression, not eight rows, so each row is held by its own
 case of test_every_refusal_the_kernel_raises_has_its_code."""
 
