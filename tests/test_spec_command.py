@@ -297,13 +297,100 @@ class TestSeeds:
         command = command_over(self._registry(), pool_seeds=seeds)
         assert run("greet", "--as-user", str(owner.pk), command=command) == '"hello acme"\n'
 
-    def test_with_no_seeds_named_a_callable_reading_one_fails_as_dispatch_does(
-        self, owner: Any
+    def test_a_reflected_read_a_seed_fills_is_an_option_only_without_the_seed(
+        self, capsys: pytest.CaptureFixture[str], owner: Any
     ) -> None:
+        # Offered under the command's seeds, it would be refused when passed,
+        # as an argument dispatch does not take.
+        def greet(*, tenant: str) -> str:
+            return f"hello {tenant}"
+
+        reads = Parameters.of(Parameter("tenant", "string", required=True, reflected=True))
+        spec = ServiceSpec(service=greet, permissions=[Unrestricted()], reads=reads)
+        registry = registry_of(greet=spec)
+        seeded = command_over(registry, pool_seeds=DEFAULT_POOL_SEEDS.extend(tenant=lambda: "acme"))
+        assert "--tenant" not in help_of(capsys, "greet", command=seeded)
+        assert run("greet", "--as-user", str(owner.pk), command=seeded) == '"hello acme"\n'
+        unseeded = " ".join(help_of(capsys, "greet", command=command_over(registry)).split())
+        assert "--tenant STRING (required)" in unseeded
+
+    def test_with_no_seeds_named_a_callable_reading_one_is_refused(self, owner: Any) -> None:
         # The default is the stock seeds, as ``dispatch``'s: a seed nobody
-        # registered is the callable's own ``TypeError``, not a quiet default.
-        with pytest.raises(TypeError, match="tenant"):
+        # registered is no quiet default, and the kernel's ``check_seeds``
+        # refuses the spec before it reaches the callable's own ``TypeError``.
+        with pytest.raises(ImproperlyConfigured, match=r"\['tenant'\], which nothing fills"):
             run("greet", "--as-user", str(owner.pk), command=command_over(self._registry()))
+
+
+class TestADeclarationTheKernelRefuses:
+    """A spec ``check_seeds`` refuses under the command's seeds never reaches dispatch.
+
+    ``call_command`` handed an instance names it after this module, so the
+    sentence reads ``manage.py test_spec_command``.
+    """
+
+    REFUSAL = (
+        "'echo' in manage.py test_spec_command cannot run as declared, and a run of it is refused: "
+        "ServiceSpec.kwargs requires the keyword(s) ['project'], declared as optional reads "
+        "that nothing else fills, so a call leaving one out fails with the provider's own "
+        "TypeError. Declare the read required, or give the keyword a default."
+    )
+
+    def _command(self, **attributes: Any) -> SpecCommand:
+        def needs_project(*, project: int) -> dict[str, Any]:
+            return {"project": project}
+
+        spec = echo_spec(Parameter("project", "integer", required=False), kwargs=needs_project)
+        return command_over(registry_of(echo=spec, ping=open_spec(lambda: "pong")), **attributes)
+
+    @pytest.mark.parametrize("sent", [[], ["--project", "3"]], ids=["read-left-out", "read-sent"])
+    def test_a_run_of_it_is_refused_with_the_kernel_s_reason(
+        self, owner: Any, sent: list[str]
+    ) -> None:
+        # Sending the read would run: refused anyway, because the declaration
+        # says it is optional and every run leaving it out crashes.
+        with pytest.raises(ImproperlyConfigured) as caught:
+            run("echo", "--as-user", str(owner.pk), *sent, command=self._command())
+        assert str(caught.value) == self.REFUSAL
+
+    def test_it_is_refused_before_the_user_is_looked_up(self) -> None:
+        looked_up: list[str] = []
+
+        def resolve_as_user(self: SpecCommand, value: str) -> Any:
+            looked_up.append(value)
+            raise PrincipalUnavailable("nobody")
+
+        command = self._command(resolve_as_user=resolve_as_user)
+        with pytest.raises(ImproperlyConfigured):
+            run("echo", "--as-user", "7", command=command)
+        assert looked_up == []
+
+    def test_the_command_s_other_specs_still_run(self, owner: Any) -> None:
+        assert run("ping", "--as-user", str(owner.pk), command=self._command()) == '"pong"\n'
+
+    def test_help_and_explain_still_answer(self, capsys: pytest.CaptureFixture[str]) -> None:
+        # Asked of the spec run, never where the parser is built, so the
+        # command's listing and its report still work.
+        command = self._command()
+        parser = command.create_parser("manage.py", "notes")
+        with pytest.raises(SystemExit):
+            parser.parse_args(["--help"])
+        assert "echo" in capsys.readouterr().out
+        assert "'echo' in manage.py " in run("--explain", command=command)
+
+    @override_settings(SILENCED_SYSTEM_CHECKS=["django_spec_cli.W004"])
+    def test_silencing_the_warning_does_not_let_it_run(self, owner: Any) -> None:
+        with pytest.raises(ImproperlyConfigured):
+            run("echo", "--as-user", str(owner.pk), "--project", "3", command=self._command())
+
+    @pytest.mark.usefixtures("keep_the_test_connection")
+    def test_from_argv_it_propagates_for_a_traceback_and_not_an_exit_code(self, owner: Any) -> None:
+        # ``run_from_argv`` turns only a ``CommandError`` into ``sys.exit``;
+        # anything else reaches ``manage.py`` as a traceback and exit status 1,
+        # which is ``ExitCode.ERROR`` as the docs publish it.
+        argv = ["manage.py", "notes", "--skip-checks", "echo", "--as-user", str(owner.pk)]
+        with pytest.raises(ImproperlyConfigured, match="cannot run as declared"):
+            self._command().run_from_argv(argv)
 
 
 class TestAbbreviation:
@@ -427,6 +514,38 @@ class TestHelp:
         text = help_of(capsys, "echo", command=command_over(registry_of(echo=spec)))
         assert "--project" not in text
         assert "--n INTEGER" in text
+
+    def test_a_read_a_provider_may_fill_is_offered_and_not_required(
+        self, capsys: pytest.CaptureFixture[str], owner: Any
+    ) -> None:
+        # A return that says nothing about its keys may fill any read, so
+        # dispatch demands none of them of the caller and the help asks for none.
+        def may_fill(**_: Any) -> dict[str, Any]:
+            return {"project": 1}
+
+        spec = echo_spec(Parameter("project", "integer", required=True), kwargs=may_fill)
+        command = command_over(registry_of(echo=spec))
+        text = " ".join(help_of(capsys, "echo", command=command).split())
+        assert "--project INTEGER" in text
+        assert "(required)" not in text
+        assert lines(run("echo", "--as-user", str(owner.pk), command=command)) == [{"project": 1}]
+
+    def test_a_read_a_provider_requires_itself_is_required(
+        self, capsys: pytest.CaptureFixture[str], owner: Any
+    ) -> None:
+        # A provider that takes the read by name, with no default, cannot be the
+        # one to fill it, so dispatch demands it of the caller. A kernel before
+        # 0.25.0 relaxed it, and a run leaving it out crashed in the provider.
+        def needs_project(*, project: int) -> dict[str, Any]:
+            return {"project": project}
+
+        spec = echo_spec(Parameter("project", "integer", required=True), kwargs=needs_project)
+        command = command_over(registry_of(echo=spec))
+        text = " ".join(help_of(capsys, "echo", command=command).split())
+        assert "--project INTEGER (required)" in text
+        error = refused("echo", "--as-user", str(owner.pk), command=command)
+        assert error.returncode == 3
+        assert str(error).splitlines()[1:] == ["project: This field is required."]
 
 
 # --- output --------------------------------------------------------------------------------------

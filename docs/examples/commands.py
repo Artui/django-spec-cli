@@ -1,4 +1,5 @@
-"""A registry served as a management command, and a command that looks its user up by username.
+"""A registry served as a management command, a command that looks its user up by username, and
+a command serving a spec the kernel refuses as declared.
 
 ``tests/docs/test_commands_examples.py`` runs every command line
 ``docs/index.md`` shows through this module's ``Command``, from argv as
@@ -137,3 +138,31 @@ class ByUsername(SpecCommand):
 
 
 # --8<-- [end:by_username]
+
+
+# --8<-- [start:refused]
+def retitle(*, title: str) -> str:
+    return title
+
+
+drafts = SpecRegistry()
+drafts.register(
+    "retitle",
+    ServiceSpec(
+        service=retitle,
+        permissions=[IsSignedIn()],
+        # Optional, as a Parameter is unless it says otherwise, over a keyword
+        # with no default: a call leaving it out could not run, so the kernel's
+        # check_seeds refuses the spec, and manage.py check reports it as
+        # django_spec_cli.W004.
+        reads=Parameters.of(Parameter("title", "string")),
+    ),
+)
+
+
+# yourapp/management/commands/drafts.py
+class Drafts(SpecCommand):
+    registry = drafts
+
+
+# --8<-- [end:refused]

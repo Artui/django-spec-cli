@@ -27,7 +27,7 @@ pip install django-spec-cli
 ```
 
 It installs [`django-service-specs`](https://artui.github.io/django-service-specs/), the kernel whose specs it serves,
-from 0.11.0, on Python 3.10 and Django 4.2 or later. The command line was the
+from 0.25.0, on Python 3.10 and Django 4.2 or later. The command line was the
 kernel's `commands/` subpackage, and moved here so the kernel carries no
 transport.
 
@@ -86,14 +86,22 @@ equals sign: `--tag=-x`.
 of its service's or selector's docstring and whether it reads or writes, or
 its registered name when the function says nothing. `manage.py notes
 rename-note --help` lists its options, with `(required)` where leaving one
-out is refused. On a `partial` spec, that is only what names the row: the
-Validator's fields may be left out, as dispatch allows.
+out is refused. Both are read from the input schema a transport advertises,
+[`spec_caller_input_schema`][django_service_specs.schema.spec_caller_input_schema.spec_caller_input_schema],
+under the command's `pool_seeds`, so the command asks for what dispatch asks
+for. On a `partial` spec, `(required)` is only what names the row: the
+Validator's fields may be left out, as dispatch allows. A parameter a provider
+may fill, such as a read beside a `kwargs` provider whose return names no keys,
+is an option and is not required, unless the provider takes that read by name
+with no default: only the caller can fill it then, so a read declared required
+stays `(required)`.
 
 Some parameters have no option:
 
-- **A key the server fills**, one a `kwargs` provider is annotated to answer
-  ([`server_owned_keys`][django_service_specs.specs.server_owned_keys.server_owned_keys]),
-  since a value sent for it would be dropped.
+- **A key the server fills**: one a `kwargs` provider is annotated to answer,
+  since a value sent for it would be dropped, and a `reflected` read named like
+  a seed `pool_seeds` registers, since the seed fills it and dispatch refuses an
+  argument of its name.
 - **A parameter with no flat spelling**: an object, an array of objects or of
   arrays, and a file. The subcommand's help names them. A spec that requires
   one, such as any `many` spec, cannot be run from the command line.
@@ -184,7 +192,7 @@ branch on:
 | 1 | `ERROR` | failed in a way nobody declared: the traceback is printed |
 | 2 | `USAGE` | never started: the command line was malformed |
 | 3 | `INVALID_ARGUMENTS` | `InvalidArguments`, `ServiceValidationError`, any other `DispatchError` |
-| 4 | `NOT_PERMITTED` | `NotPermitted` |
+| 4 | `NOT_PERMITTED` | `NotPermitted`, and `PermissionCheckDenied`, a declared check's denial |
 | 5 | `PRINCIPAL_UNAVAILABLE` | `PrincipalUnavailable`: no such user, or a deactivated one |
 | 6 | `NOT_FOUND` | the row named does not exist, or the service raised `ServiceNotFound` |
 | 7 | `CONFLICT` | `ServiceConflict`, and `ActionUnavailable` with its code in the message |
@@ -245,8 +253,37 @@ sentence from `manage.py check`, as `django_spec_cli.W001`, once per
 open spec of every `SpecCommand` in the project, and a command that could not
 be loaded to be checked as `django_spec_cli.W003`. There is no
 `W002`: a spec with an empty `permissions` is refused when it is built, so
-none reaches a registry. Both are warnings, and `SILENCED_SYSTEM_CHECKS`
-silences one by id.
+none reaches a registry.
+
+`django_spec_cli.W004` reports, once per spec, a declaration the kernel's
+[`check_seeds`][django_service_specs.dispatch.check_seeds.check_seeds]
+refuses under the command's `pool_seeds`: a keyword the callable requires
+that nothing fills, or a read declared optional that a `kwargs` provider
+takes by name with no default, among others. A run of that spec is refused
+with the same sentence, raised as `ImproperlyConfigured` (exit code 1,
+with a traceback) before `--as-user` is looked up, even when the options sent
+would let it run. The command's other specs are unaffected.
+
+A `Parameter` is optional unless it says `required=True`, so a read declared
+plainly over a keyword with no default is one such declaration:
+
+```python
+--8<--
+docs/examples/commands.py:refused
+--8<--
+```
+
+`manage.py check` reports it as `django_spec_cli.W004`, and
+`manage.py drafts retitle --as-user 1 --title Final` is refused with the same
+sentence:
+
+```text
+'retitle' in manage.py drafts cannot run as declared, and a run of it is refused: ServiceSpec.service requires the keyword(s) ['title'], declared as optional reads that nothing else fills, so a call leaving one out is refused as missing. Declare the read required, or give the keyword a default.
+```
+
+All three are warnings, so a spec nobody runs never stops `migrate`, and
+`SILENCED_SYSTEM_CHECKS` silences one by id. Silencing `W004` hides the report
+and does not let the spec run.
 
 The kernel keeps no check of its own: its app registers nothing, so a project
 listing only `"django_service_specs"` gets no check for a command. List
@@ -255,7 +292,7 @@ listing only `"django_service_specs"` gets no check for a command. List
 A `SpecCommand` keeps Django's system checks on, so on the command line the
 report is printed to stderr before every run of every command. The runs on
 this page are shown without it; in a project listing the app, each would be
-preceded by the warning for `whoami`. `call_command` skips
+preceded by the warnings for `whoami` and `retitle`. `call_command` skips
 system checks for every command but `check`, so a command run through it
 does not print them.
 

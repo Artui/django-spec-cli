@@ -18,7 +18,7 @@ class ExitCode(IntEnum):
     | 1 | `ERROR` | failed in a way nobody declared | anything else, with a traceback |
     | 2 | `USAGE` | never started: the command line was malformed | argparse's own refusals |
     | 3 | `INVALID_ARGUMENTS` | was refused its arguments | `InvalidArguments`, `ServiceValidationError`, any other `DispatchError` |
-    | 4 | `NOT_PERMITTED` | was refused to the principal | `NotPermitted` |
+    | 4 | `NOT_PERMITTED` | was refused to the principal | `NotPermitted`, `PermissionCheckDenied` |
     | 5 | `PRINCIPAL_UNAVAILABLE` | had nobody to run as | `PrincipalUnavailable` |
     | 6 | `NOT_FOUND` | found no row to act on | a `not_found` result, `ServiceNotFound` |
     | 7 | `CONFLICT` | was refused by the row's current state | `ServiceConflict`, `ActionUnavailable` |
