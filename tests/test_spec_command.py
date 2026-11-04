@@ -297,6 +297,23 @@ class TestSeeds:
         command = command_over(self._registry(), pool_seeds=seeds)
         assert run("greet", "--as-user", str(owner.pk), command=command) == '"hello acme"\n'
 
+    def test_a_reflected_read_a_seed_fills_is_an_option_only_without_the_seed(
+        self, capsys: pytest.CaptureFixture[str], owner: Any
+    ) -> None:
+        # Offered under the command's seeds, it would be refused when passed,
+        # as an argument dispatch does not take.
+        def greet(*, tenant: str) -> str:
+            return f"hello {tenant}"
+
+        reads = Parameters.of(Parameter("tenant", "string", required=True, reflected=True))
+        spec = ServiceSpec(service=greet, permissions=[Unrestricted()], reads=reads)
+        registry = registry_of(greet=spec)
+        seeded = command_over(registry, pool_seeds=DEFAULT_POOL_SEEDS.extend(tenant=lambda: "acme"))
+        assert "--tenant" not in help_of(capsys, "greet", command=seeded)
+        assert run("greet", "--as-user", str(owner.pk), command=seeded) == '"hello acme"\n'
+        unseeded = " ".join(help_of(capsys, "greet", command=command_over(registry)).split())
+        assert "--tenant STRING (required)" in unseeded
+
     def test_with_no_seeds_named_a_callable_reading_one_fails_as_dispatch_does(
         self, owner: Any
     ) -> None:
@@ -427,6 +444,21 @@ class TestHelp:
         text = help_of(capsys, "echo", command=command_over(registry_of(echo=spec)))
         assert "--project" not in text
         assert "--n INTEGER" in text
+
+    def test_a_read_a_provider_may_fill_is_offered_and_not_required(
+        self, capsys: pytest.CaptureFixture[str], owner: Any
+    ) -> None:
+        # A return that says nothing about its keys may fill any read, so
+        # dispatch demands none of them of the caller and the help asks for none.
+        def may_fill(**_: Any) -> dict[str, Any]:
+            return {"project": 1}
+
+        spec = echo_spec(Parameter("project", "integer", required=True), kwargs=may_fill)
+        command = command_over(registry_of(echo=spec))
+        text = " ".join(help_of(capsys, "echo", command=command).split())
+        assert "--project INTEGER" in text
+        assert "(required)" not in text
+        assert lines(run("echo", "--as-user", str(owner.pk), command=command)) == [{"project": 1}]
 
 
 # --- output --------------------------------------------------------------------------------------

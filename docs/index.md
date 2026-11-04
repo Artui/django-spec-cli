@@ -86,14 +86,20 @@ equals sign: `--tag=-x`.
 of its service's or selector's docstring and whether it reads or writes, or
 its registered name when the function says nothing. `manage.py notes
 rename-note --help` lists its options, with `(required)` where leaving one
-out is refused. On a `partial` spec, that is only what names the row: the
-Validator's fields may be left out, as dispatch allows.
+out is refused. Both are read from the input schema a transport advertises,
+[`spec_caller_input_schema`][django_service_specs.schema.spec_caller_input_schema.spec_caller_input_schema],
+under the command's `pool_seeds`, so the command asks for what dispatch asks
+for. On a `partial` spec, `(required)` is only what names the row: the
+Validator's fields may be left out, as dispatch allows. A parameter a provider
+may fill, such as a read beside a `kwargs` provider whose return names no keys,
+is an option and is not required.
 
 Some parameters have no option:
 
-- **A key the server fills**, one a `kwargs` provider is annotated to answer
-  ([`server_owned_keys`][django_service_specs.specs.server_owned_keys.server_owned_keys]),
-  since a value sent for it would be dropped.
+- **A key the server fills**: one a `kwargs` provider is annotated to answer,
+  since a value sent for it would be dropped, and a `reflected` read named like
+  a seed `pool_seeds` registers, since the seed fills it and dispatch refuses an
+  argument of its name.
 - **A parameter with no flat spelling**: an object, an array of objects or of
   arrays, and a file. The subcommand's help names them. A spec that requires
   one, such as any `many` spec, cannot be run from the command line.
