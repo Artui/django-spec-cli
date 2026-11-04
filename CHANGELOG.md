@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.4.0] — 2026-11-04
 
+### Added
+- **A spec the kernel refuses as declared is reported, and never run.**
+  Every spec a `SpecCommand` serves is now put to the kernel's `check_seeds`
+  under the command's `pool_seeds`, which other transports already ask where
+  they register a spec. Such a spec is, for example, a read declared optional
+  (`required=False`) that a `kwargs` provider takes by name with no default,
+  such as `def needs_project(*, project: int)`. `manage.py check` reports
+  each one as `django_spec_cli.W004`, a warning, naming the command, the spec
+  and the kernel's reason. A run of it raises `ImproperlyConfigured` with
+  the same sentence, exit code 1, before `--as-user` is looked up. That
+  includes a run that sends the read and would have succeeded before. A run
+  that left the read out crashed in the provider with a `TypeError`, and now
+  fails with the kernel's reason instead. The command's other specs, its
+  `--help` and its `--explain` are unaffected.
+
 ### Changed
 - **The kernel floor is `django-service-specs>=0.25.0`, the first kernel
   release that keeps a read a provider requires itself demanded of the

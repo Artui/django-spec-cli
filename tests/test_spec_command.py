@@ -314,13 +314,59 @@ class TestSeeds:
         unseeded = " ".join(help_of(capsys, "greet", command=command_over(registry)).split())
         assert "--tenant STRING (required)" in unseeded
 
-    def test_with_no_seeds_named_a_callable_reading_one_fails_as_dispatch_does(
-        self, owner: Any
-    ) -> None:
+    def test_with_no_seeds_named_a_callable_reading_one_is_refused(self, owner: Any) -> None:
         # The default is the stock seeds, as ``dispatch``'s: a seed nobody
-        # registered is the callable's own ``TypeError``, not a quiet default.
-        with pytest.raises(TypeError, match="tenant"):
+        # registered is no quiet default, and the kernel's ``check_seeds``
+        # refuses the spec before it reaches the callable's own ``TypeError``.
+        with pytest.raises(ImproperlyConfigured, match=r"\['tenant'\], which nothing fills"):
             run("greet", "--as-user", str(owner.pk), command=command_over(self._registry()))
+
+
+class TestADeclarationTheKernelRefuses:
+    """A spec ``check_seeds`` refuses under the command's seeds never reaches dispatch.
+
+    ``call_command`` handed an instance names it after this module, so the
+    sentence reads ``manage.py test_spec_command``.
+    """
+
+    REFUSAL = (
+        "'echo' in manage.py test_spec_command cannot run as declared, and a run of it is refused: "
+        "ServiceSpec.kwargs requires the keyword(s) ['project'], declared as optional reads "
+        "that nothing else fills, so a call leaving one out fails with the provider's own "
+        "TypeError. Declare the read required, or give the keyword a default."
+    )
+
+    def _command(self, **attributes: Any) -> SpecCommand:
+        def needs_project(*, project: int) -> dict[str, Any]:
+            return {"project": project}
+
+        spec = echo_spec(Parameter("project", "integer", required=False), kwargs=needs_project)
+        return command_over(registry_of(echo=spec, ping=open_spec(lambda: "pong")), **attributes)
+
+    @pytest.mark.parametrize("sent", [[], ["--project", "3"]], ids=["read-left-out", "read-sent"])
+    def test_a_run_of_it_is_refused_with_the_kernel_s_reason(
+        self, owner: Any, sent: list[str]
+    ) -> None:
+        # Sending the read would run: refused anyway, because the declaration
+        # says it is optional and every run leaving it out crashes.
+        with pytest.raises(ImproperlyConfigured) as caught:
+            run("echo", "--as-user", str(owner.pk), *sent, command=self._command())
+        assert str(caught.value) == self.REFUSAL
+
+    def test_it_is_refused_before_the_user_is_looked_up(self) -> None:
+        looked_up: list[str] = []
+
+        def resolve_as_user(self: SpecCommand, value: str) -> Any:
+            looked_up.append(value)
+            raise PrincipalUnavailable("nobody")
+
+        command = self._command(resolve_as_user=resolve_as_user)
+        with pytest.raises(ImproperlyConfigured):
+            run("echo", "--as-user", "7", command=command)
+        assert looked_up == []
+
+    def test_the_command_s_other_specs_still_run(self, owner: Any) -> None:
+        assert run("ping", "--as-user", str(owner.pk), command=self._command()) == '"pong"\n'
 
 
 class TestAbbreviation:
