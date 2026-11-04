@@ -264,6 +264,23 @@ with the same sentence, raised as `ImproperlyConfigured` (exit code 1,
 with a traceback) before `--as-user` is looked up, even when the options sent
 would let it run. The command's other specs are unaffected.
 
+A `Parameter` is optional unless it says `required=True`, so a read declared
+plainly over a keyword with no default is one such declaration:
+
+```python
+--8<--
+docs/examples/commands.py:refused
+--8<--
+```
+
+`manage.py check` reports it as `django_spec_cli.W004`, and
+`manage.py drafts retitle --as-user 1 --title Final` is refused with the same
+sentence:
+
+```text
+'retitle' in manage.py drafts cannot run as declared, and a run of it is refused: ServiceSpec.service requires the keyword(s) ['title'], declared as optional reads that nothing else fills, so a call leaving one out is refused as missing. Declare the read required, or give the keyword a default.
+```
+
 All three are warnings, so a spec nobody runs never stops `migrate`, and
 `SILENCED_SYSTEM_CHECKS` silences one by id. Silencing `W004` hides the report
 and does not let the spec run.
@@ -275,7 +292,7 @@ listing only `"django_service_specs"` gets no check for a command. List
 A `SpecCommand` keeps Django's system checks on, so on the command line the
 report is printed to stderr before every run of every command. The runs on
 this page are shown without it; in a project listing the app, each would be
-preceded by the warning for `whoami`. `call_command` skips
+preceded by the warnings for `whoami` and `retitle`. `call_command` skips
 system checks for every command but `check`, so a command run through it
 does not print them.
 

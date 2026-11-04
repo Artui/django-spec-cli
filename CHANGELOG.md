@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] — 2026-11-04
+
+### Added
+- **The command line page shows a spec the kernel refuses.** Its system-check
+  section now includes an example command, `drafts`, serving one spec that
+  declares a plain `Parameter` over a keyword with no default, and prints the
+  `django_spec_cli.W004` sentence it gets. The page's tests assert that
+  `manage.py check` reports exactly that warning for the example and that a
+  run of the spec raises the same sentence, so the page cannot drift from
+  what the check and the command say. No change to the package.
+
 ## [0.4.0] — 2026-11-04
 
 ### Added
@@ -124,7 +135,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `django-service-specs>=0.10.0`, the first kernel release with every name the
   command reads at its root.
 
-[Unreleased]: https://github.com/Artui/django-spec-cli/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Artui/django-spec-cli/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/Artui/django-spec-cli/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/Artui/django-spec-cli/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Artui/django-spec-cli/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Artui/django-spec-cli/compare/v0.2.1...v0.3.0

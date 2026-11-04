@@ -7,6 +7,10 @@
 shows them - must be the lines printed under it, and its exit status the
 number an ``echo $?`` after it shows. So the page cannot show an option, an
 output or an exit code the command does not have.
+
+The sentence the page prints for the example's ``Drafts``, whose spec the
+kernel refuses, must be the ``django_spec_cli.W004`` the system check reports
+and the refusal a run of the spec raises.
 """
 
 from __future__ import annotations
@@ -18,10 +22,13 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from django.core.checks import Warning
+from django.core.exceptions import ImproperlyConfigured
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django_service_specs import UnguardedReason, UnguardedSpec
 
+from django_spec_cli.checks import check_unguarded_specs
 from django_spec_cli.report.unguarded_message import unguarded_message
 from docs.examples import commands
 from tests.dispatch_app.models import Note
@@ -30,6 +37,7 @@ pytestmark = [pytest.mark.django_db, pytest.mark.usefixtures("keep_the_test_conn
 
 PAGE = Path(__file__).resolve().parents[2] / "docs" / "index.md"
 PROMPT = "$ python manage.py notes "
+RETITLE_ARGV = "retitle --as-user 1 --title Final"
 
 
 def _runs() -> list[tuple[str, list[str], int]]:
@@ -110,6 +118,54 @@ def test_the_username_lookup_runs_as_the_user_it_names() -> None:
     with pytest.raises(CommandError) as caught:
         call_command(commands.ByUsername(), "whoami", "--as-user", "nobody")
     assert (caught.value.returncode, str(caught.value)) == (5, "No user named 'nobody'.")
+
+
+def _refused_line() -> str:
+    """The line the page prints for the W004 example: the one opening with its spec and command.
+
+    Found by that opening rather than by its block, so another ``text`` block
+    on the page leaves it alone, and a page no longer printing it fails here.
+    """
+    (line,) = [
+        line
+        for line in PAGE.read_text().splitlines()
+        if line.startswith("'retitle' in manage.py drafts ")
+    ]
+    return line
+
+
+def test_the_refused_spec_is_reported_as_w004_with_the_page_s_sentence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # The examples are no installed app, so the walk is pointed at the one
+    # command; it would otherwise never load it, and no other test's check
+    # sees this command.
+    monkeypatch.setattr("django_spec_cli.checks.get_commands", lambda: {"drafts": "yourapp"})
+    monkeypatch.setattr(
+        "django_spec_cli.checks.load_command_class", lambda app_name, name: commands.Drafts()
+    )
+    assert check_unguarded_specs(None) == [
+        Warning(
+            _refused_line(),
+            hint=(
+                "Change the declaration as the message says. Until then a run of the spec "
+                "is refused, whether or not django_spec_cli.W004 is silenced."
+            ),
+            obj=commands.Drafts,
+            id="django_spec_cli.W004",
+        )
+    ]
+
+
+@pytest.mark.usefixtures("world")
+def test_a_run_of_the_refused_spec_raises_the_page_s_sentence() -> None:
+    # The run the page names, which sends every option the spec declares, and
+    # is still refused.
+    assert f"`manage.py drafts {RETITLE_ARGV}`" in PAGE.read_text()
+    command = commands.Drafts()
+    with pytest.raises(ImproperlyConfigured) as caught:
+        command.run_from_argv(["manage.py", "drafts", "--skip-checks", *shlex.split(RETITLE_ARGV)])
+    assert str(caught.value) == _refused_line()
 
 
 @pytest.mark.usefixtures("world")
