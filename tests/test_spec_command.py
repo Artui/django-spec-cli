@@ -368,6 +368,30 @@ class TestADeclarationTheKernelRefuses:
     def test_the_command_s_other_specs_still_run(self, owner: Any) -> None:
         assert run("ping", "--as-user", str(owner.pk), command=self._command()) == '"pong"\n'
 
+    def test_help_and_explain_still_answer(self, capsys: pytest.CaptureFixture[str]) -> None:
+        # Asked of the spec run, never where the parser is built, so the
+        # command's listing and its report still work.
+        command = self._command()
+        parser = command.create_parser("manage.py", "notes")
+        with pytest.raises(SystemExit):
+            parser.parse_args(["--help"])
+        assert "echo" in capsys.readouterr().out
+        assert "'echo' in manage.py " in run("--explain", command=command)
+
+    @override_settings(SILENCED_SYSTEM_CHECKS=["django_spec_cli.W004"])
+    def test_silencing_the_warning_does_not_let_it_run(self, owner: Any) -> None:
+        with pytest.raises(ImproperlyConfigured):
+            run("echo", "--as-user", str(owner.pk), "--project", "3", command=self._command())
+
+    @pytest.mark.usefixtures("keep_the_test_connection")
+    def test_from_argv_it_propagates_for_a_traceback_and_not_an_exit_code(self, owner: Any) -> None:
+        # ``run_from_argv`` turns only a ``CommandError`` into ``sys.exit``;
+        # anything else reaches ``manage.py`` as a traceback and exit status 1,
+        # which is ``ExitCode.ERROR`` as the docs publish it.
+        argv = ["manage.py", "notes", "--skip-checks", "echo", "--as-user", str(owner.pk)]
+        with pytest.raises(ImproperlyConfigured, match="cannot run as declared"):
+            self._command().run_from_argv(argv)
+
 
 class TestAbbreviation:
     """A prefix of an option is never read as the option, the command's own or a spec's."""

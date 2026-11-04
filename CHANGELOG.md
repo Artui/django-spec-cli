@@ -13,16 +13,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A spec the kernel refuses as declared is reported, and never run.**
   Every spec a `SpecCommand` serves is now put to the kernel's `check_seeds`
   under the command's `pool_seeds`, which other transports already ask where
-  they register a spec. Such a spec is, for example, a read declared optional
-  (`required=False`) that a `kwargs` provider takes by name with no default,
-  such as `def needs_project(*, project: int)`. `manage.py check` reports
-  each one as `django_spec_cli.W004`, a warning, naming the command, the spec
-  and the kernel's reason. A run of it raises `ImproperlyConfigured` with
-  the same sentence, exit code 1, before `--as-user` is looked up. That
-  includes a run that sends the read and would have succeeded before. A run
-  that left the read out crashed in the provider with a `TypeError`, and now
-  fails with the kernel's reason instead. The command's other specs, its
-  `--help` and its `--explain` are unaffected.
+  they register a spec. `manage.py check` reports each spec it refuses as
+  `django_spec_cli.W004`, a warning, naming the command, the spec and the
+  kernel's reason. A run of such a spec raises `ImproperlyConfigured` with the
+  same sentence, exit code 1 with a traceback, before `--as-user` is looked
+  up. The command's other specs, its `--help` and its `--explain` are
+  unaffected.
+
+  Two of the kernel's refusals stop a run that succeeded before, because each
+  fails only some calls: a read declared optional (`required=False`) that a
+  callable such as a `kwargs` provider takes by name with no default, as
+  `def needs_project(*, project: int)`, where a run sending the read worked
+  and one leaving it out crashed with the provider's `TypeError`; and an
+  array read declaring no `items` over a keyword annotated with its element,
+  such as `pks: list[int]`, which was handed the command line's strings. The
+  others refuse a declaration on which every run already failed, with the
+  callable's `TypeError` or the kernel's own `ImproperlyConfigured`, which
+  now names the spec and the command.
 
 ### Changed
 - **The kernel floor is `django-service-specs>=0.25.0`, the first kernel
