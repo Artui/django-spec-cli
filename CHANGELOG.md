@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-11-04
+
 ### Changed
 - **The kernel floor is `django-service-specs>=0.25.0`, the first kernel
   release that keeps a read a provider requires itself demanded of the
@@ -94,7 +96,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `django-service-specs>=0.10.0`, the first kernel release with every name the
   command reads at its root.
 
-[Unreleased]: https://github.com/Artui/django-spec-cli/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/Artui/django-spec-cli/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Artui/django-spec-cli/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Artui/django-spec-cli/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Artui/django-spec-cli/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/Artui/django-spec-cli/compare/v0.2.0...v0.2.1
