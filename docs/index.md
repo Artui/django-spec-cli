@@ -27,7 +27,7 @@ pip install django-spec-cli
 ```
 
 It installs [`django-service-specs`](https://artui.github.io/django-service-specs/), the kernel whose specs it serves,
-from 0.24.0, on Python 3.10 and Django 4.2 or later. The command line was the
+from 0.25.0, on Python 3.10 and Django 4.2 or later. The command line was the
 kernel's `commands/` subpackage, and moved here so the kernel carries no
 transport.
 
@@ -92,7 +92,9 @@ under the command's `pool_seeds`, so the command asks for what dispatch asks
 for. On a `partial` spec, `(required)` is only what names the row: the
 Validator's fields may be left out, as dispatch allows. A parameter a provider
 may fill, such as a read beside a `kwargs` provider whose return names no keys,
-is an option and is not required.
+is an option and is not required, unless the provider takes that read by name
+with no default: only the caller can fill it then, so a read declared required
+stays `(required)`.
 
 Some parameters have no option:
 
@@ -251,8 +253,20 @@ sentence from `manage.py check`, as `django_spec_cli.W001`, once per
 open spec of every `SpecCommand` in the project, and a command that could not
 be loaded to be checked as `django_spec_cli.W003`. There is no
 `W002`: a spec with an empty `permissions` is refused when it is built, so
-none reaches a registry. Both are warnings, and `SILENCED_SYSTEM_CHECKS`
-silences one by id.
+none reaches a registry.
+
+`django_spec_cli.W004` reports, once per spec, a declaration the kernel's
+[`check_seeds`][django_service_specs.dispatch.check_seeds.check_seeds]
+refuses under the command's `pool_seeds`: a keyword the callable requires
+that nothing fills, or a read declared optional that a `kwargs` provider
+takes by name with no default, among others. A run of that spec is refused
+with the same sentence, raised as `ImproperlyConfigured` (exit code 1,
+with a traceback) before `--as-user` is looked up, even when the options sent
+would let it run. The command's other specs are unaffected.
+
+All three are warnings, so a spec nobody runs never stops `migrate`, and
+`SILENCED_SYSTEM_CHECKS` silences one by id. Silencing `W004` hides the report
+and does not let the spec run.
 
 The kernel keeps no check of its own: its app registers nothing, so a project
 listing only `"django_service_specs"` gets no check for a command. List

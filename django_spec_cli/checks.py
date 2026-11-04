@@ -1,4 +1,4 @@
-"""The system check reporting every spec a ``SpecCommand`` serves that authorizes nothing."""
+"""The system check reporting every spec a ``SpecCommand`` serves that authorizes nothing or cannot run."""
 
 from __future__ import annotations
 
@@ -7,22 +7,28 @@ from typing import Any
 
 from django.apps import AppConfig
 from django.core.checks import CheckMessage, Warning
+from django.core.exceptions import ImproperlyConfigured
 from django.core.management import get_commands, load_command_class
-from django_service_specs import UnguardedSpec, unguarded_specs
+from django_service_specs import UnguardedSpec, check_seeds, unguarded_specs
 
 from django_spec_cli.report.unguarded_message import unguarded_message
+from django_spec_cli.report.utils import refused_message
 from django_spec_cli.spec_command import SpecCommand
 
 _HINT = (
     "Declare a PermissionCheck that refuses someone in the spec's permissions, or add "
     "'django_spec_cli.W001' to SILENCED_SYSTEM_CHECKS if the spec is meant to be open."
 )
+_REFUSED_HINT = (
+    "Change the declaration as the message says. Until then a run of the spec is refused, "
+    "whether or not django_spec_cli.W004 is silenced."
+)
 
 
 def check_unguarded_specs(
     app_configs: Sequence[AppConfig] | None, **kwargs: Any
 ) -> list[CheckMessage]:
-    """Warn once per spec that authorizes nothing, in every ``SpecCommand`` of the project.
+    """Warn once per spec that authorizes nothing or cannot run, in every ``SpecCommand`` of the project.
 
     Registered by the app's ``ready()``, so a project gets it by listing
     ``django_spec_cli`` in ``INSTALLED_APPS`` and not otherwise. There is
@@ -40,6 +46,15 @@ def check_unguarded_specs(
       spec is a decision or an accident the check cannot tell apart, and an
       ``Error`` would stop ``migrate`` on a project working as intended.
       ``SILENCED_SYSTEM_CHECKS`` silences it by id, so for every spec at once.
+    - ``django_spec_cli.W004``, one per spec that
+      [`check_seeds`][django_service_specs.dispatch.check_seeds.check_seeds]
+      refuses under the command's ``pool_seeds``, such as an optional read
+      that a ``kwargs`` provider takes by name with no default, with the
+      kernel's reason and the command class as ``obj``. A run of that spec
+      is refused with the same sentence, so this is the same refusal told
+      before anyone runs it. A ``Warning`` for the reason W003 is one: an
+      ``Error`` would stop ``migrate`` over a spec nobody runs, while the
+      command's other specs work.
     - ``django_spec_cli.W003``, one per command that could not be loaded or
       whose parser could not be built, naming it and the error. Without this
       app nothing loads that command until somebody runs it, so failing the
@@ -80,7 +95,31 @@ def check_unguarded_specs(
             )
             for spec in specs
         )
+        messages.extend(
+            Warning(
+                refused_message(spec_name, name, error),
+                hint=_REFUSED_HINT,
+                obj=type(command),
+                id="django_spec_cli.W004",
+            )
+            for spec_name, error in _refused(command)
+        )
     return messages
+
+
+def _refused(command: SpecCommand) -> Iterator[tuple[str, ImproperlyConfigured]]:
+    """Each spec of ``command`` that ``check_seeds`` refuses, with its refusal, in registry order.
+
+    The same question ``SpecCommand.handle`` asks before a run, under the
+    same ``pool_seeds``, so a spec reported here is one a run refuses.
+    Outside the walk's ``try``: a refusal names one spec, and the command
+    loaded, so its other specs are still reported and it is no W003.
+    """
+    for entry in command.registry:
+        try:
+            check_seeds(entry.spec, pool_seeds=command.pool_seeds)
+        except ImproperlyConfigured as error:
+            yield entry.name, error
 
 
 def _spec_commands(

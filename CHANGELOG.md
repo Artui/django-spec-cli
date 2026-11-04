@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-11-04
+
+### Added
+- **A spec the kernel refuses as declared is reported, and never run.**
+  Every spec a `SpecCommand` serves is now put to the kernel's `check_seeds`
+  under the command's `pool_seeds`, which other transports already ask where
+  they register a spec. `manage.py check` reports each spec it refuses as
+  `django_spec_cli.W004`, a warning, naming the command, the spec and the
+  kernel's reason. A run of such a spec raises `ImproperlyConfigured` with the
+  same sentence, exit code 1 with a traceback, before `--as-user` is looked
+  up. The command's other specs, its `--help` and its `--explain` are
+  unaffected.
+
+  Three of the kernel's refusals stop runs that succeeded before, because
+  each fails only some calls. The first is a read declared without
+  `required=True`, which is `Parameter`'s default, over a keyword the
+  service, the selector or a callable such as a `kwargs` provider takes by
+  name with no default: `Parameter("title", "string")` over
+  `def rename(*, title)`, or `def needs_project(*, project: int)` as the
+  provider. A run sending the read worked, and one leaving it out was refused
+  as missing or crashed with the provider's `TypeError`; now every run is
+  refused, so declare such a read `required=True` or give the keyword a
+  default. The second is an array read declaring no `items` over a keyword
+  annotated with its element, such as `pks: list[int]`, which was handed the
+  command line's strings. The third is a `progress_reporter` requiring a
+  keyword nothing fills, which a run whose service never reports never
+  called. The others refuse a declaration on which every run that reached
+  the callable already failed, with its `TypeError` or the kernel's own
+  `ImproperlyConfigured`, which now names the spec and the command.
+
+### Changed
+- **The kernel floor is `django-service-specs>=0.25.0`, the first kernel
+  release that keeps a read a provider requires itself demanded of the
+  caller.** From 0.3.1 `--help` reads its options, and which are marked
+  `(required)`, from the kernel's `spec_caller_input_schema`, so it repeats
+  what the installed kernel answers. On kernel 0.24.x a read declared
+  required that a `kwargs` provider takes by name with no default, such as
+  `def needs_project(*, project: int)`, was offered without `(required)`, and
+  a run leaving it out crashed in the provider with a `TypeError`. From 0.25.0
+  it is marked `(required)`, and that run is refused as invalid arguments,
+  exit code 3. The lowest-declared-versions job runs the suite on 0.25.0.
+
 ## [0.3.1] — 2026-11-04
 
 ### Fixed
@@ -82,7 +124,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `django-service-specs>=0.10.0`, the first kernel release with every name the
   command reads at its root.
 
-[Unreleased]: https://github.com/Artui/django-spec-cli/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/Artui/django-spec-cli/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Artui/django-spec-cli/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Artui/django-spec-cli/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Artui/django-spec-cli/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/Artui/django-spec-cli/compare/v0.2.0...v0.2.1

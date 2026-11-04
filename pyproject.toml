@@ -40,14 +40,16 @@ dependencies = [
     # kernel's specs, so this package cannot support a Django the kernel does
     # not.
     "django>=4.2",
-    # The first kernel release with ``PermissionCheckDenied`` in ``REFUSALS``.
-    # ``tests/test_exit_code_for.py`` holds the exit codes against that list
-    # and decides the new refusal's code by name, so the suite, and the floor
-    # job running it, cannot import below 0.24.0. The code itself is
-    # ``NotPermitted``'s on every kernel. Below 0.11.0 the kernel also still
-    # shipped its own copy of the command and registered its own ``W001`` and
-    # ``W003``.
-    "django-service-specs>=0.24.0",
+    # The first kernel release whose ``spec_caller_input_schema`` keeps a read
+    # a provider requires itself, by name and with no default, demanded of the
+    # caller. ``--help`` repeats that schema, so on 0.24.x such a read was not
+    # marked ``(required)`` and a run leaving it out crashed in the provider
+    # with a ``TypeError``; ``tests/test_spec_command.py`` holds it. 0.24.0 put
+    # ``PermissionCheckDenied`` in ``REFUSALS``, which
+    # ``tests/test_exit_code_for.py`` decides by name. Below 0.11.0 the kernel
+    # also still shipped its own copy of the command and registered its own
+    # ``W001`` and ``W003``.
+    "django-service-specs>=0.25.0",
 ]
 
 [project.urls]
@@ -147,7 +149,7 @@ skip-magic-trailing-comma = false
 root = ["./django_spec_cli"]
 
 [tool.bumpversion]
-current_version = "0.3.1"
+current_version = "0.4.0"
 allow_dirty = false
 commit = false
 tag = false
