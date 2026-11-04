@@ -27,7 +27,12 @@ def test_every_root_name_has_an_entry_for_the_root_s_own_object() -> None:
         assert documented[name] is getattr(django_spec_cli, name), name
 
 
-def test_the_setting_and_both_check_ids_are_documented() -> None:
+def test_the_setting_and_every_check_id_is_documented() -> None:
     page = PAGE.read_text()
-    for spelling in ("SPEC_CLI_OUTPUT", "django_spec_cli.W001", "django_spec_cli.W003"):
+    for spelling in (
+        "SPEC_CLI_OUTPUT",
+        "django_spec_cli.W001",
+        "django_spec_cli.W003",
+        "django_spec_cli.W004",
+    ):
         assert f"`{spelling}`" in page, spelling

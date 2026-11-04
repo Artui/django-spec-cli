@@ -20,16 +20,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   up. The command's other specs, its `--help` and its `--explain` are
   unaffected.
 
-  Two of the kernel's refusals stop a run that succeeded before, because each
-  fails only some calls: a read declared optional (`required=False`) that a
-  callable such as a `kwargs` provider takes by name with no default, as
-  `def needs_project(*, project: int)`, where a run sending the read worked
-  and one leaving it out crashed with the provider's `TypeError`; and an
-  array read declaring no `items` over a keyword annotated with its element,
-  such as `pks: list[int]`, which was handed the command line's strings. The
-  others refuse a declaration on which every run already failed, with the
-  callable's `TypeError` or the kernel's own `ImproperlyConfigured`, which
-  now names the spec and the command.
+  Three of the kernel's refusals stop runs that succeeded before, because
+  each fails only some calls. The first is a read declared without
+  `required=True`, which is `Parameter`'s default, over a keyword the
+  service, the selector or a callable such as a `kwargs` provider takes by
+  name with no default: `Parameter("title", "string")` over
+  `def rename(*, title)`, or `def needs_project(*, project: int)` as the
+  provider. A run sending the read worked, and one leaving it out was refused
+  as missing or crashed with the provider's `TypeError`; now every run is
+  refused, so declare such a read `required=True` or give the keyword a
+  default. The second is an array read declaring no `items` over a keyword
+  annotated with its element, such as `pks: list[int]`, which was handed the
+  command line's strings. The third is a `progress_reporter` requiring a
+  keyword nothing fills, which a run whose service never reports never
+  called. The others refuse a declaration on which every run that reached
+  the callable already failed, with its `TypeError` or the kernel's own
+  `ImproperlyConfigured`, which now names the spec and the command.
 
 ### Changed
 - **The kernel floor is `django-service-specs>=0.25.0`, the first kernel

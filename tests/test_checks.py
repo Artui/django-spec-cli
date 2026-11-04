@@ -1,4 +1,5 @@
-"""The unguarded-spec system check, run over this suite's own command modules.
+"""The system checks, for an unguarded spec and a spec ``check_seeds`` refuses, run over
+this suite's own command modules.
 
 Other tests add command modules to the same app, so every assertion here is
 filtered to the commands this file owns - the ``unguarded_`` ones - and none

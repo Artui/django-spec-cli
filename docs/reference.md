@@ -28,6 +28,11 @@ Registered by `DjangoSpecCliConfig`, so a project gets them by listing
   open spec, worded by
   [`unguarded_message`][django_spec_cli.report.unguarded_message.unguarded_message].
 - **`django_spec_cli.W003`**: a command could not be loaded to be checked.
+- **`django_spec_cli.W004`**: the kernel's
+  [`check_seeds`][django_service_specs.dispatch.check_seeds.check_seeds]
+  refuses a spec a `SpecCommand` serves, under the command's `pool_seeds`.
+  Once per refused spec. A run of it is refused with the same sentence,
+  whether or not the warning is silenced.
 
 ## The command
 
