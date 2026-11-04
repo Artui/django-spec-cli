@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] — 2026-11-04
+
 ### Fixed
 - **`--help` offers and requires what dispatch asks a caller for.** A
   subcommand's options, and which of them are marked `(required)`, are now
@@ -80,7 +82,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `django-service-specs>=0.10.0`, the first kernel release with every name the
   command reads at its root.
 
-[Unreleased]: https://github.com/Artui/django-spec-cli/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Artui/django-spec-cli/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/Artui/django-spec-cli/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/Artui/django-spec-cli/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/Artui/django-spec-cli/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/Artui/django-spec-cli/compare/v0.1.0...v0.2.0
