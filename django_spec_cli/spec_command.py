@@ -26,6 +26,7 @@ from django_service_specs import (
     ServiceSpec,
     ServiceValidationError,
     SpecRegistry,
+    check_seeds,
     coerce_flat,
     dispatch,
     kernel_spec,
@@ -44,6 +45,7 @@ from django_spec_cli.exit_code_for import exit_code_for
 from django_spec_cli.render.render_result import render_result
 from django_spec_cli.render.wants_table import wants_table
 from django_spec_cli.report.unguarded_message import unguarded_message
+from django_spec_cli.report.utils import refused_message
 from django_spec_cli.types.exit_code import ExitCode
 
 _OWN_OPTIONS = frozenset({"--as-user", "--json", "--table"})
@@ -89,6 +91,13 @@ class SpecCommand(BaseCommand):
       terminal ([`wants_table`][django_spec_cli.render.wants_table.wants_table]).
     - A refusal ends the run with a ``CommandError`` carrying its message and
       an [`ExitCode`][django_spec_cli.types.exit_code.ExitCode].
+    - **A spec the kernel refuses as declared is never run.**
+      [`check_seeds`][django_service_specs.dispatch.check_seeds.check_seeds],
+      under ``pool_seeds``, is asked of the spec named before anything else,
+      and its refusal is raised as ``ImproperlyConfigured``, as a command
+      naming no registry is: a traceback and ``ExitCode.ERROR``, whatever
+      the options sent. The command's other specs still run, and the system
+      check reports the same spec as ``django_spec_cli.W004``.
     - ``--explain`` runs no spec: it lists the ones that authorize nothing,
       as the system check does.
 
@@ -234,6 +243,18 @@ class SpecCommand(BaseCommand):
                 else "name a spec to run, or pass --explain. --help lists the specs."
             )
         entry = self._entries[name]
+        # Asked of the one spec named, not of every entry where the parser is
+        # built: a raise there would stop every spec the command serves, and
+        # ``--help`` and ``--explain`` with them. Before the lookup, so a
+        # project's ``resolve_as_user`` never runs for a spec that cannot.
+        # Not a ``CommandError``: the declaration is wrong, not the call, and
+        # ``ExitCode.ERROR`` is published as the failure with a traceback.
+        try:
+            check_seeds(entry.spec, pool_seeds=self.pool_seeds)
+        except ImproperlyConfigured as error:
+            raise ImproperlyConfigured(
+                refused_message(entry.name, self._command_label, error)
+            ) from error
         spec = kernel_spec(entry.spec)
         parameters = spec.parameters()
         raw = parsed_arguments(argparse.Namespace(**options), parameters)

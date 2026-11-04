@@ -1,4 +1,4 @@
-"""The app a project lists to have its open specs reported by ``manage.py check``."""
+"""The app a project lists to have its open and unrunnable specs reported by ``manage.py check``."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from django_spec_cli.checks import check_unguarded_specs
 
 
 class DjangoSpecCliConfig(AppConfig):
-    """Registers the unguarded-spec system check, and does nothing else.
+    """Registers the system check over every ``SpecCommand``'s specs, and does nothing else.
 
     Optional: the package works unlisted, and a project that does not list it
     gets no check and no sign that it is missing. It owns no models, so it

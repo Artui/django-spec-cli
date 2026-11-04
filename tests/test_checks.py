@@ -16,10 +16,22 @@ from django.core.checks import CheckMessage, Warning
 from django.core.management import call_command, get_commands, load_command_class
 from django.core.management.base import SystemCheckError
 from django.test import override_settings
-from django_service_specs import UnguardedReason, UnguardedSpec
+from django_service_specs import (
+    DEFAULT_POOL_SEEDS,
+    Parameter,
+    Parameters,
+    PoolSeeds,
+    ServiceSpec,
+    SpecRegistry,
+    UnguardedReason,
+    UnguardedSpec,
+    Unrestricted,
+)
 
 from django_spec_cli.checks import check_unguarded_specs
 from django_spec_cli.report.unguarded_message import unguarded_message
+from django_spec_cli.spec_command import SpecCommand
+from tests.commands_app.unguarded_registries import StaffOnly
 from tests.utils import run_project
 
 APP = "tests.commands_app"
@@ -144,6 +156,110 @@ class TestACommandThatDoesNotLoad:
     def test_the_rest_of_the_project_is_still_checked(self) -> None:
         # A broken module sorted before the report's must not end the walk.
         assert len(_own_w001(check_unguarded_specs(None))) == 3
+
+
+def _needs_project(*, project: int) -> dict[str, int]:
+    return {"project": project}
+
+
+def _echo(**pool: object) -> object:
+    return pool
+
+
+def _greet(*, tenant: str) -> str:
+    return f"hello {tenant}"
+
+
+def _project_spec(*, required: bool) -> ServiceSpec:
+    """A read ``project`` beside a ``kwargs`` provider that takes it by name, with no default."""
+    return ServiceSpec(
+        service=_echo,
+        permissions=[StaffOnly()],
+        reads=Parameters.of(Parameter("project", "integer", required=required)),
+        kwargs=_needs_project,
+    )
+
+
+class TestADeclarationTheKernelRefuses:
+    """``check_seeds``, under the command's own ``pool_seeds``, over every spec it serves.
+
+    Each test serves one command of its own through the walk, so nothing here
+    depends on what the suite's command modules declare.
+    """
+
+    REFUSED = (
+        "'optional_project' in manage.py seeded cannot run as declared, and a run of it is "
+        "refused: ServiceSpec.kwargs requires the keyword(s) ['project'], declared as optional "
+        "reads that nothing else fills, so a call leaving one out fails with the provider's "
+        "own TypeError. Declare the read required, or give the keyword a default."
+    )
+
+    def _walk(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        registry: SpecRegistry,
+        pool_seeds: PoolSeeds = DEFAULT_POOL_SEEDS,
+    ) -> tuple[type, list[CheckMessage]]:
+        command = type("Command", (SpecCommand,), {"registry": registry, "pool_seeds": pool_seeds})
+        monkeypatch.setattr("django_spec_cli.checks.get_commands", lambda: {"seeded": APP})
+        monkeypatch.setattr(
+            "django_spec_cli.checks.load_command_class", lambda app_name, name: command()
+        )
+        return command, check_unguarded_specs(None)
+
+    def test_an_optional_read_a_provider_requires_is_reported(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        registry = SpecRegistry()
+        registry.register("optional_project", _project_spec(required=False))
+        command, messages = self._walk(monkeypatch, registry)
+        assert [m for m in messages if m.id == "django_spec_cli.W004"] == [
+            Warning(
+                self.REFUSED,
+                hint=(
+                    "Change the declaration as the message says. Until then a run of the spec "
+                    "is refused, whether or not django_spec_cli.W004 is silenced."
+                ),
+                obj=command,
+                id="django_spec_cli.W004",
+            )
+        ]
+
+    def test_a_spec_it_accepts_is_not_reported(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        registry = SpecRegistry()
+        registry.register("required_project", _project_spec(required=True))
+        _, messages = self._walk(monkeypatch, registry)
+        assert messages == []
+
+    def test_one_warning_per_refused_spec_beside_the_command_s_other_reports(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Refusing one spec loses neither the W001 of an open spec in the same
+        # command nor the command itself to a W003.
+        registry = SpecRegistry()
+        registry.register("optional_project", _project_spec(required=False))
+        registry.register("required_project", _project_spec(required=True))
+        registry.register("open", ServiceSpec(service=_echo, permissions=[Unrestricted()]))
+        registry.register("unseeded", ServiceSpec(service=_greet, permissions=[StaffOnly()]))
+        _, messages = self._walk(monkeypatch, registry)
+        assert [(m.id, m.msg.split(" ")[0]) for m in messages] == [
+            ("django_spec_cli.W001", "'open'"),
+            ("django_spec_cli.W004", "'optional_project'"),
+            ("django_spec_cli.W004", "'unseeded'"),
+        ]
+        assert not any(message.is_serious() for message in messages)
+
+    def test_it_reads_the_command_s_pool_seeds(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        # ``tenant`` is filled by nothing under the stock seeds, and by the seed
+        # the command registers.
+        registry = SpecRegistry()
+        registry.register("greet", ServiceSpec(service=_greet, permissions=[StaffOnly()]))
+        _, unseeded = self._walk(monkeypatch, registry)
+        assert [m.id for m in unseeded] == ["django_spec_cli.W004"]
+        assert "['tenant']" in unseeded[0].msg
+        seeds = DEFAULT_POOL_SEEDS.extend(tenant=lambda: "acme")
+        _, seeded = self._walk(monkeypatch, registry, pool_seeds=seeds)
+        assert seeded == []
 
 
 class TestAppConfigs:
