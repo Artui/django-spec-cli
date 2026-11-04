@@ -27,7 +27,7 @@ pip install django-spec-cli
 ```
 
 It installs [`django-service-specs`](https://artui.github.io/django-service-specs/), the kernel whose specs it serves,
-from 0.24.0, on Python 3.10 and Django 4.2 or later. The command line was the
+from 0.25.0, on Python 3.10 and Django 4.2 or later. The command line was the
 kernel's `commands/` subpackage, and moved here so the kernel carries no
 transport.
 

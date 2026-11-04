@@ -460,6 +460,23 @@ class TestHelp:
         assert "(required)" not in text
         assert lines(run("echo", "--as-user", str(owner.pk), command=command)) == [{"project": 1}]
 
+    def test_a_read_a_provider_requires_itself_is_required(
+        self, capsys: pytest.CaptureFixture[str], owner: Any
+    ) -> None:
+        # A provider that takes the read by name, with no default, cannot be the
+        # one to fill it, so dispatch demands it of the caller. A kernel before
+        # 0.25.0 relaxed it, and a run leaving it out crashed in the provider.
+        def needs_project(*, project: int) -> dict[str, Any]:
+            return {"project": project}
+
+        spec = echo_spec(Parameter("project", "integer", required=True), kwargs=needs_project)
+        command = command_over(registry_of(echo=spec))
+        text = " ".join(help_of(capsys, "echo", command=command).split())
+        assert "--project INTEGER (required)" in text
+        error = refused("echo", "--as-user", str(owner.pk), command=command)
+        assert error.returncode == 3
+        assert str(error).splitlines()[1:] == ["project: This field is required."]
+
 
 # --- output --------------------------------------------------------------------------------------
 
