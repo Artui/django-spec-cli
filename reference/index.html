@@ -963,6 +963,11 @@ command reads - <code>SpecRegistry</code>, <code>dispatch</code>, the refusals -
   open spec, worded by
   <a class="autorefs autorefs-internal" title="unguarded_message" href="#django_spec_cli.report.unguarded_message.unguarded_message"><code>unguarded_message</code></a>.</li>
 <li><strong><code>django_spec_cli.W003</code></strong>: a command could not be loaded to be checked.</li>
+<li><strong><code>django_spec_cli.W004</code></strong>: the kernel's
+  <a class="autorefs autorefs-external" href="https://artui.github.io/django-service-specs/reference/#django_service_specs.dispatch.check_seeds.check_seeds"><code>check_seeds</code></a>
+  refuses a spec a <code>SpecCommand</code> serves, under the command's <code>pool_seeds</code>.
+  Once per refused spec. A run of it is refused with the same sentence,
+  whether or not the warning is silenced.</li>
 </ul>
 <h2 id="the-command">The command<a class="headerlink" href="#the-command" title="Permanent link">&para;</a></h2>
 
@@ -1019,6 +1024,13 @@ whose callables read one.</p>
   terminal (<a class="autorefs autorefs-internal" title="wants_table" href="#django_spec_cli.render.wants_table.wants_table"><code>wants_table</code></a>).</li>
 <li>A refusal ends the run with a <code>CommandError</code> carrying its message and
   an <a class="autorefs autorefs-internal" title="ExitCode" href="#django_spec_cli.types.exit_code.ExitCode"><code>ExitCode</code></a>.</li>
+<li><strong>A spec the kernel refuses as declared is never run.</strong>
+  <a class="autorefs autorefs-external" href="https://artui.github.io/django-service-specs/reference/#django_service_specs.dispatch.check_seeds.check_seeds"><code>check_seeds</code></a>,
+  under <code>pool_seeds</code>, is asked of the spec named before anything else,
+  and its refusal is raised as <code>ImproperlyConfigured</code>, as a command
+  naming no registry is: a traceback and <code>ExitCode.ERROR</code>, whatever
+  the options sent. The command's other specs still run, and the system
+  check reports the same spec as <code>django_spec_cli.W004</code>.</li>
 <li><code>--explain</code> runs no spec: it lists the ones that authorize nothing,
   as the system check does.</li>
 </ul>

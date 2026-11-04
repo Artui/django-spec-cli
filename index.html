@@ -624,7 +624,7 @@ nothing else.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span>django-spec-cli
 </span></code></pre></div>
 <p>It installs <a href="https://artui.github.io/django-service-specs/"><code>django-service-specs</code></a>, the kernel whose specs it serves,
-from 0.24.0, on Python 3.10 and Django 4.2 or later. The command line was the
+from 0.25.0, on Python 3.10 and Django 4.2 or later. The command line was the
 kernel's <code>commands/</code> subpackage, and moved here so the kernel carries no
 transport.</p>
 <h2 id="what-it-is-not">What it is not<a class="headerlink" href="#what-it-is-not" title="Permanent link">&para;</a></h2>
@@ -688,7 +688,9 @@ under the command's <code>pool_seeds</code>, so the command asks for what dispat
 for. On a <code>partial</code> spec, <code>(required)</code> is only what names the row: the
 Validator's fields may be left out, as dispatch allows. A parameter a provider
 may fill, such as a read beside a <code>kwargs</code> provider whose return names no keys,
-is an option and is not required.</p>
+is an option and is not required, unless the provider takes that read by name
+with no default: only the caller can fill it then, so a read declared required
+stays <code>(required)</code>.</p>
 <p>Some parameters have no option:</p>
 <ul>
 <li><strong>A key the server fills</strong>: one a <code>kwargs</code> provider is annotated to answer,
@@ -870,8 +872,18 @@ sentence from <code>manage.py check</code>, as <code>django_spec_cli.W001</code>
 open spec of every <code>SpecCommand</code> in the project, and a command that could not
 be loaded to be checked as <code>django_spec_cli.W003</code>. There is no
 <code>W002</code>: a spec with an empty <code>permissions</code> is refused when it is built, so
-none reaches a registry. Both are warnings, and <code>SILENCED_SYSTEM_CHECKS</code>
-silences one by id.</p>
+none reaches a registry.</p>
+<p><code>django_spec_cli.W004</code> reports, once per spec, a declaration the kernel's
+<a class="autorefs autorefs-external" href="https://artui.github.io/django-service-specs/reference/#django_service_specs.dispatch.check_seeds.check_seeds"><code>check_seeds</code></a>
+refuses under the command's <code>pool_seeds</code>: a keyword the callable requires
+that nothing fills, or a read declared optional that a <code>kwargs</code> provider
+takes by name with no default, among others. A run of that spec is refused
+with the same sentence, raised as <code>ImproperlyConfigured</code> (exit code 1,
+with a traceback) before <code>--as-user</code> is looked up, even when the options sent
+would let it run. The command's other specs are unaffected.</p>
+<p>All three are warnings, so a spec nobody runs never stops <code>migrate</code>, and
+<code>SILENCED_SYSTEM_CHECKS</code> silences one by id. Silencing <code>W004</code> hides the report
+and does not let the spec run.</p>
 <p>The kernel keeps no check of its own: its app registers nothing, so a project
 listing only <code>"django_service_specs"</code> gets no check for a command. List
 <code>"django_spec_cli"</code>.</p>
