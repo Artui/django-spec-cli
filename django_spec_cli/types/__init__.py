@@ -1,7 +1,9 @@
-"""Value types: the exit status a command's run ends with."""
+"""Value types: the exit status a command's run ends with, and the transport name it stamps."""
 
+from django_spec_cli.types.cli_transport import CLI_TRANSPORT
 from django_spec_cli.types.exit_code import ExitCode
 
 __all__ = [
+    "CLI_TRANSPORT",
     "ExitCode",
 ]

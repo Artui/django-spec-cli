@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-11-08
+
+### Added
+- **A run stamps its transport: `"cli"`.** Every callable a `SpecCommand` run
+  reaches is now handed a `call_context` built by the kernel's
+  `build_call_context` and stamped last with `"cli"`, exported as
+  `CLI_TRANSPORT`, so a permission check, the Validator, a provider, the
+  service and the presenter read `call_transport(call_context) == "cli"` from
+  one dict. Before, the command handed `dispatch` none, and a callable reading
+  the key saw a missing one, which the kernel reads as an in-process caller.
+  The Validator's declaration the command reads for the options it parses is
+  asked under the stamped dict as well. `request`, `view`, `format` and
+  `action` are in the dict as `None`, which binds nothing different from a
+  missing key. The command line page says what a callable reads here.
+
+### Changed
+- **The floor on `django-service-specs` rises from 0.25.0 to 0.29.0**, the
+  release that adds `build_call_context` and removes the shared `Transport`
+  enum. A project on an older kernel stays on 0.4.x.
+
 ## [0.4.1] — 2026-11-04
 
 ### Added
@@ -135,7 +155,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `django-service-specs>=0.10.0`, the first kernel release with every name the
   command reads at its root.
 
-[Unreleased]: https://github.com/Artui/django-spec-cli/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/Artui/django-spec-cli/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/Artui/django-spec-cli/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/Artui/django-spec-cli/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/Artui/django-spec-cli/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Artui/django-spec-cli/compare/v0.3.0...v0.3.1

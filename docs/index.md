@@ -27,7 +27,7 @@ pip install django-spec-cli
 ```
 
 It installs [`django-service-specs`](https://artui.github.io/django-service-specs/), the kernel whose specs it serves,
-from 0.25.0, on Python 3.10 and Django 4.2 or later. The command line was the
+from 0.29.0, on Python 3.10 and Django 4.2 or later. The command line was the
 kernel's `commands/` subpackage, and moved here so the kernel carries no
 transport.
 
@@ -295,6 +295,46 @@ this page are shown without it; in a project listing the app, each would be
 preceded by the warnings for `whoami` and `retitle`. `call_command` skips
 system checks for every command but `check`, so a command run through it
 does not print them.
+
+## What a callable reads here
+
+Every callable a run reaches is handed one `call_context`, built by the
+kernel's
+[`build_call_context`][django_service_specs.types.build_call_context.build_call_context]
+and stamped last with this package's transport name, the plain string `"cli"`,
+exported as `django_spec_cli.CLI_TRANSPORT`. Read it with the kernel's
+[`call_transport`][django_service_specs.types.call_transport.call_transport],
+or compare `call_context["transport"] == "cli"` with nothing imported:
+
+```python
+--8<--
+docs/examples/commands.py:transport
+--8<--
+```
+
+- **One dict per run.** The command builds it ahead of everything it asks of
+  a spec and hands the same object to the declaration it reads for the
+  options it parses, then to `dispatch`, so a permission check, the
+  Validator's `parameters()` and `validate()`, a provider, the service and the
+  presenter all read `"cli"` from one dict.
+- **The standard entries are there as `None`.** `request`, `view`, `format`
+  and `action` are keys of the dict with no value, since a command line has
+  none. The kernel hands a callable declaring `request` or `view` `None` for
+  such an entry, as it does for a missing one, and `format` and `action` are
+  never bound by name, so a spec written for HTTP runs here as it did.
+- **`--help` is read under a dict too.** The command builds a stamped dict of
+  its own for each spec to describe a Validator's fields for the parser. The
+  kernel's schema and seed checks that decide which options are offered are
+  asked outside a call, as they are by every transport, and read no stamp. So
+  the option names come from a transport-blind declaration: a field a
+  Validator declares only when `call_transport(call_context) == "cli"` is
+  never offered, and if it is required, every run is refused for it.
+  Declare such a field for every transport, or not at all.
+- **Seams.** The value is not configurable: a subclass cannot change what a
+  run stamps. What a subclass can supply is `resolve_as_user`, who the run is
+  made as, and `pool_seeds`, which adds a keyword to the pool every callable
+  may declare, so an entry a project needs in every call is a seed rather
+  than a key of the dict.
 
 ## What it does not do
 

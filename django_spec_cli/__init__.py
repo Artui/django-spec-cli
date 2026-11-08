@@ -11,11 +11,13 @@ from django_spec_cli.render.render_table import render_table
 from django_spec_cli.render.wants_table import wants_table
 from django_spec_cli.report.unguarded_message import unguarded_message
 from django_spec_cli.spec_command import SpecCommand
+from django_spec_cli.types.cli_transport import CLI_TRANSPORT
 from django_spec_cli.types.exit_code import ExitCode
 from django_spec_cli.version import __version__
 
 __all__ = [
     "__version__",
+    "CLI_TRANSPORT",
     "ExitCode",
     "ParameterDescriptor",
     "SpecCommand",

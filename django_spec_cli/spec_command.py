@@ -26,6 +26,7 @@ from django_service_specs import (
     ServiceSpec,
     ServiceValidationError,
     SpecRegistry,
+    build_call_context,
     check_seeds,
     coerce_flat,
     dispatch,
@@ -46,6 +47,7 @@ from django_spec_cli.render.render_result import render_result
 from django_spec_cli.render.wants_table import wants_table
 from django_spec_cli.report.unguarded_message import unguarded_message
 from django_spec_cli.report.utils import refused_message
+from django_spec_cli.types.cli_transport import CLI_TRANSPORT
 from django_spec_cli.types.exit_code import ExitCode
 
 _OWN_OPTIONS = frozenset({"--as-user", "--json", "--table"})
@@ -173,7 +175,7 @@ class SpecCommand(BaseCommand):
                 )
             self._entries[name] = entry
             spec = kernel_spec(entry.spec)
-            parameters = _sendable(spec, self.pool_seeds)
+            parameters = _sendable(spec, self.pool_seeds, _call_context())
             summary = _summary(spec, entry.name)
             subparser = subparsers.add_parser(
                 name,
@@ -256,7 +258,11 @@ class SpecCommand(BaseCommand):
                 refused_message(entry.name, self._command_label, error)
             ) from error
         spec = kernel_spec(entry.spec)
-        parameters = spec.parameters()
+        # One dict for the whole run, built ahead of the first callable it
+        # asks: the declaration read here, then every stage ``dispatch`` runs,
+        # so a callable reading ``transport`` sees ``cli`` from either.
+        call_context = _call_context()
+        parameters = spec.parameters(call_context=call_context)
         raw = parsed_arguments(argparse.Namespace(**options), parameters)
         # Read before the run, not after it: a setting that names no format
         # raises, and raising once a write has committed reports a failure for
@@ -282,6 +288,7 @@ class SpecCommand(BaseCommand):
                 principal=principal,
                 arguments=coerce_flat(parameters, raw),
                 pool_seeds=self.pool_seeds,
+                call_context=call_context,
             )
         except (DispatchError, ServiceError) as error:
             raise CommandError(_message(error), returncode=int(exit_code_for(error))) from error
@@ -304,7 +311,20 @@ class SpecCommand(BaseCommand):
             self.stdout.write(unguarded_message(unguarded, label))
 
 
-def _sendable(spec: ServiceSpec | SelectorSpec, pool_seeds: PoolSeeds) -> Parameters:
+def _call_context() -> dict[str, Any]:
+    """A new context for the command's own reads and one run, stamped ``cli``.
+
+    ``request`` and ``view`` are there as ``None``, since a command line has
+    neither: the kernel hands a callable declaring either ``None`` for a
+    ``None`` entry exactly as for a missing one, so no binding changes.
+    ``format`` and ``action`` are no pool names and are never bound.
+    """
+    return build_call_context(CLI_TRANSPORT)
+
+
+def _sendable(
+    spec: ServiceSpec | SelectorSpec, pool_seeds: PoolSeeds, call_context: dict[str, Any]
+) -> Parameters:
     """What a caller may send, as the kernel's caller schema reads it: required only where dispatch demands it.
 
     The parameters ``spec_caller_input_schema`` offers under the command's
@@ -327,7 +347,7 @@ def _sendable(spec: ServiceSpec | SelectorSpec, pool_seeds: PoolSeeds) -> Parame
     return Parameters.of(
         *(
             param if param.name in required else replace(param, required=False)
-            for param in spec.parameters()
+            for param in spec.parameters(call_context=call_context)
             if param.name in schema["properties"]
         )
     )

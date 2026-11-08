@@ -20,14 +20,23 @@ from django.core.management.base import CommandError
 from django.test import override_settings
 from django_service_specs import (
     DEFAULT_POOL_SEEDS,
+    TRANSPORT_KEY,
+    Output,
+    OutputField,
     Parameter,
     Parameters,
+    PermissionCheck,
+    PresentationContext,
+    Presenter,
     PrincipalUnavailable,
     ServiceSpec,
     SpecRegistry,
     UnguardedReason,
     UnguardedSpec,
     Unrestricted,
+    ValidationContext,
+    Validator,
+    call_transport,
     dispatch,
     present,
 )
@@ -35,6 +44,7 @@ from django_service_specs import (
 from django_spec_cli.render.render_json_lines import render_json_lines
 from django_spec_cli.report.unguarded_message import unguarded_message
 from django_spec_cli.spec_command import SpecCommand
+from django_spec_cli.types.cli_transport import CLI_TRANSPORT
 from tests.commands_app.management.commands import notes
 from tests.dispatch_app.models import Note
 from tests.utils import run_project
@@ -696,6 +706,233 @@ class TestExplain:
 
     def test_an_empty_registry_serves_nothing_to_explain(self) -> None:
         assert "serves no spec" in run("--explain", command=command_over(SpecRegistry()))
+
+
+# --- the transport stamp -------------------------------------------------------------------------
+
+
+class _Probe:
+    """One spec whose every stage that can read ``call_context`` writes what it saw to ``seen``."""
+
+    def __init__(self) -> None:
+        self.seen: list[tuple[str, dict[str, Any]]] = []
+        probe = self
+
+        class Check(PermissionCheck):
+            def has_permission(self, principal: Any, spec: Any, *, call_context: Any) -> bool:
+                probe.seen.append(("permission", call_context))
+                return True
+
+        class Probed(Validator):
+            def parameters(self, *, call_context: Any = None) -> Parameters:
+                if call_context is not None:
+                    probe.seen.append(("validator parameters", call_context))
+                return Parameters.of(Parameter("n", "integer", required=False))
+
+            def validate(self, arguments: Any, context: ValidationContext) -> dict[str, Any]:
+                probe.seen.append(("validator", context.call_context))
+                return dict(arguments)
+
+        class Presents(Presenter):
+            def output(self) -> Output:
+                return Output((OutputField("n", "integer"),))
+
+            def present(self, value: Any) -> Any:
+                return value
+
+            def presented(self, value: Any, context: PresentationContext | None) -> Any:
+                assert context is not None
+                probe.seen.append(("presenter", context.call_context))
+                return value
+
+        def service(*, call_context: Any, extra: Any = None, **_: Any) -> dict[str, Any]:
+            probe.seen.append(("service", call_context))
+            return {"n": 1}
+
+        def provide(*, call_context: Any) -> int:
+            probe.seen.append(("provider", call_context))
+            return 1
+
+        self.spec = ServiceSpec(
+            service=service,
+            permissions=[Check()],
+            validator=Probed(),
+            presenter=Presents(),
+        )
+        self.pool_seeds = DEFAULT_POOL_SEEDS.extend(extra=provide)
+
+    def run(self, owner: Any) -> None:
+        """One run of the spec through ``call_command``, the principal lookup marked in ``seen``."""
+        probe = self
+
+        class Command(SpecCommand):
+            registry = registry_of(probe=probe.spec)
+            pool_seeds = probe.pool_seeds
+
+            def resolve_as_user(self, value: str) -> Any:
+                probe.seen.append(("principal", {}))
+                return super().resolve_as_user(value)
+
+        run("probe", "--as-user", str(owner.pk), command=Command())
+
+    def of_the_run(self) -> list[tuple[str, dict[str, Any]]]:
+        """What the run saw, less the one read made while the command's parser was built.
+
+        That is the first entry: the command reads the validator's declaration
+        for ``--help`` under a dict of its own, ahead of any run. The marker
+        the principal lookup leaves is no stage, and is left out too.
+        """
+        assert self.seen[0][0] == "validator parameters"
+        return [(stage, context) for stage, context in self.seen[1:] if stage != "principal"]
+
+    def asked_ahead_of_dispatch(self) -> list[dict[str, Any]]:
+        """The declarations read before the principal was looked up: the command's own reads."""
+        marker = self.stages_with_marker().index("principal")
+        return [context for _, context in self.seen[:marker]]
+
+    def stages_with_marker(self) -> list[str]:
+        return [stage for stage, _ in self.seen]
+
+    def stages(self) -> list[str]:
+        return [stage for stage, _ in self.of_the_run()]
+
+    def contexts(self) -> list[dict[str, Any]]:
+        return [context for _, context in self.of_the_run()]
+
+
+class TestTheTransportStamp:
+    """A callable reading ``call_context`` is told the transport is ``cli``, on one dict."""
+
+    def test_every_stage_of_a_call_reads_cli_from_one_dict(self, owner: Any) -> None:
+        probe = _Probe()
+        probe.run(owner)
+        # Each stage a callable can read the context in, and the validator's
+        # declaration asked inside the call.
+        assert {"permission", "validator", "provider", "service", "presenter"} <= set(
+            probe.stages()
+        )
+        assert {call_transport(context) for context in probe.contexts()} == {"cli"}
+        assert len({id(context) for context in probe.contexts()}) == 1
+
+    def test_the_validator_s_declaration_is_asked_with_the_stamped_dict(self, owner: Any) -> None:
+        probe = _Probe()
+        probe.run(owner)
+        asked = [c for stage, c in probe.of_the_run() if stage == "validator parameters"]
+        # The command's own ask ahead of dispatch, then dispatch's.
+        assert len(asked) >= 2
+        assert {call_transport(context) for context in asked} == {"cli"}
+        assert len({id(context) for context in asked}) == 1
+
+    def test_the_command_reads_the_declaration_stamped_ahead_of_the_run(self, owner: Any) -> None:
+        # Before the principal is looked up, which is before ``dispatch``: the
+        # parser's read for ``--help`` and the one the command makes for the
+        # options it parses, each a dict stamped ``cli``.
+        probe = _Probe()
+        probe.run(owner)
+        ahead = probe.asked_ahead_of_dispatch()
+        assert len(ahead) == 2
+        assert {call_transport(context) for context in ahead} == {"cli"}
+
+    def test_the_four_standard_entries_are_there_and_none(self, owner: Any) -> None:
+        probe = _Probe()
+        probe.run(owner)
+        context = probe.contexts()[0]
+        assert {key: context[key] for key in ("request", "view", "format", "action")} == {
+            "request": None,
+            "view": None,
+            "format": None,
+            "action": None,
+        }
+
+    def test_a_call_context_is_built_for_each_run(self, owner: Any) -> None:
+        probe = _Probe()
+        probe.run(owner)
+        first = probe.contexts()
+        probe.seen.clear()
+        probe.run(owner)
+        second = probe.contexts()
+        # ``first`` is held, so no address is reused between the two runs.
+        assert all(context is first[0] for context in first)
+        assert all(context is second[0] for context in second)
+        assert first[0] is not second[0]
+
+    def test_a_callable_declaring_request_and_view_is_handed_none(self, owner: Any) -> None:
+        # The builder leaves both keys present as None, and the kernel reads
+        # a None entry as a missing one, so a callable written for HTTP binds
+        # here exactly as it did before the dict existed.
+        got: dict[str, Any] = {}
+
+        def service(*, request: Any, view: Any, **_: Any) -> dict[str, Any]:
+            got.update(request=request, view=view)
+            return {"ok": True}
+
+        run(
+            "probe",
+            "--as-user",
+            str(owner.pk),
+            command=command_over(registry_of(probe=open_spec(service))),
+        )
+        assert got == {"request": None, "view": None}
+
+    def test_format_and_action_are_never_bound_to_a_callable(self, owner: Any) -> None:
+        # Both keys are in the dict as None, and neither is a pool name, so a
+        # callable declaring one keeps its own default rather than being
+        # handed the None.
+        got: dict[str, Any] = {}
+
+        def service(*, format: str = "own", action: str = "own", **_: Any) -> dict[str, Any]:
+            got.update(format=format, action=action)
+            return {"ok": True}
+
+        run(
+            "probe",
+            "--as-user",
+            str(owner.pk),
+            command=command_over(registry_of(probe=open_spec(service))),
+        )
+        assert got == {"format": "own", "action": "own"}
+
+    def test_the_declaration_read_for_help_is_asked_with_the_stamped_dict(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        # ``--help`` is built before any call, and a Validator describing its
+        # field per transport must read the same ``cli`` there as in the run.
+        class PerTransport(Validator):
+            def parameters(self, *, call_context: Any = None) -> Parameters:
+                text = f"read as {call_transport(call_context)}"
+                return Parameters.of(Parameter("n", "integer", required=False, help=text))
+
+            def validate(self, arguments: Any, context: ValidationContext) -> dict[str, Any]:
+                return dict(arguments)
+
+        spec = ServiceSpec(
+            service=lambda **_: {"ok": True}, permissions=[Unrestricted()], validator=PerTransport()
+        )
+        command = command_over(registry_of(probe=spec))
+        assert "read as cli" in " ".join(help_of(capsys, "probe", command=command).split())
+
+    def test_the_constant_is_the_plain_string_the_kernel_key_holds(self, owner: Any) -> None:
+        probe = _Probe()
+        probe.run(owner)
+        assert CLI_TRANSPORT == "cli"
+        assert {context[TRANSPORT_KEY] for context in probe.contexts()} == {CLI_TRANSPORT}
+
+    def test_the_stamp_names_cli_whatever_a_seed_called_transport_says(self, owner: Any) -> None:
+        # A seed is a pool entry, in another namespace from the context.
+        got: list[Any] = []
+
+        def service(*, transport: str, call_context: Any, **_: Any) -> dict[str, Any]:
+            got.append((transport, call_transport(call_context)))
+            return {"ok": True}
+
+        pool_seeds = DEFAULT_POOL_SEEDS.extend(transport=lambda: "pool")
+        run(
+            "probe",
+            "--as-user",
+            str(owner.pk),
+            command=command_over(registry_of(probe=open_spec(service)), pool_seeds=pool_seeds),
+        )
+        assert got == [("pool", "cli")]
 
 
 # --- from argv, as manage.py runs it -------------------------------------------------------------
