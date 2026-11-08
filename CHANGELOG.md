@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-11-08
+
 ### Added
 - **A run stamps its transport: `"cli"`.** Every callable a `SpecCommand` run
   reaches is now handed a `call_context` built by the kernel's
@@ -153,7 +155,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `django-service-specs>=0.10.0`, the first kernel release with every name the
   command reads at its root.
 
-[Unreleased]: https://github.com/Artui/django-spec-cli/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/Artui/django-spec-cli/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/Artui/django-spec-cli/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/Artui/django-spec-cli/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/Artui/django-spec-cli/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/Artui/django-spec-cli/compare/v0.3.0...v0.3.1
