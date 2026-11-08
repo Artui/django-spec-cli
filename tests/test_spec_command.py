@@ -745,9 +745,13 @@ class _Probe:
                 probe.seen.append(("presenter", context.call_context))
                 return value
 
-        def service(*, call_context: Any, **_: Any) -> dict[str, Any]:
+        def service(*, call_context: Any, extra: Any = None, **_: Any) -> dict[str, Any]:
             probe.seen.append(("service", call_context))
             return {"n": 1}
+
+        def provide(*, call_context: Any) -> int:
+            probe.seen.append(("provider", call_context))
+            return 1
 
         self.spec = ServiceSpec(
             service=service,
@@ -755,6 +759,7 @@ class _Probe:
             validator=Probed(),
             presenter=Presents(),
         )
+        self.pool_seeds = DEFAULT_POOL_SEEDS.extend(extra=provide)
 
     def run(self, owner: Any) -> None:
         """One run of the spec through ``call_command``, the principal lookup marked in ``seen``."""
@@ -762,6 +767,7 @@ class _Probe:
 
         class Command(SpecCommand):
             registry = registry_of(probe=probe.spec)
+            pool_seeds = probe.pool_seeds
 
             def resolve_as_user(self, value: str) -> Any:
                 probe.seen.append(("principal", {}))
@@ -800,9 +806,11 @@ class TestTheTransportStamp:
     def test_every_stage_of_a_call_reads_cli_from_one_dict(self, owner: Any) -> None:
         probe = _Probe()
         probe.run(owner)
-        # Four of the five stages the card names, plus the validator's
+        # Each stage a callable can read the context in, and the validator's
         # declaration asked inside the call.
-        assert {"permission", "validator", "service", "presenter"} <= set(probe.stages())
+        assert {"permission", "validator", "provider", "service", "presenter"} <= set(
+            probe.stages()
+        )
         assert {call_transport(context) for context in probe.contexts()} == {"cli"}
         assert len({id(context) for context in probe.contexts()}) == 1
 
@@ -839,12 +847,14 @@ class TestTheTransportStamp:
     def test_a_call_context_is_built_for_each_run(self, owner: Any) -> None:
         probe = _Probe()
         probe.run(owner)
-        first = {id(context) for context in probe.contexts()}
+        first = probe.contexts()
         probe.seen.clear()
         probe.run(owner)
-        second = {id(context) for context in probe.contexts()}
-        assert len(first) == len(second) == 1
-        assert first != second
+        second = probe.contexts()
+        # ``first`` is held, so no address is reused between the two runs.
+        assert all(context is first[0] for context in first)
+        assert all(context is second[0] for context in second)
+        assert first[0] is not second[0]
 
     def test_a_callable_declaring_request_and_view_is_handed_none(self, owner: Any) -> None:
         # The builder leaves both keys present as None, and the kernel reads
