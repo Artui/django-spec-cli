@@ -410,6 +410,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#what-a-callable-reads-here" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What a callable reads here
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#what-it-does-not-do" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -570,6 +581,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#what-a-callable-reads-here" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What a callable reads here
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#what-it-does-not-do" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -624,7 +646,7 @@ nothing else.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span>django-spec-cli
 </span></code></pre></div>
 <p>It installs <a href="https://artui.github.io/django-service-specs/"><code>django-service-specs</code></a>, the kernel whose specs it serves,
-from 0.25.0, on Python 3.10 and Django 4.2 or later. The command line was the
+from 0.29.0, on Python 3.10 and Django 4.2 or later. The command line was the
 kernel's <code>commands/</code> subpackage, and moved here so the kernel carries no
 transport.</p>
 <h2 id="what-it-is-not">What it is not<a class="headerlink" href="#what-it-is-not" title="Permanent link">&para;</a></h2>
@@ -923,6 +945,52 @@ this page are shown without it; in a project listing the app, each would be
 preceded by the warnings for <code>whoami</code> and <code>retitle</code>. <code>call_command</code> skips
 system checks for every command but <code>check</code>, so a command run through it
 does not print them.</p>
+<h2 id="what-a-callable-reads-here">What a callable reads here<a class="headerlink" href="#what-a-callable-reads-here" title="Permanent link">&para;</a></h2>
+<p>Every callable a run reaches is handed one <code>call_context</code>, built by the
+kernel's
+<a class="autorefs autorefs-external" href="https://artui.github.io/django-service-specs/reference/#django_service_specs.types.build_call_context.build_call_context"><code>build_call_context</code></a>
+and stamped last with this package's transport name, the plain string <code>"cli"</code>,
+exported as <code>django_spec_cli.CLI_TRANSPORT</code>. Read it with the kernel's
+<a class="autorefs autorefs-external" href="https://artui.github.io/django-service-specs/reference/#django_service_specs.types.call_transport.call_transport"><code>call_transport</code></a>,
+or compare <code>call_context["transport"] == "cli"</code> with nothing imported:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">where</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">call_context</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">    </span><span class="sd">"""The transport this call came over, as its context says."""</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    <span class="k">return</span> <span class="n">call_transport</span><span class="p">(</span><span class="n">call_context</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"in-process"</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="n">where_registry</span> <span class="o">=</span> <span class="n">SpecRegistry</span><span class="p">()</span>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="n">where_registry</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">"where"</span><span class="p">,</span> <span class="n">ServiceSpec</span><span class="p">(</span><span class="n">service</span><span class="o">=</span><span class="n">where</span><span class="p">,</span> <span class="n">permissions</span><span class="o">=</span><span class="p">[</span><span class="n">IsSignedIn</span><span class="p">()]))</span>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="c1"># yourapp/management/commands/where.py</span>
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="k">class</span><span class="w"> </span><span class="nc">Where</span><span class="p">(</span><span class="n">SpecCommand</span><span class="p">):</span>
+</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>    <span class="n">registry</span> <span class="o">=</span> <span class="n">where_registry</span>
+</span></code></pre></div>
+<ul>
+<li><strong>One dict per run.</strong> The command builds it ahead of everything it asks of
+  a spec and hands the same object to the declaration it reads for the
+  options it parses, then to <code>dispatch</code>, so a permission check, the
+  Validator's <code>parameters()</code> and <code>validate()</code>, a provider, the service and the
+  presenter all read <code>"cli"</code> from one dict.</li>
+<li><strong>The standard entries are there as <code>None</code>.</strong> <code>request</code>, <code>view</code>, <code>format</code>
+  and <code>action</code> are keys of the dict with no value, since a command line has
+  none. The kernel hands a callable declaring <code>request</code> or <code>view</code> <code>None</code> for
+  such an entry, as it does for a missing one, and <code>format</code> and <code>action</code> are
+  never bound by name, so a spec written for HTTP runs here as it did.</li>
+<li><strong><code>--help</code> is read under a dict too.</strong> The command builds a stamped dict of
+  its own for each spec to describe a Validator's fields for the parser. The
+  kernel's schema and seed checks that decide which options are offered are
+  asked outside a call, as they are by every transport, and read no stamp. So
+  the option names come from a transport-blind declaration: a field a
+  Validator declares only when <code>call_transport(call_context) == "cli"</code> is
+  never offered, and if it is required, every run is refused for it.
+  Declare such a field for every transport, or not at all.</li>
+<li><strong>Seams.</strong> The value is not configurable: a subclass cannot change what a
+  run stamps. What a subclass can supply is <code>resolve_as_user</code>, who the run is
+  made as, and <code>pool_seeds</code>, which adds a keyword to the pool every callable
+  may declare, so an entry a project needs in every call is a seed rather
+  than a key of the dict.</li>
+</ul>
 <h2 id="what-it-does-not-do">What it does not do<a class="headerlink" href="#what-it-does-not-do" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>No payload file.</strong> Arguments are options; an object or a list of rows has
