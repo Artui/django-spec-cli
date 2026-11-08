@@ -48,8 +48,9 @@ dependencies = [
     # ``PermissionCheckDenied`` in ``REFUSALS``, which
     # ``tests/test_exit_code_for.py`` decides by name. Below 0.11.0 the kernel
     # also still shipped its own copy of the command and registered its own
-    # ``W001`` and ``W003``.
-    "django-service-specs>=0.25.0",
+    # ``W001`` and ``W003``. 0.29.0 adds ``build_call_context``, which the
+    # command builds the context it stamps ``cli`` on through.
+    "django-service-specs>=0.29.0",
 ]
 
 [project.urls]

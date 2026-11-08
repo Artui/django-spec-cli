@@ -1,5 +1,6 @@
-"""A registry served as a management command, a command that looks its user up by username, and
-a command serving a spec the kernel refuses as declared.
+"""A registry served as a management command, a command that looks its user up by username, a
+command whose service reads the transport it is called over, and a command serving a spec the
+kernel refuses as declared.
 
 ``tests/docs/test_commands_examples.py`` runs every command line
 ``docs/index.md`` shows through this module's ``Command``, from argv as
@@ -31,6 +32,7 @@ from django_service_specs import (
     ServiceSpec,
     SpecRegistry,
     Unrestricted,
+    call_transport,
 )
 
 from django_spec_cli import SpecCommand
@@ -166,3 +168,21 @@ class Drafts(SpecCommand):
 
 
 # --8<-- [end:refused]
+
+
+# --8<-- [start:transport]
+def where(*, call_context: Any) -> str:
+    """The transport this call came over, as its context says."""
+    return call_transport(call_context) or "in-process"
+
+
+where_registry = SpecRegistry()
+where_registry.register("where", ServiceSpec(service=where, permissions=[IsSignedIn()]))
+
+
+# yourapp/management/commands/where.py
+class Where(SpecCommand):
+    registry = where_registry
+
+
+# --8<-- [end:transport]

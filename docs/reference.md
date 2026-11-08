@@ -60,3 +60,4 @@ Registered by `DjangoSpecCliConfig`, so a project gets them by listing
 ## Types
 
 ::: django_spec_cli.types.exit_code.ExitCode
+::: django_spec_cli.types.cli_transport.CLI_TRANSPORT

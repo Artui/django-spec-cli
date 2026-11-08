@@ -172,3 +172,10 @@ def test_a_run_of_the_refused_spec_raises_the_page_s_sentence() -> None:
 def test_whoami_is_the_user_named(capsys: pytest.CaptureFixture[str]) -> None:
     assert _run_from_argv("whoami --as-user 1") == 0
     assert capsys.readouterr().out == '"ada"\n'
+
+
+@pytest.mark.usefixtures("world")
+def test_the_transport_example_reads_cli() -> None:
+    out = io.StringIO()
+    call_command(commands.Where(), "where", "--as-user", "1", stdout=out)
+    assert out.getvalue() == '"cli"\n'

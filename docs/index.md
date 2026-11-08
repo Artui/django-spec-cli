@@ -296,6 +296,42 @@ preceded by the warnings for `whoami` and `retitle`. `call_command` skips
 system checks for every command but `check`, so a command run through it
 does not print them.
 
+## What a callable reads here
+
+Every callable a run reaches is handed one `call_context`, built by the
+kernel's
+[`build_call_context`][django_service_specs.types.build_call_context.build_call_context]
+and stamped last with this package's transport name, the plain string `"cli"`,
+exported as `django_spec_cli.CLI_TRANSPORT`. Read it with the kernel's
+[`call_transport`][django_service_specs.types.call_transport.call_transport],
+or compare `call_context["transport"] == "cli"` with nothing imported:
+
+```python
+--8<--
+docs/examples/commands.py:transport
+--8<--
+```
+
+- **One dict per run.** The command builds it ahead of everything it asks of
+  a spec and hands the same object to the declaration it reads for the
+  options it parses, then to `dispatch`, so a permission check, the
+  Validator's `parameters()` and `validate()`, a provider, the service and the
+  presenter all read `"cli"` from one dict.
+- **The standard entries are there as `None`.** `request`, `view`, `format`
+  and `action` are keys of the dict with no value, since a command line has
+  none. The kernel hands a callable declaring `request` or `view` `None` for
+  such an entry, as it does for a missing one, and `format` and `action` are
+  never bound by name, so a spec written for HTTP runs here as it did.
+- **`--help` is read under a dict too.** The command builds the same stamped
+  dict to describe a Validator's fields for the parser. The kernel's own
+  schema and seed checks that decide which options are offered are asked
+  outside a call, as they are by every transport, and read no stamp.
+- **Seams.** The value is not configurable: a subclass cannot change what a
+  run stamps. What a subclass can supply is `resolve_as_user`, who the run is
+  made as, and `pool_seeds`, which adds a keyword to the pool every callable
+  may declare, so an entry a project needs in every call is a seed rather
+  than a key of the dict.
+
 ## What it does not do
 
 - **No payload file.** Arguments are options; an object or a list of rows has
