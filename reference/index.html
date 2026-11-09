@@ -1031,7 +1031,7 @@ whose callables read one.</p>
   <a class="autorefs autorefs-internal" title="add_spec_arguments" href="#django_spec_cli.argv.add_spec_arguments.add_spec_arguments"><code>add_spec_arguments</code></a>
   spells them, as the input schema a transport advertises asks for them
   (<a class="autorefs autorefs-external" href="https://artui.github.io/django-service-specs/reference/#django_service_specs.schema.spec_caller_input_schema.spec_caller_input_schema"><code>spec_caller_input_schema</code></a>
-  under <code>pool_seeds</code>): less any key the server fills, and required only
+  under <code>pool_seeds</code> and the stamped <code>call_context</code>): less any key the server fills, and required only
   where dispatch refuses leaving it out.
   No option is matched by a prefix: an abbreviation is refused rather
   than read as whichever option it begins.</li>
@@ -1052,7 +1052,14 @@ whose callables read one.</p>
   and its refusal is raised as <code>ImproperlyConfigured</code>, as a command
   naming no registry is: a traceback and <code>ExitCode.ERROR</code>, whatever
   the options sent. The command's other specs still run, and the system
-  check reports the same spec as <code>django_spec_cli.W004</code>.</li>
+  check reports the same spec as <code>django_spec_cli.W004</code>. The same holds for a spec
+  whose Validator declares, only to <code>cli</code>, a parameter dispatch seeds
+  itself: <code>check_seeds</code> is asked outside a call and never sees it, the
+  read the parser makes under the stamped dict does, and the parser takes
+  that refusal for its spec alone. Its subcommand takes no option and its
+  <code>--help</code> gives the reason; a run raises it as above, and W004 reports
+  it too
+  (test_a_run_of_it_is_refused_with_the_kernel_s_reason_whatever_is_sent).</li>
 <li><code>--explain</code> runs no spec: it lists the ones that authorize nothing,
   as the system check does.</li>
 </ul>

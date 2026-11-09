@@ -646,7 +646,7 @@ nothing else.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span>django-spec-cli
 </span></code></pre></div>
 <p>It installs <a href="https://artui.github.io/django-service-specs/"><code>django-service-specs</code></a>, the kernel whose specs it serves,
-from 0.29.0, on Python 3.10 and Django 4.2 or later. The command line was the
+from 0.30.0, on Python 3.10 and Django 4.2 or later. The command line was the
 kernel's <code>commands/</code> subpackage, and moved here so the kernel carries no
 transport.</p>
 <h2 id="what-it-is-not">What it is not<a class="headerlink" href="#what-it-is-not" title="Permanent link">&para;</a></h2>
@@ -903,6 +903,16 @@ takes by name with no default, among others. A run of that spec is refused
 with the same sentence, raised as <code>ImproperlyConfigured</code> (exit code 1,
 with a traceback) before <code>--as-user</code> is looked up, even when the options sent
 would let it run. The command's other specs are unaffected.</p>
+<p>The same holds for a declaration only the command's own read reaches. A
+Validator may declare a field only when <code>call_transport(call_context) == "cli"</code>,
+and if that field is named for a key dispatch seeds itself, such as <code>user</code>,
+<code>check_seeds</code> (asked outside a call) never sees it, and the read <code>--help</code>
+makes under the stamped dict raises. That refusal belongs to the one spec: its
+subcommand takes no option, its <code>--help</code> prints the kernel's reason, a run of it
+ends with the same sentence as <code>ImproperlyConfigured</code> whatever was sent, and
+<code>django_spec_cli.W004</code> names it. The command's other specs, <code>--help</code> and
+<code>--explain</code> work as before. A spec both reads refuse is reported once, with the
+<code>check_seeds</code> reason.</p>
 <p>A <code>Parameter</code> is optional unless it says <code>required=True</code>, so a read declared
 plainly over a keyword with no default is one such declaration:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">retitle</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">title</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -978,13 +988,11 @@ or compare <code>call_context["transport"] == "cli"</code> with nothing imported
   such an entry, as it does for a missing one, and <code>format</code> and <code>action</code> are
   never bound by name, so a spec written for HTTP runs here as it did.</li>
 <li><strong><code>--help</code> is read under a dict too.</strong> The command builds a stamped dict of
-  its own for each spec to describe a Validator's fields for the parser. The
-  kernel's schema and seed checks that decide which options are offered are
-  asked outside a call, as they are by every transport, and read no stamp. So
-  the option names come from a transport-blind declaration: a field a
-  Validator declares only when <code>call_transport(call_context) == "cli"</code> is
-  never offered, and if it is required, every run is refused for it.
-  Declare such a field for every transport, or not at all.</li>
+  its own for each spec, and the options come from the kernel's caller schema
+  read under it, as the Validator's declaration is. A field a Validator
+  declares only when <code>call_transport(call_context) == "cli"</code> is an option,
+  marked <code>(required)</code> where it is required, and one it declares to another
+  transport is none.</li>
 <li><strong>Seams.</strong> The value is not configurable: a subclass cannot change what a
   run stamps. What a subclass can supply is <code>resolve_as_user</code>, who the run is
   made as, and <code>pool_seeds</code>, which adds a keyword to the pool every callable
