@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 import inspect
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from typing import Any, TextIO, cast
 
@@ -78,7 +78,7 @@ class SpecCommand(BaseCommand):
       [`add_spec_arguments`][django_spec_cli.argv.add_spec_arguments.add_spec_arguments]
       spells them, as the input schema a transport advertises asks for them
       ([`spec_caller_input_schema`][django_service_specs.schema.spec_caller_input_schema.spec_caller_input_schema]
-      under ``pool_seeds``): less any key the server fills, and required only
+      under ``pool_seeds`` and the stamped ``call_context``): less any key the server fills, and required only
       where dispatch refuses leaving it out.
       No option is matched by a prefix: an abbreviation is refused rather
       than read as whichever option it begins.
@@ -99,7 +99,14 @@ class SpecCommand(BaseCommand):
       and its refusal is raised as ``ImproperlyConfigured``, as a command
       naming no registry is: a traceback and ``ExitCode.ERROR``, whatever
       the options sent. The command's other specs still run, and the system
-      check reports the same spec as ``django_spec_cli.W004``.
+      check reports the same spec as ``django_spec_cli.W004``. The same holds for a spec
+      whose Validator declares, only to ``cli``, a parameter dispatch seeds
+      itself: ``check_seeds`` is asked outside a call and never sees it, the
+      read the parser makes under the stamped dict does, and the parser takes
+      that refusal for its spec alone. Its subcommand takes no option and its
+      ``--help`` gives the reason; a run raises it as above, and W004 reports
+      it too
+      (test_a_run_of_it_is_refused_with_the_kernel_s_reason_whatever_is_sent).
     - ``--explain`` runs no spec: it lists the ones that authorize nothing,
       as the system check does.
 
@@ -119,10 +126,14 @@ class SpecCommand(BaseCommand):
     _command_label: str
     _parser: CommandParser
     _entries: dict[str, RegisteredSpec]
+    _refused_by_declaration: dict[str, ImproperlyConfigured]
 
     def create_parser(self, prog_name: str, subcommand: str, **kwargs: Any) -> CommandParser:
         """Django's parser, with this command's options added and no option read by its prefix."""
         self._command_label = subcommand
+        # Before ``add_arguments``, and not in it: a subclass overriding that
+        # without calling ``super()`` still leaves the system check a dict to read.
+        self._refused_by_declaration = {}
         parser = super().create_parser(prog_name, subcommand, **kwargs)
         # Django's own options are on this parser, and a prefix of one is no
         # more an option here than on a subcommand.
@@ -175,8 +186,24 @@ class SpecCommand(BaseCommand):
                 )
             self._entries[name] = entry
             spec = kernel_spec(entry.spec)
-            parameters = _sendable(spec, self.pool_seeds, _call_context())
             summary = _summary(spec, entry.name)
+            try:
+                parameters = _sendable(spec, self.pool_seeds, _call_context())
+            except ImproperlyConfigured as error:
+                # Only the read made under the stamped dict can raise here: a
+                # declaration the kernel refuses outside a call is
+                # ``check_seeds``' and is asked in ``handle``. Raising from the
+                # parser would stop every spec the command serves, ``--help``
+                # and ``--explain`` with them, so the refusal waits for a run of
+                # this spec, which raises it, and its subcommand takes no option.
+                self._refused_by_declaration[entry.name] = error
+                _add_refused_subparser(
+                    subparsers,
+                    name,
+                    summary,
+                    refused_message(entry.name, self._command_label, error),
+                )
+                continue
             subparser = subparsers.add_parser(
                 name,
                 help=summary.replace("%", "%%"),
@@ -253,6 +280,9 @@ class SpecCommand(BaseCommand):
         # ``ExitCode.ERROR`` is published as the failure with a traceback.
         try:
             check_seeds(entry.spec, pool_seeds=self.pool_seeds)
+            declared = self._refused_by_declaration.get(entry.name)
+            if declared is not None:
+                raise declared
         except ImproperlyConfigured as error:
             raise ImproperlyConfigured(
                 refused_message(entry.name, self._command_label, error)
@@ -328,7 +358,12 @@ def _sendable(
     """What a caller may send, as the kernel's caller schema reads it: required only where dispatch demands it.
 
     The parameters ``spec_caller_input_schema`` offers under the command's
-    ``pool_seeds``, so no key the server fills is an option: one a provider
+    ``pool_seeds`` and the stamped ``call_context``, so a field a Validator
+    declares only to ``cli`` is an option and one declared to another
+    transport is not
+    (test_a_required_field_declared_only_under_cli_is_an_option_marked_required,
+    test_a_field_declared_under_another_transport_is_no_option), and no key the
+    server fills is an option: one a provider
     is annotated to fill (test_a_key_the_server_fills_is_no_option), and a
     reflected read a registered seed fills
     (test_a_reflected_read_a_seed_fills_is_an_option_only_without_the_seed).
@@ -342,7 +377,7 @@ def _sendable(
     (test_a_read_a_provider_requires_itself_is_required). Only
     relaxed, never made required, so a declared default still answers.
     """
-    schema = spec_caller_input_schema(spec, pool_seeds=pool_seeds)
+    schema = spec_caller_input_schema(spec, pool_seeds=pool_seeds, call_context=call_context)
     required = frozenset(schema.get("required", ()))
     return Parameters.of(
         *(
@@ -351,6 +386,37 @@ def _sendable(
             if param.name in schema["properties"]
         )
     )
+
+
+def _add_refused_subparser(subparsers: Any, name: str, summary: str, message: str) -> None:
+    """The subcommand of a spec whose declaration refuses under the stamped dict: its reason, and no option.
+
+    Whatever is sent after the name is taken and read by nothing, so a run is
+    refused with the reason whatever it carried, as a spec ``check_seeds``
+    refuses is. Only ``--help`` is read, and it prints the reason.
+    """
+    subparser = subparsers.add_parser(
+        name,
+        help=summary.replace("%", "%%"),
+        description=summary,
+        # argparse formats an epilog only where it names ``%(prog)``, so a
+        # ``%`` is doubled there and nowhere else
+        # (test_a_percent_sign_in_the_reason_is_printed_as_it_is).
+        epilog=message.replace("%", "%%") if "%(prog)" in message else message,
+        usage="%(prog)s [arguments ...]",
+        allow_abbrev=False,
+    )
+    reads_help = subparser.parse_known_args
+
+    def take_everything(
+        args: Sequence[str], namespace: argparse.Namespace | None = None
+    ) -> tuple[argparse.Namespace, list[str]]:
+        # ``_SubParsersAction`` hands a list and a ``None`` namespace.
+        if {"-h", "--help"} & set(args):
+            return reads_help(args, namespace)
+        return argparse.Namespace(), []
+
+    subparser.parse_known_args = take_everything
 
 
 def _summary(spec: ServiceSpec | SelectorSpec, name: str) -> str:

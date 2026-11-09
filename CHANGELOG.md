@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-11-09
+
+### Fixed
+- **A field a Validator declares only under `cli` is an option.** The command
+  asked the kernel's `spec_caller_input_schema` for the options to offer with no
+  `call_context`, so the schema was the declaration made to no transport at all,
+  and a field the Validator declares only when
+  `call_transport(call_context) == "cli"` got no option. If it was required,
+  every run was refused for it. The schema is now read under the same stamped
+  dict `--help` already hands the Validator, so such a field is offered, marked
+  `(required)` where it is, and a run leaving it out is refused with the shape
+  check's own message. A field declared to another transport is still no option.
+  The command line page no longer carries the caveat that asked for such a field
+  to be declared to every transport.
+
+- **A field a Validator declares only under `cli` that dispatch seeds itself is
+  refused for its spec alone.** The read `--help` makes under the stamped dict
+  raised `ImproperlyConfigured` for such a field, for example `user`, while the
+  parser was built, so every spec of the command, `--help` and `--explain` died
+  with a traceback, and `django_spec_cli.W004` said nothing because
+  `check_seeds` takes no `call_context`. The parser now takes that refusal for
+  the one spec: its subcommand takes no option and its `--help` prints the
+  kernel's reason, a run of it raises the same sentence as `ImproperlyConfigured`
+  before `--as-user` is looked up, whatever was sent, and `W004` names it. The
+  command's other specs are unaffected.
+
+### Changed
+- **The floor on `django-service-specs` rises from 0.29.0 to 0.30.0**, the
+  release that lets `spec_caller_input_schema` take a `call_context`. A project
+  on an older kernel stays on 0.5.x.
+
 ## [0.5.0] — 2026-11-08
 
 ### Added
@@ -155,7 +186,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `django-service-specs>=0.10.0`, the first kernel release with every name the
   command reads at its root.
 
-[Unreleased]: https://github.com/Artui/django-spec-cli/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/Artui/django-spec-cli/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/Artui/django-spec-cli/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Artui/django-spec-cli/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/Artui/django-spec-cli/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/Artui/django-spec-cli/compare/v0.3.1...v0.4.0

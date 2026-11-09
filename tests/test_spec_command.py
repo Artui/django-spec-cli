@@ -558,6 +558,197 @@ class TestHelp:
         assert str(error).splitlines()[1:] == ["project: This field is required."]
 
 
+class TestAFieldDeclaredToOneTransport:
+    """The options offered are the schema read under the stamped dict, as ``--help`` already reads the declaration."""
+
+    @staticmethod
+    def spec() -> ServiceSpec:
+        class PerTransport(Validator):
+            def parameters(self, *, call_context: Any = None) -> Parameters:
+                declared = [Parameter("n", "integer", required=False)]
+                if call_transport(call_context) == "cli":
+                    declared.append(Parameter("tag", "string", required=True))
+                if call_transport(call_context) != "cli":
+                    declared.append(Parameter("web_only", "string", required=True))
+                return Parameters.of(*declared)
+
+            def validate(self, arguments: Any, context: ValidationContext) -> dict[str, Any]:
+                return dict(arguments)
+
+        def service(**pool: Any) -> dict[str, Any]:
+            return {name: pool[name] for name in ("n", "tag") if name in pool}
+
+        return ServiceSpec(service=service, permissions=[Unrestricted()], validator=PerTransport())
+
+    def test_a_required_field_declared_only_under_cli_is_an_option_marked_required(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        command = command_over(registry_of(probe=self.spec()))
+        text = " ".join(help_of(capsys, "probe", command=command).split())
+        assert "--tag STRING (required)" in text
+        assert "--n INTEGER" in text
+
+    def test_the_run_with_it_succeeds(self, owner: Any) -> None:
+        command = command_over(registry_of(probe=self.spec()))
+        out = run("probe", "--as-user", str(owner.pk), "--tag", "x", command=command)
+        assert lines(out) == [{"tag": "x"}]
+
+    def test_the_run_without_it_is_refused_with_the_shape_check_s_own_message(
+        self, owner: Any
+    ) -> None:
+        command = command_over(registry_of(probe=self.spec()))
+        error = refused("probe", "--as-user", str(owner.pk), command=command)
+        assert error.returncode == 3
+        assert str(error).splitlines()[1:] == ["tag: This field is required."]
+
+    def test_a_field_declared_under_another_transport_is_no_option(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        command = command_over(registry_of(probe=self.spec()))
+        assert "--web-only" not in help_of(capsys, "probe", command=command)
+
+
+class TestAFieldDeclaredOnlyUnderCliThatTheKernelRefuses:
+    """A declaration only the cli-stamped read reaches is refused for its spec alone.
+
+    The Validator declares ``user``, a name dispatch seeds itself, only when
+    the transport is ``cli``. ``check_seeds`` is asked outside a call and
+    never sees the field, so only the read the parser makes under the stamped
+    dict raises, and it must stop that spec and no other.
+    """
+
+    REFUSAL = (
+        "'bad' in manage.py test_spec_command cannot run as declared, and a run of it is "
+        "refused: ServiceSpec.validator declares the parameter(s) ['user'], which dispatch "
+        "seeds itself. An argument must never outrank a seeded value; rename the parameter."
+    )
+
+    @staticmethod
+    def _command() -> SpecCommand:
+        class SeedNamedUnderCli(Validator):
+            def parameters(self, *, call_context: Any = None) -> Parameters:
+                declared = [Parameter("n", "integer", required=False)]
+                if call_transport(call_context) == "cli":
+                    declared.append(Parameter("user", "string", required=False))
+                return Parameters.of(*declared)
+
+            def validate(self, arguments: Any, context: ValidationContext) -> dict[str, Any]:
+                return dict(arguments)
+
+        bad = ServiceSpec(
+            service=lambda **_: {"ok": True},
+            permissions=[Unrestricted()],
+            validator=SeedNamedUnderCli(),
+        )
+        return command_over(registry_of(bad=bad, ping=open_spec(lambda: "pong")))
+
+    def test_a_sibling_spec_s_help_still_answers(self, capsys: pytest.CaptureFixture[str]) -> None:
+        text = help_of(capsys, "ping", command=self._command())
+        assert "ping" in text
+        assert "--as-user" in text
+
+    def test_the_command_s_own_help_lists_both_specs(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        parser = self._command().create_parser("manage.py", "notes")
+        with pytest.raises(SystemExit):
+            parser.parse_args(["--help"])
+        text = capsys.readouterr().out
+        assert "bad" in text
+        assert "ping" in text
+
+    def test_the_refused_spec_s_help_says_why(self, capsys: pytest.CaptureFixture[str]) -> None:
+        text = " ".join(help_of(capsys, "bad", command=self._command()).split())
+        assert "cannot run as declared" in text
+        assert "which dispatch seeds itself" in text
+
+    @pytest.mark.parametrize("flag", ["-h", "--help"])
+    def test_either_help_flag_prints_the_reason_beside_anything_sent(
+        self, capsys: pytest.CaptureFixture[str], flag: str
+    ) -> None:
+        parser = self._command().create_parser("manage.py", "notes")
+        with pytest.raises(SystemExit):
+            parser.parse_args(["bad", "--n", "3", flag, "--as-user"])
+        assert "cannot run as declared" in " ".join(capsys.readouterr().out.split())
+
+    def test_a_percent_sign_in_the_reason_is_printed_as_it_is(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        # The spec's name is in the reason, and its docstring is in the listing.
+        def discount() -> None:
+            """Take 10% off."""
+
+        class SeedNamedUnderCli(Validator):
+            def parameters(self, *, call_context: Any = None) -> Parameters:
+                declared = [Parameter("n", "integer", required=False)]
+                if call_transport(call_context) == "cli":
+                    declared.append(Parameter("user", "string", required=False))
+                return Parameters.of(*declared)
+
+            def validate(self, arguments: Any, context: ValidationContext) -> dict[str, Any]:
+                return dict(arguments)
+
+        spec = ServiceSpec(
+            service=discount, permissions=[Unrestricted()], validator=SeedNamedUnderCli()
+        )
+        command = command_over(registry_of(**{"b%d": spec}))
+        parser = command.create_parser("manage.py", "notes")
+        with pytest.raises(SystemExit):
+            parser.parse_args(["--help"])
+        assert "Take 10% off. (write)" in capsys.readouterr().out
+        with pytest.raises(SystemExit):
+            parser.parse_args(["b%d", "--help"])
+        assert "'b%d' in manage.py notes cannot run" in " ".join(capsys.readouterr().out.split())
+
+    def test_a_sibling_spec_still_runs(self, owner: Any) -> None:
+        out = run("ping", "--as-user", str(owner.pk), command=self._command())
+        assert out == '"pong"\n'
+
+    @pytest.mark.parametrize(
+        "sent", [[], ["--as-user", "7"], ["--as-user", "7", "--n", "3", "--user", "x"]]
+    )
+    def test_a_run_of_it_is_refused_with_the_kernel_s_reason_whatever_is_sent(
+        self, sent: list[str]
+    ) -> None:
+        with pytest.raises(ImproperlyConfigured) as caught:
+            run("bad", *sent, command=self._command())
+        assert str(caught.value) == self.REFUSAL
+
+    @pytest.mark.usefixtures("keep_the_test_connection")
+    def test_from_argv_it_propagates_for_a_traceback_and_not_an_exit_code(self) -> None:
+        argv = ["manage.py", "notes", "--skip-checks", "bad", "--as-user", "7"]
+        with pytest.raises(ImproperlyConfigured, match="cannot run as declared"):
+            self._command().run_from_argv(argv)
+
+    def test_a_spec_the_kernel_refuses_outside_a_call_is_asked_first(self) -> None:
+        # Both refuse this spec; ``check_seeds`` is asked first, as it was
+        # before the parser's read could refuse.
+        def needs_project(*, project: int) -> dict[str, Any]:
+            return {"project": project}
+
+        class SeedNamedUnderCli(Validator):
+            def parameters(self, *, call_context: Any = None) -> Parameters:
+                declared = [Parameter("n", "integer", required=False)]
+                if call_transport(call_context) == "cli":
+                    declared.append(Parameter("user", "string", required=False))
+                return Parameters.of(*declared)
+
+            def validate(self, arguments: Any, context: ValidationContext) -> dict[str, Any]:
+                return dict(arguments)
+
+        both = ServiceSpec(
+            service=lambda **_: {"ok": True},
+            permissions=[Unrestricted()],
+            validator=SeedNamedUnderCli(),
+            reads=Parameters.of(Parameter("project", "integer", required=False)),
+            kwargs=needs_project,
+        )
+        command = command_over(registry_of(both=both, ping=open_spec(lambda: "pong")))
+        with pytest.raises(ImproperlyConfigured) as caught:
+            run("both", "--as-user", "7", command=command)
+        assert "requires the keyword(s) ['project']" in str(caught.value)
+
+
 # --- output --------------------------------------------------------------------------------------
 
 
@@ -775,15 +966,29 @@ class _Probe:
 
         run("probe", "--as-user", str(owner.pk), command=Command())
 
-    def of_the_run(self) -> list[tuple[str, dict[str, Any]]]:
-        """What the run saw, less the one read made while the command's parser was built.
+    def of_the_parser(self) -> list[dict[str, Any]]:
+        """The declarations read while the command's parser was built, which are all of one dict.
 
-        That is the first entry: the command reads the validator's declaration
-        for ``--help`` under a dict of its own, ahead of any run. The marker
-        the principal lookup leaves is no stage, and is left out too.
+        The command reads the validator's declaration for ``--help`` under a
+        dict of its own, ahead of any run: its own read, and every one the
+        kernel's caller schema makes under the dict it is handed.
         """
         assert self.seen[0][0] == "validator parameters"
-        return [(stage, context) for stage, context in self.seen[1:] if stage != "principal"]
+        first = self.seen[0][1]
+        marker = self.stages_with_marker().index("principal")
+        return [context for _, context in self.seen[:marker] if context is first]
+
+    def of_the_run(self) -> list[tuple[str, dict[str, Any]]]:
+        """What the run saw, less the reads made under the parser's dict.
+
+        The marker the principal lookup leaves is no stage, and is left out too.
+        """
+        parser = self.of_the_parser()[0]
+        return [
+            (stage, context)
+            for stage, context in self.seen
+            if stage != "principal" and context is not parser
+        ]
 
     def asked_ahead_of_dispatch(self) -> list[dict[str, Any]]:
         """The declarations read before the principal was looked up: the command's own reads."""
@@ -825,13 +1030,26 @@ class TestTheTransportStamp:
 
     def test_the_command_reads_the_declaration_stamped_ahead_of_the_run(self, owner: Any) -> None:
         # Before the principal is looked up, which is before ``dispatch``: the
-        # parser's read for ``--help`` and the one the command makes for the
-        # options it parses, each a dict stamped ``cli``.
+        # parser's reads for ``--help`` and the one the command makes for the
+        # options it parses, each a dict stamped ``cli``, two dicts in all.
         probe = _Probe()
         probe.run(owner)
         ahead = probe.asked_ahead_of_dispatch()
-        assert len(ahead) == 2
         assert {call_transport(context) for context in ahead} == {"cli"}
+        assert len({id(context) for context in ahead}) == 2
+
+    def test_the_schema_for_help_is_read_under_the_dict_help_describes_the_declaration_with(
+        self, owner: Any
+    ) -> None:
+        # The kernel's caller schema asks the Validator too, and every ask the
+        # parser makes ahead of the run's own is of one object: the schema is
+        # handed the dict ``_sendable`` reads the declaration with, not a
+        # second one built for it.
+        probe = _Probe()
+        probe.run(owner)
+        parser_asks = probe.asked_ahead_of_dispatch()[:-1]
+        assert len(parser_asks) > 1
+        assert len({id(context) for context in parser_asks}) == 1
 
     def test_the_four_standard_entries_are_there_and_none(self, owner: Any) -> None:
         probe = _Probe()

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import importlib
 import io
+from typing import Any
 
 import pytest
 from django.apps import apps
@@ -27,6 +28,9 @@ from django_service_specs import (
     UnguardedReason,
     UnguardedSpec,
     Unrestricted,
+    ValidationContext,
+    Validator,
+    call_transport,
 )
 
 from django_spec_cli.checks import check_unguarded_specs
@@ -261,6 +265,80 @@ class TestADeclarationTheKernelRefuses:
         seeds = DEFAULT_POOL_SEEDS.extend(tenant=lambda: "acme")
         _, seeded = self._walk(monkeypatch, registry, pool_seeds=seeds)
         assert seeded == []
+
+
+class _SeedNamedUnderCli(Validator):
+    """Declares ``user``, a name dispatch seeds itself, only when the transport is ``cli``."""
+
+    def parameters(self, *, call_context: Any = None) -> Parameters:
+        declared = [Parameter("n", "integer", required=False)]
+        if call_transport(call_context) == "cli":
+            declared.append(Parameter("user", "string", required=False))
+        return Parameters.of(*declared)
+
+    def validate(self, arguments: Any, context: ValidationContext) -> dict[str, Any]:
+        return dict(arguments)
+
+
+class TestADeclarationOnlyTheCliStampedReadRefuses:
+    """The read the parser makes under the stamped dict, which ``check_seeds`` never sees."""
+
+    def _walk(
+        self, monkeypatch: pytest.MonkeyPatch, registry: SpecRegistry
+    ) -> tuple[type, list[CheckMessage]]:
+        command = type("Command", (SpecCommand,), {"registry": registry})
+        monkeypatch.setattr("django_spec_cli.checks.get_commands", lambda: {"seeded": APP})
+        monkeypatch.setattr(
+            "django_spec_cli.checks.load_command_class", lambda app_name, name: command()
+        )
+        return command, check_unguarded_specs(None)
+
+    def test_the_spec_is_reported_as_w004_naming_it_and_the_command_is_no_w003(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        registry = SpecRegistry()
+        registry.register(
+            "bad",
+            ServiceSpec(service=_echo, permissions=[StaffOnly()], validator=_SeedNamedUnderCli()),
+        )
+        registry.register("good", ServiceSpec(service=_echo, permissions=[StaffOnly()]))
+        command, messages = self._walk(monkeypatch, registry)
+        assert [(m.id, m.obj) for m in messages] == [("django_spec_cli.W004", command)]
+        assert messages[0].msg.startswith(
+            "'bad' in manage.py seeded cannot run as declared, and a run of it is refused: "
+            "ServiceSpec.validator declares the parameter(s) ['user'], which dispatch seeds itself."
+        )
+
+    def test_a_command_overriding_add_arguments_without_super_is_still_checked(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        class Bare(SpecCommand):
+            registry = SpecRegistry()
+
+            def add_arguments(self, parser: Any) -> None: ...
+
+        registry = SpecRegistry()
+        registry.register("open", ServiceSpec(service=_echo, permissions=[Unrestricted()]))
+        Bare.registry = registry
+        monkeypatch.setattr("django_spec_cli.checks.get_commands", lambda: {"bare": APP})
+        monkeypatch.setattr("django_spec_cli.checks.load_command_class", lambda *_: Bare())
+        assert [m.id for m in check_unguarded_specs(None)] == ["django_spec_cli.W001"]
+
+    def test_a_spec_both_reads_refuse_is_reported_once(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        both = ServiceSpec(
+            service=_echo,
+            permissions=[StaffOnly()],
+            validator=_SeedNamedUnderCli(),
+            reads=Parameters.of(Parameter("project", "integer", required=False)),
+            kwargs=_needs_project,
+        )
+        registry = SpecRegistry()
+        registry.register("both", both)
+        _, messages = self._walk(monkeypatch, registry)
+        assert [m.id for m in messages] == ["django_spec_cli.W004"]
+        assert "requires the keyword(s) ['project']" in messages[0].msg
 
 
 class TestAppConfigs:

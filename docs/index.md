@@ -27,7 +27,7 @@ pip install django-spec-cli
 ```
 
 It installs [`django-service-specs`](https://artui.github.io/django-service-specs/), the kernel whose specs it serves,
-from 0.29.0, on Python 3.10 and Django 4.2 or later. The command line was the
+from 0.30.0, on Python 3.10 and Django 4.2 or later. The command line was the
 kernel's `commands/` subpackage, and moved here so the kernel carries no
 transport.
 
@@ -264,6 +264,17 @@ with the same sentence, raised as `ImproperlyConfigured` (exit code 1,
 with a traceback) before `--as-user` is looked up, even when the options sent
 would let it run. The command's other specs are unaffected.
 
+The same holds for a declaration only the command's own read reaches. A
+Validator may declare a field only when `call_transport(call_context) == "cli"`,
+and if that field is named for a key dispatch seeds itself, such as `user`,
+`check_seeds` (asked outside a call) never sees it, and the read `--help`
+makes under the stamped dict raises. That refusal belongs to the one spec: its
+subcommand takes no option, its `--help` prints the kernel's reason, a run of it
+ends with the same sentence as `ImproperlyConfigured` whatever was sent, and
+`django_spec_cli.W004` names it. The command's other specs, `--help` and
+`--explain` work as before. A spec both reads refuse is reported once, with the
+`check_seeds` reason.
+
 A `Parameter` is optional unless it says `required=True`, so a read declared
 plainly over a keyword with no default is one such declaration:
 
@@ -323,13 +334,11 @@ docs/examples/commands.py:transport
   such an entry, as it does for a missing one, and `format` and `action` are
   never bound by name, so a spec written for HTTP runs here as it did.
 - **`--help` is read under a dict too.** The command builds a stamped dict of
-  its own for each spec to describe a Validator's fields for the parser. The
-  kernel's schema and seed checks that decide which options are offered are
-  asked outside a call, as they are by every transport, and read no stamp. So
-  the option names come from a transport-blind declaration: a field a
-  Validator declares only when `call_transport(call_context) == "cli"` is
-  never offered, and if it is required, every run is refused for it.
-  Declare such a field for every transport, or not at all.
+  its own for each spec, and the options come from the kernel's caller schema
+  read under it, as the Validator's declaration is. A field a Validator
+  declares only when `call_transport(call_context) == "cli"` is an option,
+  marked `(required)` where it is required, and one it declares to another
+  transport is none.
 - **Seams.** The value is not configurable: a subclass cannot change what a
   run stamps. What a subclass can supply is `resolve_as_user`, who the run is
   made as, and `pool_seeds`, which adds a keyword to the pool every callable

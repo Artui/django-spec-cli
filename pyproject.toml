@@ -49,8 +49,10 @@ dependencies = [
     # ``tests/test_exit_code_for.py`` decides by name. Below 0.11.0 the kernel
     # also still shipped its own copy of the command and registered its own
     # ``W001`` and ``W003``. 0.29.0 adds ``build_call_context``, which the
-    # command builds the context it stamps ``cli`` on through.
-    "django-service-specs>=0.29.0",
+    # command builds the context it stamps ``cli`` on through. 0.30.0 lets
+    # ``spec_caller_input_schema`` take that context, so the options offered are
+    # read under it.
+    "django-service-specs>=0.30.0",
 ]
 
 [project.urls]
@@ -150,7 +152,7 @@ skip-magic-trailing-comma = false
 root = ["./django_spec_cli"]
 
 [tool.bumpversion]
-current_version = "0.5.0"
+current_version = "0.6.0"
 allow_dirty = false
 commit = false
 tag = false
