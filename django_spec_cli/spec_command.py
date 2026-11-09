@@ -131,6 +131,9 @@ class SpecCommand(BaseCommand):
     def create_parser(self, prog_name: str, subcommand: str, **kwargs: Any) -> CommandParser:
         """Django's parser, with this command's options added and no option read by its prefix."""
         self._command_label = subcommand
+        # Before ``add_arguments``, and not in it: a subclass overriding that
+        # without calling ``super()`` still leaves the system check a dict to read.
+        self._refused_by_declaration = {}
         parser = super().create_parser(prog_name, subcommand, **kwargs)
         # Django's own options are on this parser, and a prefix of one is no
         # more an option here than on a subcommand.
@@ -174,7 +177,6 @@ class SpecCommand(BaseCommand):
         reserved = _OWN_OPTIONS | frozenset(parser._option_string_actions)
         subparsers = parser.add_subparsers(dest="spec_name", metavar="spec", title="specs")
         self._entries = {}
-        self._refused_by_declaration = {}
         for entry in registry:
             name = entry.name.replace("_", "-")
             if name in self._entries:
@@ -397,18 +399,22 @@ def _add_refused_subparser(subparsers: Any, name: str, summary: str, message: st
         name,
         help=summary.replace("%", "%%"),
         description=summary,
-        epilog=message.replace("%", "%%"),
+        # argparse formats an epilog only where it names ``%(prog)``, so a
+        # ``%`` is doubled there and nowhere else
+        # (test_a_percent_sign_in_the_reason_is_printed_as_it_is).
+        epilog=message.replace("%", "%%") if "%(prog)" in message else message,
         usage="%(prog)s [arguments ...]",
         allow_abbrev=False,
     )
     reads_help = subparser.parse_known_args
 
     def take_everything(
-        args: Sequence[str] | None = None, namespace: argparse.Namespace | None = None
+        args: Sequence[str], namespace: argparse.Namespace | None = None
     ) -> tuple[argparse.Namespace, list[str]]:
-        if args is not None and {"-h", "--help"} & set(args):
+        # ``_SubParsersAction`` hands a list and a ``None`` namespace.
+        if {"-h", "--help"} & set(args):
             return reads_help(args, namespace)
-        return (argparse.Namespace() if namespace is None else namespace), []
+        return argparse.Namespace(), []
 
     subparser.parse_known_args = take_everything
 

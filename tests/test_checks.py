@@ -309,6 +309,21 @@ class TestADeclarationOnlyTheCliStampedReadRefuses:
             "ServiceSpec.validator declares the parameter(s) ['user'], which dispatch seeds itself."
         )
 
+    def test_a_command_overriding_add_arguments_without_super_is_still_checked(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        class Bare(SpecCommand):
+            registry = SpecRegistry()
+
+            def add_arguments(self, parser: Any) -> None: ...
+
+        registry = SpecRegistry()
+        registry.register("open", ServiceSpec(service=_echo, permissions=[Unrestricted()]))
+        Bare.registry = registry
+        monkeypatch.setattr("django_spec_cli.checks.get_commands", lambda: {"bare": APP})
+        monkeypatch.setattr("django_spec_cli.checks.load_command_class", lambda *_: Bare())
+        assert [m.id for m in check_unguarded_specs(None)] == ["django_spec_cli.W001"]
+
     def test_a_spec_both_reads_refuse_is_reported_once(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:

@@ -662,6 +662,44 @@ class TestAFieldDeclaredOnlyUnderCliThatTheKernelRefuses:
         assert "cannot run as declared" in text
         assert "which dispatch seeds itself" in text
 
+    @pytest.mark.parametrize("flag", ["-h", "--help"])
+    def test_either_help_flag_prints_the_reason_beside_anything_sent(
+        self, capsys: pytest.CaptureFixture[str], flag: str
+    ) -> None:
+        parser = self._command().create_parser("manage.py", "notes")
+        with pytest.raises(SystemExit):
+            parser.parse_args(["bad", "--n", "3", flag, "--as-user"])
+        assert "cannot run as declared" in " ".join(capsys.readouterr().out.split())
+
+    def test_a_percent_sign_in_the_reason_is_printed_as_it_is(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        # The spec's name is in the reason, and its docstring is in the listing.
+        def discount() -> None:
+            """Take 10% off."""
+
+        class SeedNamedUnderCli(Validator):
+            def parameters(self, *, call_context: Any = None) -> Parameters:
+                declared = [Parameter("n", "integer", required=False)]
+                if call_transport(call_context) == "cli":
+                    declared.append(Parameter("user", "string", required=False))
+                return Parameters.of(*declared)
+
+            def validate(self, arguments: Any, context: ValidationContext) -> dict[str, Any]:
+                return dict(arguments)
+
+        spec = ServiceSpec(
+            service=discount, permissions=[Unrestricted()], validator=SeedNamedUnderCli()
+        )
+        command = command_over(registry_of(**{"b%d": spec}))
+        parser = command.create_parser("manage.py", "notes")
+        with pytest.raises(SystemExit):
+            parser.parse_args(["--help"])
+        assert "Take 10% off. (write)" in capsys.readouterr().out
+        with pytest.raises(SystemExit):
+            parser.parse_args(["b%d", "--help"])
+        assert "'b%d' in manage.py notes cannot run" in " ".join(capsys.readouterr().out.split())
+
     def test_a_sibling_spec_still_runs(self, owner: Any) -> None:
         out = run("ping", "--as-user", str(owner.pk), command=self._command())
         assert out == '"pong"\n'
