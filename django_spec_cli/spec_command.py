@@ -328,7 +328,9 @@ def _sendable(
     """What a caller may send, as the kernel's caller schema reads it: required only where dispatch demands it.
 
     The parameters ``spec_caller_input_schema`` offers under the command's
-    ``pool_seeds``, so no key the server fills is an option: one a provider
+    ``pool_seeds`` and the stamped ``call_context``, so a field a Validator
+    declares only to ``cli`` is an option and one declared to another
+    transport is not, and no key the server fills is an option: one a provider
     is annotated to fill (test_a_key_the_server_fills_is_no_option), and a
     reflected read a registered seed fills
     (test_a_reflected_read_a_seed_fills_is_an_option_only_without_the_seed).
@@ -342,7 +344,7 @@ def _sendable(
     (test_a_read_a_provider_requires_itself_is_required). Only
     relaxed, never made required, so a declared default still answers.
     """
-    schema = spec_caller_input_schema(spec, pool_seeds=pool_seeds)
+    schema = spec_caller_input_schema(spec, pool_seeds=pool_seeds, call_context=call_context)
     required = frozenset(schema.get("required", ()))
     return Parameters.of(
         *(

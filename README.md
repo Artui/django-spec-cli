@@ -25,7 +25,7 @@ the import path, the system check ids and the setting key are this package's.
 pip install django-spec-cli
 ```
 
-Python 3.10 or later, Django 4.2 or later, and `django-service-specs` 0.29.0 or
+Python 3.10 or later, Django 4.2 or later, and `django-service-specs` 0.30.0 or
 later, which it installs.
 
 ## Quickstart
