@@ -108,10 +108,13 @@ def check_unguarded_specs(
 
 
 def _refused(command: SpecCommand) -> Iterator[tuple[str, ImproperlyConfigured]]:
-    """Each spec of ``command`` that ``check_seeds`` refuses, with its refusal, in registry order.
+    """Each spec of ``command`` a run refuses as declared, with its refusal, in registry order.
 
-    The same question ``SpecCommand.handle`` asks before a run, under the
-    same ``pool_seeds``, so a spec reported here is one a run refuses.
+    Two questions, as ``SpecCommand.handle`` asks them and in its order:
+    ``check_seeds`` under the same ``pool_seeds``, and the read the parser
+    made under the cli-stamped dict, which ``check_seeds`` never sees. The
+    parser has been built by now (the walk builds it), and it kept the
+    second's refusals. A spec both refuse is reported once, for the first.
     Outside the walk's ``try``: a refusal names one spec, and the command
     loaded, so its other specs are still reported and it is no W003.
     """
@@ -120,6 +123,10 @@ def _refused(command: SpecCommand) -> Iterator[tuple[str, ImproperlyConfigured]]
             check_seeds(entry.spec, pool_seeds=command.pool_seeds)
         except ImproperlyConfigured as error:
             yield entry.name, error
+            continue
+        declared = command._refused_by_declaration.get(entry.name)
+        if declared is not None:
+            yield entry.name, declared
 
 
 def _spec_commands(

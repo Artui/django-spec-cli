@@ -264,6 +264,17 @@ with the same sentence, raised as `ImproperlyConfigured` (exit code 1,
 with a traceback) before `--as-user` is looked up, even when the options sent
 would let it run. The command's other specs are unaffected.
 
+The same holds for a declaration only the command's own read reaches. A
+Validator may declare a field only when `call_transport(call_context) == "cli"`,
+and if that field is named for a key dispatch seeds itself, such as `user`,
+`check_seeds` (asked outside a call) never sees it, and the read `--help`
+makes under the stamped dict raises. That refusal belongs to the one spec: its
+subcommand takes no option, its `--help` prints the kernel's reason, a run of it
+ends with the same sentence as `ImproperlyConfigured` whatever was sent, and
+`django_spec_cli.W004` names it. The command's other specs, `--help` and
+`--explain` work as before. A spec both reads refuse is reported once, with the
+`check_seeds` reason.
+
 A `Parameter` is optional unless it says `required=True`, so a read declared
 plainly over a keyword with no default is one such declaration:
 

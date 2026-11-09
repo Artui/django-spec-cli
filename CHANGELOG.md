@@ -22,6 +22,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The command line page no longer carries the caveat that asked for such a field
   to be declared to every transport.
 
+- **A field a Validator declares only under `cli` that dispatch seeds itself is
+  refused for its spec alone.** The read `--help` makes under the stamped dict
+  raised `ImproperlyConfigured` for such a field, for example `user`, while the
+  parser was built, so every spec of the command, `--help` and `--explain` died
+  with a traceback, and `django_spec_cli.W004` said nothing because
+  `check_seeds` takes no `call_context`. The parser now takes that refusal for
+  the one spec: its subcommand takes no option and its `--help` prints the
+  kernel's reason, a run of it raises the same sentence as `ImproperlyConfigured`
+  before `--as-user` is looked up, whatever was sent, and `W004` names it. The
+  command's other specs are unaffected.
+
 ### Changed
 - **The floor on `django-service-specs` rises from 0.29.0 to 0.30.0**, the
   release that lets `spec_caller_input_schema` take a `call_context`. A project

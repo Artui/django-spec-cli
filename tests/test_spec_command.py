@@ -608,6 +608,109 @@ class TestAFieldDeclaredToOneTransport:
         assert "--web-only" not in help_of(capsys, "probe", command=command)
 
 
+class TestAFieldDeclaredOnlyUnderCliThatTheKernelRefuses:
+    """A declaration only the cli-stamped read reaches is refused for its spec alone.
+
+    The Validator declares ``user``, a name dispatch seeds itself, only when
+    the transport is ``cli``. ``check_seeds`` is asked outside a call and
+    never sees the field, so only the read the parser makes under the stamped
+    dict raises, and it must stop that spec and no other.
+    """
+
+    REFUSAL = (
+        "'bad' in manage.py test_spec_command cannot run as declared, and a run of it is "
+        "refused: ServiceSpec.validator declares the parameter(s) ['user'], which dispatch "
+        "seeds itself. An argument must never outrank a seeded value; rename the parameter."
+    )
+
+    @staticmethod
+    def _command() -> SpecCommand:
+        class SeedNamedUnderCli(Validator):
+            def parameters(self, *, call_context: Any = None) -> Parameters:
+                declared = [Parameter("n", "integer", required=False)]
+                if call_transport(call_context) == "cli":
+                    declared.append(Parameter("user", "string", required=False))
+                return Parameters.of(*declared)
+
+            def validate(self, arguments: Any, context: ValidationContext) -> dict[str, Any]:
+                return dict(arguments)
+
+        bad = ServiceSpec(
+            service=lambda **_: {"ok": True},
+            permissions=[Unrestricted()],
+            validator=SeedNamedUnderCli(),
+        )
+        return command_over(registry_of(bad=bad, ping=open_spec(lambda: "pong")))
+
+    def test_a_sibling_spec_s_help_still_answers(self, capsys: pytest.CaptureFixture[str]) -> None:
+        text = help_of(capsys, "ping", command=self._command())
+        assert "ping" in text
+        assert "--as-user" in text
+
+    def test_the_command_s_own_help_lists_both_specs(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        parser = self._command().create_parser("manage.py", "notes")
+        with pytest.raises(SystemExit):
+            parser.parse_args(["--help"])
+        text = capsys.readouterr().out
+        assert "bad" in text
+        assert "ping" in text
+
+    def test_the_refused_spec_s_help_says_why(self, capsys: pytest.CaptureFixture[str]) -> None:
+        text = " ".join(help_of(capsys, "bad", command=self._command()).split())
+        assert "cannot run as declared" in text
+        assert "which dispatch seeds itself" in text
+
+    def test_a_sibling_spec_still_runs(self, owner: Any) -> None:
+        out = run("ping", "--as-user", str(owner.pk), command=self._command())
+        assert out == '"pong"\n'
+
+    @pytest.mark.parametrize(
+        "sent", [[], ["--as-user", "7"], ["--as-user", "7", "--n", "3", "--user", "x"]]
+    )
+    def test_a_run_of_it_is_refused_with_the_kernel_s_reason_whatever_is_sent(
+        self, sent: list[str]
+    ) -> None:
+        with pytest.raises(ImproperlyConfigured) as caught:
+            run("bad", *sent, command=self._command())
+        assert str(caught.value) == self.REFUSAL
+
+    @pytest.mark.usefixtures("keep_the_test_connection")
+    def test_from_argv_it_propagates_for_a_traceback_and_not_an_exit_code(self) -> None:
+        argv = ["manage.py", "notes", "--skip-checks", "bad", "--as-user", "7"]
+        with pytest.raises(ImproperlyConfigured, match="cannot run as declared"):
+            self._command().run_from_argv(argv)
+
+    def test_a_spec_the_kernel_refuses_outside_a_call_is_asked_first(self) -> None:
+        # Both refuse this spec; ``check_seeds`` is asked first, as it was
+        # before the parser's read could refuse.
+        def needs_project(*, project: int) -> dict[str, Any]:
+            return {"project": project}
+
+        class SeedNamedUnderCli(Validator):
+            def parameters(self, *, call_context: Any = None) -> Parameters:
+                declared = [Parameter("n", "integer", required=False)]
+                if call_transport(call_context) == "cli":
+                    declared.append(Parameter("user", "string", required=False))
+                return Parameters.of(*declared)
+
+            def validate(self, arguments: Any, context: ValidationContext) -> dict[str, Any]:
+                return dict(arguments)
+
+        both = ServiceSpec(
+            service=lambda **_: {"ok": True},
+            permissions=[Unrestricted()],
+            validator=SeedNamedUnderCli(),
+            reads=Parameters.of(Parameter("project", "integer", required=False)),
+            kwargs=needs_project,
+        )
+        command = command_over(registry_of(both=both, ping=open_spec(lambda: "pong")))
+        with pytest.raises(ImproperlyConfigured) as caught:
+            run("both", "--as-user", "7", command=command)
+        assert "requires the keyword(s) ['project']" in str(caught.value)
+
+
 # --- output --------------------------------------------------------------------------------------
 
 
