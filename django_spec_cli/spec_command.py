@@ -78,7 +78,7 @@ class SpecCommand(BaseCommand):
       [`add_spec_arguments`][django_spec_cli.argv.add_spec_arguments.add_spec_arguments]
       spells them, as the input schema a transport advertises asks for them
       ([`spec_caller_input_schema`][django_service_specs.schema.spec_caller_input_schema.spec_caller_input_schema]
-      under ``pool_seeds``): less any key the server fills, and required only
+      under ``pool_seeds`` and the stamped ``call_context``): less any key the server fills, and required only
       where dispatch refuses leaving it out.
       No option is matched by a prefix: an abbreviation is refused rather
       than read as whichever option it begins.
@@ -330,7 +330,10 @@ def _sendable(
     The parameters ``spec_caller_input_schema`` offers under the command's
     ``pool_seeds`` and the stamped ``call_context``, so a field a Validator
     declares only to ``cli`` is an option and one declared to another
-    transport is not, and no key the server fills is an option: one a provider
+    transport is not
+    (test_a_required_field_declared_only_under_cli_is_an_option_marked_required,
+    test_a_field_declared_under_another_transport_is_no_option), and no key the
+    server fills is an option: one a provider
     is annotated to fill (test_a_key_the_server_fills_is_no_option), and a
     reflected read a registered seed fills
     (test_a_reflected_read_a_seed_fills_is_an_option_only_without_the_seed).

@@ -568,7 +568,7 @@ class TestAFieldDeclaredToOneTransport:
                 declared = [Parameter("n", "integer", required=False)]
                 if call_transport(call_context) == "cli":
                     declared.append(Parameter("tag", "string", required=True))
-                if call_transport(call_context) == "http":
+                if call_transport(call_context) != "cli":
                     declared.append(Parameter("web_only", "string", required=True))
                 return Parameters.of(*declared)
 
@@ -900,13 +900,15 @@ class TestTheTransportStamp:
     def test_the_schema_for_help_is_read_under_the_dict_help_describes_the_declaration_with(
         self, owner: Any
     ) -> None:
-        # The kernel's caller schema asks the Validator too, and under the
-        # handed dict it is one more ask on the parser's dict, beside the
-        # command's own: with none handed, the schema asks outside a call and
-        # records nothing, leaving the command's own ask alone.
+        # The kernel's caller schema asks the Validator too, and every ask the
+        # parser makes ahead of the run's own is of one object: the schema is
+        # handed the dict ``_sendable`` reads the declaration with, not a
+        # second one built for it.
         probe = _Probe()
         probe.run(owner)
-        assert len(probe.of_the_parser()) > 1
+        parser_asks = probe.asked_ahead_of_dispatch()[:-1]
+        assert len(parser_asks) > 1
+        assert len({id(context) for context in parser_asks}) == 1
 
     def test_the_four_standard_entries_are_there_and_none(self, owner: Any) -> None:
         probe = _Probe()
