@@ -1,5 +1,3 @@
-"""``CLI_TRANSPORT`` - the transport name a ``SpecCommand`` stamps on every call's context."""
-
 from __future__ import annotations
 
 from typing import Final

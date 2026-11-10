@@ -1,5 +1,3 @@
-"""Helpers ``argv/`` and ``SpecCommand`` share: how a parameter's name becomes argv and back."""
-
 from __future__ import annotations
 
 DESTINATION_PREFIX = "spec_arg__"
