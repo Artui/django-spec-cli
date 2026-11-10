@@ -26,7 +26,7 @@ _REFUSED_HINT = (
 def check_unguarded_specs(
     app_configs: Sequence[AppConfig] | None, **kwargs: Any
 ) -> list[CheckMessage]:
-    """Warn once per spec that authorizes nothing or cannot run, in every ``SpecCommand`` of the project."""
+    """Warn once per spec that authorizes nothing or can't run, in every project ``SpecCommand``."""
     messages: list[CheckMessage] = []
     for name, app_name, loaded in _spec_commands(app_configs):
         if isinstance(loaded, Exception):
@@ -80,7 +80,7 @@ def _refused(command: SpecCommand) -> Iterator[tuple[str, ImproperlyConfigured]]
 def _spec_commands(
     app_configs: Sequence[AppConfig] | None,
 ) -> Iterator[tuple[str, str, tuple[SpecCommand, tuple[UnguardedSpec, ...]] | Exception]]:
-    """Each ``SpecCommand`` the project serves with its unguarded specs, or why it would not load."""
+    """Each ``SpecCommand`` the project serves: its unguarded specs, or why it will not load."""
     wanted = None if app_configs is None else {config.name for config in app_configs}
     for name, app_name in get_commands().items():
         if app_name == "django.core" or (wanted is not None and app_name not in wanted):

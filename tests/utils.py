@@ -21,7 +21,7 @@ def run_python(source: str) -> subprocess.CompletedProcess[str]:
 
 
 def run_project(installed: list[str], body: str) -> subprocess.CompletedProcess[str]:
-    """``body`` run by a fresh interpreter whose settings list ``installed`` and an in-memory database."""
+    """``body`` run by a fresh interpreter with ``installed`` apps and an in-memory database."""
     return run_python(f"""
 import django
 from django.conf import settings

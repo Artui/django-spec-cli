@@ -4,7 +4,7 @@ from enum import IntEnum
 
 
 class ExitCode(IntEnum):
-    """The exit status of a [`SpecCommand`][django_spec_cli.spec_command.SpecCommand] run, a public contract."""
+    """The exit status of a [`SpecCommand`][django_spec_cli.spec_command.SpecCommand] run, a public contract."""  # noqa: E501
 
     SUCCESS = 0
     ERROR = 1
