@@ -63,8 +63,7 @@ WIRE = [
 def test_argv_checks_to_exactly_what_the_json_wire_does(
     name: str, argv: list[str], json_value: Any
 ) -> None:
-    # Through the real parser, then the one coercion and the one shape check
-    # every transport shares.
+    # Through the real parser, then the one coercion and the one shape check every transport shares.
     from_argv = check_arguments(FLAT, coerce_flat(FLAT, parsed(FLAT, argv)))
     from_json = check_arguments(FLAT, {name: json_value})
     assert from_argv == from_json
@@ -72,8 +71,7 @@ def test_argv_checks_to_exactly_what_the_json_wire_does(
 
 
 def test_argv_validates_to_exactly_what_the_json_wire_does() -> None:
-    # A Validator that decodes: the decimal and the offset-aware date-time are
-    # the values it builds, so the two wires agree past the shape check too.
+    # Past the shape check too: a decoding Validator builds the values the JSON wire builds.
     validator = DataclassValidator(_Entry)
     parameters = validator.parameters()
     argv = ["--price", "19.99", "--due-at", "2026-03-01T09:30:00+02:00", "--no-done"]
@@ -120,10 +118,7 @@ def test_every_other_value_is_the_string_given() -> None:
 
 
 def test_a_value_given_by_destination_rather_than_argv_is_handed_on() -> None:
-    # A caller filling the namespace itself, as ``call_command`` does from
-    # keyword arguments, may hand over a value argparse never read: a string
-    # for a boolean is left for ``coerce_flat``, and a boolean for a parameter
-    # of another type is no spelling of one.
+    # call_command may fill the namespace directly; coerce_flat must still judge the value.
     namespace = argparse.Namespace(spec_arg__active="false", spec_arg__key=True)
     assert parsed_arguments(namespace, FLAT) == {"active": "false", "key": True}
 
@@ -134,9 +129,7 @@ def test_an_attribute_of_the_command_s_own_is_not_read() -> None:
 
 
 def test_a_parameter_with_no_option_still_meets_the_kernel_s_refusals() -> None:
-    # No option is invented for it, and a caller that fills the namespace
-    # itself still reaches coerce_flat's refusal by name; left out, a required
-    # one is refused as missing, as it is for a JSON caller.
+    # No option is invented; a caller filling the namespace still meets coerce_flat's refusal.
     parameters = UNSENDABLE + Parameters.of(Parameter("photo", "file", required=True))
     raw = parsed_arguments(argparse.Namespace(spec_arg__address="x"), parameters)
     assert raw == {"address": "x"}

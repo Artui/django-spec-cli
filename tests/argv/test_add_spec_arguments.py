@@ -41,8 +41,7 @@ def test_every_sendable_parameter_has_its_option() -> None:
 
 
 def test_an_omitted_option_is_absent_from_the_namespace() -> None:
-    # Absent, not ``None``, ``""`` or ``False``: the shape check decides what an
-    # omitted argument means, as it does for a JSON caller who left a key out.
+    # Absent, not None or False: the shape check decides what an omitted argument means.
     assert vars(parser_for(FLAT).parse_args([])) == {}
 
 
@@ -60,8 +59,7 @@ def test_a_parameter_with_no_flat_spelling_gets_no_option(parameter: Parameter) 
 
 
 def test_every_value_stays_the_string_given() -> None:
-    # Coerced later by ``coerce_flat``, never by argparse, so a value argparse
-    # would have refused as an int reaches the kernel's own refusal.
+    # Coerced by coerce_flat, not argparse, so the kernel's own refusal is what answers.
     namespace = parser_for(FLAT).parse_args(["--count", "five", "--ratio", "1e3"])
     assert vars(namespace) == {"spec_arg__count": "five", "spec_arg__ratio": "1e3"}
 
@@ -95,8 +93,7 @@ def test_a_choice_is_listed_and_left_to_the_shape_check() -> None:
     )
     parser = parser_for(Parameters.of(status))
     assert "one of: draft (Draft), published" in _flat_help(parser)
-    # Not refused by argparse: the shape check's refusal is the only one, so
-    # one mistake has one message and one exit code.
+    # Not refused by argparse: one mistake gets one message and one exit code.
     assert vars(parser.parse_args(["--status", "bogus"])) == {"spec_arg__status": "bogus"}
 
 
@@ -152,8 +149,7 @@ def test_a_percent_sign_in_any_help_text_is_printed_as_written() -> None:
 
 
 def test_a_parameter_named_like_a_base_command_option_cannot_overwrite_it() -> None:
-    # ``verbosity`` and ``settings`` are BaseCommand's destinations; a spec
-    # parameter's lands under its own namespace beside them.
+    # BaseCommand's own destinations are not overwritten; a parameter lands beside them.
     parameters = Parameters.of(Parameter("verbosity", "string"), Parameter("settings", "string"))
     parser = parser_for(parameters)
     parser.set_defaults(verbosity=1, settings=None)
@@ -170,7 +166,6 @@ def test_a_parameter_named_like_a_base_command_option_cannot_overwrite_it() -> N
         (Parameter("json", "boolean"), "--json"),
         # A boolean claims its negative too, which may be Django's own.
         (Parameter("color", "boolean"), "--no-color"),
-        # Every argparse parser owns its help, whatever the caller reserves.
         (Parameter("help", "string"), "--help"),
     ],
     ids=["as-user", "json", "negative-flag", "help"],
@@ -220,8 +215,7 @@ def test_two_parameters_mapping_to_one_option_are_refused(
 
 
 def test_a_refused_parameter_adds_no_option() -> None:
-    # Every option is checked before the first is added, so a refused spec
-    # leaves the parser as it was rather than half-built.
+    # Every option is checked before the first is added, so a refusal leaves no half parser.
     parser = argparse.ArgumentParser()
     parameters = Parameters.of(Parameter("title", "string"), Parameter("json", "string"))
     with pytest.raises(ImproperlyConfigured):
@@ -235,8 +229,7 @@ def test_a_parameter_with_no_option_is_never_refused_for_one() -> None:
 
 
 def _flat_help(parser: argparse.ArgumentParser) -> str:
-    # argparse wraps help to the terminal's width; one line per option is what
-    # the assertions read.
+    # argparse wraps help to the terminal's width; one line per option is what the assertions read.
     return " ".join(parser.format_help().split())
 
 
