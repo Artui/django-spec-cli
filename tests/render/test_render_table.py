@@ -1,5 +1,3 @@
-"""A table for a terminal: columns from the declared ``Output``, never from a row."""
-
 from __future__ import annotations
 
 import datetime as dt
@@ -72,9 +70,7 @@ def test_a_null_cell_is_empty_and_never_shifts_a_column() -> None:
 
 
 def test_a_key_a_row_leaves_out_is_an_empty_cell_like_a_null() -> None:
-    # ``always_present=False`` is a key the presenter may omit, as a dataclass
-    # does for ``UNSET``. A table cannot show the difference from a null, and
-    # JSON Lines, which writes the row as it is, can.
+    # ``always_present=False`` is a key the presenter may omit, as a dataclass does for ``UNSET``.
     output = Output(
         (
             OutputField("id", "integer"),
@@ -96,8 +92,7 @@ def test_a_header_is_the_label_and_else_the_name() -> None:
 
 
 def test_a_choice_is_shown_by_its_display_and_an_unknown_value_as_itself() -> None:
-    # A stale row naming a choice since removed is still reported, as the
-    # agent projection reports it.
+    # A stale row naming a removed choice is still reported, as the agent projection does.
     output = Output((OutputField("status", "string", choices=_STATUS),))
     assert _table([{"status": "published"}, {"status": "archived"}], output) == (
         "status\nPublished\narchived\n"
@@ -122,8 +117,7 @@ def test_an_array_of_choices_is_shown_member_by_member(states: object) -> None:
 
 
 def test_a_handle_keeps_its_value_even_with_choices() -> None:
-    # A handle is what the operator pastes into the next command, which takes
-    # the value and not the display.
+    # A handle is what an operator pastes into the next command, so it keeps its value.
     output = Output(
         (OutputField("kind", "string", choices=_STATUS, marking=FieldMarking.handle()),)
     )
@@ -142,9 +136,7 @@ def test_an_unmarked_field_without_choices_is_shown_as_presented() -> None:
 
 
 def test_a_hidden_field_is_no_column_and_every_other_audience_is_one() -> None:
-    # ``HIDDEN`` is plumbing: the projection for an agent drops it, and a
-    # table read by a person has no more use for it. ``LABEL``, ``HANDLE`` and
-    # ``CONTENT`` are things a person reads or pastes, so each stays.
+    # HIDDEN is plumbing for an agent projection; LABEL, HANDLE and CONTENT stay for people.
     output = Output(
         (
             OutputField("pk", "integer", marking=FieldMarking.handle()),
@@ -159,8 +151,7 @@ def test_a_hidden_field_is_no_column_and_every_other_audience_is_one() -> None:
 
 
 def test_an_agent_formatter_is_not_applied_to_a_table() -> None:
-    # A marking's formatter is how an agent audience reads the value. A
-    # command names no audience, and shows the value as presented, as HTTP does.
+    # A marking's formatter is how an agent audience reads the value.
     shout = ValueFormatter(lambda value: str(value).upper(), "string")
     output = Output((OutputField("title", "string", marking=FieldMarking.formatted(shout)),))
     assert _table([{"title": "quiet"}], output) == "title\nquiet\n"
@@ -168,8 +159,6 @@ def test_an_agent_formatter_is_not_applied_to_a_table() -> None:
 
 def test_a_key_the_output_does_not_declare_is_no_column() -> None:
     # ``present`` adds ``affordances`` to a row beside the declared fields.
-    # The columns are the declaration's, so it stays out of the table; JSON
-    # Lines writes the row whole and carries it.
     output = Output((OutputField("id", "integer"),))
     row: dict[str, object] = {"id": 1, "affordances": {"publish": {"available": True}}}
     assert _table([row], output) == "id\n 1\n"
@@ -236,10 +225,7 @@ def test_no_line_ends_in_whitespace() -> None:
 
 
 def test_wide_and_zero_width_characters_are_measured_by_the_columns_they_take() -> None:
-    # Each CJK ideograph takes two terminal columns, and a combining accent,
-    # a variation selector and a zero-width joiner take none, so ``len``
-    # would misalign every one of them. Written as escapes, so the source
-    # shows which character each is.
+    # Wide characters take two columns and combining or zero-width ones none; len misaligns.
     output = Output((OutputField("name", "string"), OutputField("n", "string")))
     rows: list[dict[str, object]] = [
         {"name": "\u6771\u4eac", "n": "1"},
@@ -260,11 +246,8 @@ def test_with_no_output_a_key_used_as_a_header_is_escaped_too() -> None:
 @pytest.mark.parametrize(
     ("value", "expected"),
     [
-        # A raw newline would split a row across two lines, and a raw escape
-        # byte would let a row's contents drive the operator's terminal.
+        # A raw newline splits a row and a raw escape drives the terminal; both are escaped.
         ("a\nb\tc\x1b[31m", "note             n\na\\nb\\tc\\x1b[31m  1\n"),
-        # JSON leaves both separators raw and ``str.splitlines`` breaks a line
-        # at either, so a raw one would split a row for any reader that does.
         ("a\u2028b\u2029c", "note             n\na\\u2028b\\u2029c  1\n"),
     ],
     ids=["controls", "separators"],
@@ -272,7 +255,6 @@ def test_with_no_output_a_key_used_as_a_header_is_escaped_too() -> None:
 def test_a_character_that_breaks_a_line_or_drives_a_terminal_is_escaped(
     value: str, expected: str
 ) -> None:
-    # Two columns, so the first is padded to the escaped text's width.
     output = Output((OutputField("note", "string"), OutputField("n", "string")))
     assert _table([{"note": value, "n": "1"}], output) == expected
 
@@ -314,9 +296,7 @@ class _Book:
 
 
 def test_a_dataclass_presenter_s_rows_render_under_its_own_output() -> None:
-    # The row shape the kernel produces, rather than one written for the test:
-    # a Choices label, a Decimal as its string, a date in ISO 8601, an UNSET
-    # key left out, and a hidden field the presenter still renders.
+    # The row shape the kernel produces: labels, Decimal strings, ISO dates, UNSET left out.
     presenter = DataclassPresenter(_Book)
     rows = [
         presenter.present(

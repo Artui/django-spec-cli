@@ -1,5 +1,3 @@
-"""What ``present`` returned, written for a terminal or a pipe."""
-
 from __future__ import annotations
 
 import io
@@ -33,8 +31,7 @@ def _render(presented: Any, output: Output | None, *, table: bool) -> str:
 def test_a_list_of_rows_is_a_table_or_a_line_each() -> None:
     rows = [{"id": 1, "title": "a", "etag": "x"}, {"id": 2, "title": "b", "etag": "y"}]
     assert _render(rows, _OUTPUT, table=True) == "id  title\n 1  a\n 2  b\n"
-    # A pipe gets every presented field, the hidden one included, as an HTTP
-    # response does: a marking shapes what an agent is shown, not what leaves.
+    # A pipe gets every presented field, hidden one included, as an HTTP response does.
     assert _render(rows, _OUTPUT, table=False) == (
         '{"id":1,"title":"a","etag":"x"}\n{"id":2,"title":"b","etag":"y"}\n'
     )
@@ -53,8 +50,7 @@ def test_an_empty_list_is_a_header_or_nothing() -> None:
 
 @pytest.mark.parametrize("table", [True, False], ids=["table", "json"])
 def test_nothing_presented_prints_nothing(table: bool) -> None:
-    # ``None`` is what a service that returned nothing presents, and a header
-    # over no rows would read as an empty list.
+    # None is what a service returning nothing presents, not an empty list of rows.
     assert _render(None, _OUTPUT, table=table) == ""
 
 
@@ -78,16 +74,13 @@ def test_a_scalar_is_a_result_column_or_one_line_of_its_json(
 
 
 def test_a_scalar_is_its_own_column_under_a_declared_output_too() -> None:
-    # A service declaring rows can still present a bare value; the declared
-    # header over one empty row would hide it.
+    # A service declaring rows can still present a bare value; a header would hide it.
     assert _render(42, _OUTPUT, table=True) == "result\n42\n"
 
 
 @pytest.mark.parametrize("table", [True, False], ids=["table", "json"])
 def test_bytes_are_a_scalar_and_never_iterated_as_rows(table: bool) -> None:
-    # Bytes iterate as integers, so read as rows they would print one number
-    # per byte. As a scalar they are refused by the encoder, as an HTTP
-    # response refuses them, and nothing is written.
+    # Bytes iterate as integers, so read as rows they would print one number per byte.
     stream = io.StringIO()
     with pytest.raises(TypeError, match="bytes"):
         render_result(b"ab", None, stream, table=table)
@@ -101,9 +94,7 @@ def test_a_list_of_scalars_is_a_result_column_or_a_line_each() -> None:
 
 
 def test_rows_from_a_generator_stream_to_a_pipe() -> None:
-    # Streaming has to survive this layer as well as the writer beneath it:
-    # nothing here may turn the rows into a list, or look at the first one
-    # before writing it.
+    # Streaming survives this layer too: nothing here may list the rows or peek at the first.
     pulled, written = pulled_before_the_first_write(
         lambda rows, stream: render_result(rows, _OUTPUT, stream, table=False)
     )
@@ -126,8 +117,7 @@ class _Invoice(BaseModel):
 
 
 def test_a_pydantic_presenter_s_rows_render_under_its_own_output() -> None:
-    # The row shape the kernel produces from a model: a title as the header,
-    # a Decimal as the string its JSON mode writes.
+    # The row shape the kernel produces from a model: a title header, a Decimal as a string.
     presenter = PydanticPresenter(_Invoice)
     rows = [
         presenter.present(_Invoice(number="A-1", total=Decimal("9.50"), paid=True)),

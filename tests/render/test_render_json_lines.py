@@ -1,5 +1,3 @@
-"""JSON Lines for a pipe: one object per line, streamed."""
-
 from __future__ import annotations
 
 import datetime as dt
@@ -26,8 +24,7 @@ def _written(rows: list[Any]) -> str:
 
 
 def _lines(rows: list[Any]) -> list[str]:
-    # ``split("\n")`` rather than ``splitlines()``, which also splits on the
-    # separators JSON leaves raw, so it would read lines no JSON Lines reader does.
+    # Splits on newline alone: splitlines() also breaks on separators JSON leaves raw.
     text = _written(rows)
     assert text.endswith("\n")
     return text[:-1].split("\n")
@@ -71,17 +68,14 @@ def test_values_json_has_no_type_for_are_encoded_as_django_encodes_them() -> Non
 
 
 def test_a_line_separator_inside_a_value_never_ends_a_line() -> None:
-    # JSON escapes the C0 controls and leaves U+2028, U+2029 and NEL raw, all
-    # three of which some line readers break on. Each is escaped, so every
-    # reader sees the row as one line and decodes the same value.
+    # JSON leaves U+2028, U+2029 and NEL raw, and some line readers break on them.
     value = "a b c\x85d\ne"
     (line,) = _written([{"note": value}]).splitlines()
     assert json.loads(line) == {"note": value}
 
 
 def test_rows_are_streamed_one_at_a_time() -> None:
-    # A generator of rows is a LIST selector's queryset being read: turning it
-    # into a list first would hold every row in memory before the first byte.
+    # A generator of rows is a queryset being read; a list would hold every row in memory.
     pulled, written = pulled_before_the_first_write(render_json_lines)
     assert pulled == 1
     assert written == '{"id":0}\n{"id":1}\n{"id":2}\n'
@@ -92,8 +86,7 @@ def test_no_rows_write_nothing() -> None:
 
 
 def test_each_line_is_one_write_so_django_s_wrapper_adds_no_blank_lines() -> None:
-    # ``OutputWrapper.write`` appends a newline to a message not ending in one,
-    # so a line written in pieces would come out broken across lines.
+    # OutputWrapper.write adds a newline to a message lacking one, so pieces would split lines.
     inner = io.StringIO()
     render_json_lines([{"a": 1}, {"a": 2}], OutputWrapper(inner))
     assert inner.getvalue() == '{"a":1}\n{"a":2}\n'
@@ -107,8 +100,7 @@ class _Note:
 
 
 def test_a_dataclass_presenter_s_rows_keep_an_absent_key_absent_and_a_null_null() -> None:
-    # The row shape the kernel produces. A table shows both as an empty cell;
-    # a pipe is where the two are told apart.
+    # The row shape the kernel produces.
     presenter = DataclassPresenter(_Note)
     rows = [
         presenter.present(SimpleNamespace(id=1, body=None, bio=UNSET)),
