@@ -4,8 +4,7 @@ from django_spec_cli.types.exit_code import ExitCode
 
 
 def test_each_code_is_the_number_the_docs_publish() -> None:
-    # A script branches on the number, so renumbering a member is a breaking
-    # change this pins.
+    # A script branches on the number, so renumbering a member is a breaking change this pins.
     assert {member.name: int(member) for member in ExitCode} == {
         "SUCCESS": 0,
         "ERROR": 1,
