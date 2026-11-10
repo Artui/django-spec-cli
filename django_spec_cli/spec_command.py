@@ -218,7 +218,7 @@ def _call_context() -> dict[str, Any]:
 def _sendable(
     spec: ServiceSpec | SelectorSpec, pool_seeds: PoolSeeds, call_context: dict[str, Any]
 ) -> Parameters:
-    """What a caller may send, as the kernel's caller schema reads it: required only where dispatch demands it."""
+    """What a caller may send, as the kernel reads it: required only where dispatch demands it."""
     schema = spec_caller_input_schema(spec, pool_seeds=pool_seeds, call_context=call_context)
     required = frozenset(schema.get("required", ()))
     return Parameters.of(
@@ -231,7 +231,7 @@ def _sendable(
 
 
 def _add_refused_subparser(subparsers: Any, name: str, summary: str, message: str) -> None:
-    """The subcommand of a spec whose declaration refuses under the stamped dict: its reason, and no option."""
+    """The subcommand of a refused spec, under the stamped dict: its reason, and no option."""
     subparser = subparsers.add_parser(
         name,
         help=summary.replace("%", "%%"),
@@ -254,7 +254,7 @@ def _add_refused_subparser(subparsers: Any, name: str, summary: str, message: st
 
 
 def _summary(spec: ServiceSpec | SelectorSpec, name: str) -> str:
-    """The first paragraph of what the spec's callable says about itself, and whether it reads or writes."""
+    """The first paragraph of the spec callable's own doc, and whether it reads or writes."""
     call = spec.selector if isinstance(spec, SelectorSpec) else spec.service
     kind = "read" if isinstance(spec, SelectorSpec) else "write"
     doc = call.__doc__ if inspect.isfunction(call) or inspect.ismethod(call) else None

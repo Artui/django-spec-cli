@@ -9,7 +9,7 @@ from django_spec_cli.argv.utils import destination
 
 
 def parsed_arguments(namespace: argparse.Namespace, parameters: Parameters) -> dict[str, Any]:
-    """The spec's arguments from a namespace filled by [`add_spec_arguments`][django_spec_cli.argv.add_spec_arguments.add_spec_arguments]'s options."""
+    """The spec's arguments from a namespace filled by [`add_spec_arguments`][django_spec_cli.argv.add_spec_arguments.add_spec_arguments]'s options."""  # noqa: E501
     values = vars(namespace)
     raw: dict[str, Any] = {}
     for param in parameters:

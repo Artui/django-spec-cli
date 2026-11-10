@@ -1,4 +1,4 @@
-"""The package's setting, read at the call so ``override_settings`` and a late configure both reach it."""
+"""The package's setting, read at call so ``override_settings`` and a late configure reach it."""
 
 from __future__ import annotations
 

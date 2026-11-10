@@ -17,7 +17,7 @@ declared ``items``, whose elements stay the strings given."""
 
 
 def describe_parameters(parameters: Parameters) -> tuple[ParameterDescriptor, ...]:
-    """One [`ParameterDescriptor`][django_spec_cli.argv.parameter_descriptor.ParameterDescriptor] per parameter, in declaration order."""
+    """One [`ParameterDescriptor`][django_spec_cli.argv.parameter_descriptor.ParameterDescriptor] per parameter, in declaration order."""  # noqa: E501
     return tuple(_describe(param) for param in parameters)
 
 
@@ -27,7 +27,7 @@ def _describe(param: Parameter) -> ParameterDescriptor:
         type=param.type,
         format=param.format,
         items=param.items if isinstance(param.items, str) else None,
-        # The shape check's rule for an omitted argument: "(required)" shows where an omission is refused.
+        # The shape check's rule for an omitted argument: "(required)" marks a refused omission.
         required=param.required and param.default is UNSET,
         default=_shown_default(param.default),
         choices=param.choices,

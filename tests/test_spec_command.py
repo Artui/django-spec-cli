@@ -559,7 +559,7 @@ class TestHelp:
 
 
 class TestAFieldDeclaredToOneTransport:
-    """The options offered are the schema read under the stamped dict, as ``--help`` already reads the declaration."""
+    """Options offered are the schema under the stamped dict, as ``--help`` already reads it."""
 
     @staticmethod
     def spec() -> ServiceSpec:
@@ -1234,7 +1234,7 @@ execute_from_command_line(["manage.py", "notes", "ping", "--as-user", "999"])
 
 
 def test_a_command_runs_with_neither_package_s_app_installed() -> None:
-    """The page's claim: listing ``django_spec_cli`` adds the check and nothing the command needs."""
+    """The page's claim: listing ``django_spec_cli`` adds the check and nothing it needs."""
     completed = run_project(
         [*CONTRIB_APPS, *TEST_APPS],
         """
