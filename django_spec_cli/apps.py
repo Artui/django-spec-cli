@@ -1,5 +1,3 @@
-"""The app a project lists to have its open and unrunnable specs reported by ``manage.py check``."""
-
 from __future__ import annotations
 
 from django.apps import AppConfig
@@ -9,21 +7,7 @@ from django_spec_cli.checks import check_unguarded_specs
 
 
 class DjangoSpecCliConfig(AppConfig):
-    """Registers the system check over every ``SpecCommand``'s specs, and does nothing else.
-
-    Optional: the package works unlisted, and a project that does not list it
-    gets no check and no sign that it is missing. It owns no models, so it
-    sets no ``default_auto_field``.
-
-    The check carries no tag, and in particular not ``Tags.security``: a
-    ``SpecCommand`` is a mistake-prevention and attribution surface, not an
-    authorization boundary, and a security tag would say it is one.
-
-    The import of the check is at the top of this module, which Django
-    imports before the app registry is ready. That holds because nothing the
-    package imports reaches a model or ``get_user_model`` at import time
-    (test_importing_the_app_before_setup_loads_no_model).
-    """
+    """Registers the system check over every ``SpecCommand``'s specs, and does nothing else."""
 
     name = "django_spec_cli"
 
