@@ -13,9 +13,7 @@ from tests.utils import run_python
 
 
 def test_apps_py_declares_exactly_one_app_config() -> None:
-    # Django picks the config itself only when the module holds exactly one
-    # subclass; a second would leave the plain ``AppConfig`` in charge, whose
-    # ``ready()`` registers nothing.
+    # Django picks the config only when the module holds exactly one AppConfig subclass.
     declared = [
         value
         for value in vars(django_spec_cli.apps).values()
@@ -33,16 +31,13 @@ def test_the_app_is_named_for_the_package_and_owns_no_models() -> None:
 
 
 def test_ready_registers_the_check_with_no_tag() -> None:
-    # No security tag: the command is not an authorization boundary, and a
-    # tag saying so would be read as one.
+    # No security tag: the command is not an authorization boundary.
     assert check_unguarded_specs in registry.get_checks()
     assert getattr(check_unguarded_specs, "tags", ()) == ()
 
 
 def test_importing_the_app_before_setup_loads_no_model() -> None:
-    # ``apps.py`` is imported while the app registry is still being populated,
-    # so nothing it imports, the package root included, may reach a model or
-    # ``get_user_model``. A fresh interpreter, because this one is set up.
+    # apps.py is imported while the registry populates, so it may reach no model.
     probe = """
 import json, sys
 from django.conf import settings

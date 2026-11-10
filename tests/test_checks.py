@@ -1,11 +1,3 @@
-"""The system checks, for an unguarded spec and a spec ``check_seeds`` refuses, run over
-this suite's own command modules.
-
-Other tests add command modules to the same app, so every assertion here is
-filtered to the commands this file owns - the ``unguarded_`` ones - and none
-says that a message is absent project-wide.
-"""
-
 from __future__ import annotations
 
 import importlib
@@ -89,8 +81,7 @@ class TestTheReport:
     @pytest.mark.parametrize(
         "name",
         [
-            # Its class carries the same open registry as the report's, so
-            # reading it would add three more W001s naming it.
+            # Its open registry would add three more W001s naming it.
             "unguarded_plain",
             "unguarded_empty",
         ],
@@ -131,8 +122,7 @@ class TestACommandThatDoesNotLoad:
         ]
 
     def test_a_parser_that_cannot_be_built_is_reported_with_its_cause(self) -> None:
-        # The command constructs, so only building its parser finds the clash
-        # between a parameter and the option the command owns.
+        # Only building the parser finds a parameter clashing with an option the command owns.
         [message] = [m.msg for m in self._w003("unguarded_bad_parser")]
         assert message.startswith(
             "The command 'unguarded_bad_parser' from tests.commands_app could not be set up, "
@@ -141,9 +131,7 @@ class TestACommandThatDoesNotLoad:
         assert "--as-user" in message
 
     def test_a_spec_command_naming_no_registry_is_reported(self) -> None:
-        # Only that it is reported: how a ``SpecCommand`` with no registry
-        # fails - reading it, constructing it, declaring it - is the command's
-        # to decide, and each is caught by the same walk.
+        # Only that it is reported; how a SpecCommand with no registry fails is for the command.
         [message] = self._w003("unguarded_no_registry")
         assert message.msg.startswith(
             "The command 'unguarded_no_registry' from tests.commands_app could not be set up, "
@@ -186,11 +174,7 @@ def _project_spec(*, required: bool) -> ServiceSpec:
 
 
 class TestADeclarationTheKernelRefuses:
-    """``check_seeds``, under the command's own ``pool_seeds``, over every spec it serves.
-
-    Each test serves one command of its own through the walk, so nothing here
-    depends on what the suite's command modules declare.
-    """
+    """``check_seeds``, under the command's own ``pool_seeds``, over every spec it serves."""
 
     REFUSED = (
         "'optional_project' in manage.py seeded cannot run as declared, and a run of it is "
@@ -239,8 +223,7 @@ class TestADeclarationTheKernelRefuses:
     def test_one_warning_per_refused_spec_beside_the_command_s_other_reports(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        # Refusing one spec loses neither the W001 of an open spec in the same
-        # command nor the command itself to a W003.
+        # Refusing one spec loses neither the W001 of an open spec nor the command to a W003.
         registry = SpecRegistry()
         registry.register("optional_project", _project_spec(required=False))
         registry.register("required_project", _project_spec(required=True))
@@ -255,8 +238,7 @@ class TestADeclarationTheKernelRefuses:
         assert not any(message.is_serious() for message in messages)
 
     def test_it_reads_the_command_s_pool_seeds(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        # ``tenant`` is filled by nothing under the stock seeds, and by the seed
-        # the command registers.
+        # tenant is filled by nothing under the stock seeds, and by the seed the command registers.
         registry = SpecRegistry()
         registry.register("greet", ServiceSpec(service=_greet, permissions=[StaffOnly()]))
         _, unseeded = self._walk(monkeypatch, registry)
@@ -370,8 +352,7 @@ class TestDjangoSOwnCommands:
     def test_a_project_command_under_a_core_name_is_walked(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        # ``get_commands`` maps an overridden name to the app overriding it, so
-        # the walk skips by app, never by name.
+        # get_commands maps an overridden name to the overriding app, so the walk skips by app.
         monkeypatch.setattr("django_spec_cli.checks.get_commands", lambda: {"shell": APP})
         monkeypatch.setattr(
             "django_spec_cli.checks.load_command_class",
@@ -409,10 +390,7 @@ class TestCallCommand:
         assert "manage.py unguarded_report" not in err.getvalue()
 
     def test_runs_it_when_a_command_is_told_not_to_skip(self) -> None:
-        # The same command with checks on reports, so the absence above is the
-        # skip and not a command that never reaches the check. A project-wide
-        # check fails on another test app's models where Pillow is missing,
-        # and the warnings ride in the error then.
+        # With checks on the same command reports, so the absence above is the skip, not a miss.
         err = io.StringIO()
         try:
             call_command("unguarded_plain", skip_checks=False, stderr=err)
@@ -465,9 +443,7 @@ class TestTheAppIsTheOptIn:
         assert "django_spec_cli." not in completed.stdout
 
     def test_a_manage_py_command_runs_it_before_its_own_handle(self) -> None:
-        # The command line, unlike ``call_command``, does not skip system
-        # checks, so a command keeping ``requires_system_checks`` prints the
-        # report to stderr on every run.
+        # The command line runs system checks, unlike call_command, so the report prints each run.
         completed = run_project(
             [*BASE_APPS, "django_spec_cli"],
             """
@@ -481,11 +457,7 @@ execute_from_command_line(["manage.py", "unguarded_plain"])
         )
 
     def test_the_kernel_s_app_registers_no_check_of_its_own(self) -> None:
-        # The kernel keeps an ``AppConfig`` so a project listing it still
-        # starts, but it registers nothing: the checks live here, so listing
-        # only the kernel's app reports no command, moved or not.
+        # The kernel keeps an AppConfig but registers nothing: the checks live in this package.
         completed = run_project([*BASE_APPS, "django_service_specs"], CHECK)
         assert completed.returncode == 0, completed.stderr
-        # The one assertion that holds the claim: on a kernel still carrying its
-        # copy, this fails on the kernel's W003 for the unloadable command.
         assert "django_service_specs." not in completed.stdout

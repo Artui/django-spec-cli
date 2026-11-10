@@ -1,9 +1,3 @@
-"""``SpecCommand``, run as a project runs it: by name through ``call_command``, and from argv.
-
-Exit codes are asserted as the integers a script branches on, not through
-``ExitCode``, so the table the docs publish is what is held here.
-"""
-
 from __future__ import annotations
 
 import functools
@@ -301,8 +295,7 @@ class TestSeeds:
         return registry_of(greet=open_spec(greet))
 
     def test_the_seeds_a_command_names_resolve_the_services_callables(self, owner: Any) -> None:
-        # The HTTP entry points take ``pool_seeds``; a command over the same
-        # registry has to be able to answer a callable that reads one.
+        # The HTTP entry points take pool_seeds; a command over the same registry must too.
         seeds = DEFAULT_POOL_SEEDS.extend(tenant=lambda: "acme")
         command = command_over(self._registry(), pool_seeds=seeds)
         assert run("greet", "--as-user", str(owner.pk), command=command) == '"hello acme"\n'
@@ -310,8 +303,7 @@ class TestSeeds:
     def test_a_reflected_read_a_seed_fills_is_an_option_only_without_the_seed(
         self, capsys: pytest.CaptureFixture[str], owner: Any
     ) -> None:
-        # Offered under the command's seeds, it would be refused when passed,
-        # as an argument dispatch does not take.
+        # Under the seeds it would be refused if passed, as dispatch takes no such argument.
         def greet(*, tenant: str) -> str:
             return f"hello {tenant}"
 
@@ -325,19 +317,13 @@ class TestSeeds:
         assert "--tenant STRING (required)" in unseeded
 
     def test_with_no_seeds_named_a_callable_reading_one_is_refused(self, owner: Any) -> None:
-        # The default is the stock seeds, as ``dispatch``'s: a seed nobody
-        # registered is no quiet default, and the kernel's ``check_seeds``
-        # refuses the spec before it reaches the callable's own ``TypeError``.
+        # The stock seeds are the default, so an unregistered seed is refused before the call.
         with pytest.raises(ImproperlyConfigured, match=r"\['tenant'\], which nothing fills"):
             run("greet", "--as-user", str(owner.pk), command=command_over(self._registry()))
 
 
 class TestADeclarationTheKernelRefuses:
-    """A spec ``check_seeds`` refuses under the command's seeds never reaches dispatch.
-
-    ``call_command`` handed an instance names it after this module, so the
-    sentence reads ``manage.py test_spec_command``.
-    """
+    """A spec ``check_seeds`` refuses under the command's seeds never reaches dispatch."""
 
     REFUSAL = (
         "'echo' in manage.py test_spec_command cannot run as declared, and a run of it is refused: "
@@ -357,8 +343,7 @@ class TestADeclarationTheKernelRefuses:
     def test_a_run_of_it_is_refused_with_the_kernel_s_reason(
         self, owner: Any, sent: list[str]
     ) -> None:
-        # Sending the read would run: refused anyway, because the declaration
-        # says it is optional and every run leaving it out crashes.
+        # Sending the read would run; refused anyway, as every run leaving it out crashes.
         with pytest.raises(ImproperlyConfigured) as caught:
             run("echo", "--as-user", str(owner.pk), *sent, command=self._command())
         assert str(caught.value) == self.REFUSAL
@@ -379,8 +364,7 @@ class TestADeclarationTheKernelRefuses:
         assert run("ping", "--as-user", str(owner.pk), command=self._command()) == '"pong"\n'
 
     def test_help_and_explain_still_answer(self, capsys: pytest.CaptureFixture[str]) -> None:
-        # Asked of the spec run, never where the parser is built, so the
-        # command's listing and its report still work.
+        # Asked of the spec run, not where the parser is built, so the listing still works.
         command = self._command()
         parser = command.create_parser("manage.py", "notes")
         with pytest.raises(SystemExit):
@@ -395,9 +379,7 @@ class TestADeclarationTheKernelRefuses:
 
     @pytest.mark.usefixtures("keep_the_test_connection")
     def test_from_argv_it_propagates_for_a_traceback_and_not_an_exit_code(self, owner: Any) -> None:
-        # ``run_from_argv`` turns only a ``CommandError`` into ``sys.exit``;
-        # anything else reaches ``manage.py`` as a traceback and exit status 1,
-        # which is ``ExitCode.ERROR`` as the docs publish it.
+        # run_from_argv turns only CommandError into sys.exit; anything else is a traceback, exit 1.
         argv = ["manage.py", "notes", "--skip-checks", "echo", "--as-user", str(owner.pk)]
         with pytest.raises(ImproperlyConfigured, match="cannot run as declared"):
             self._command().run_from_argv(argv)
@@ -485,8 +467,7 @@ class TestHelp:
             def tidy(self) -> None:
                 """Put every note back in order."""
 
-        # A method's own docstring describes the operation; a ``partial``'s is
-        # the class's, which describes ``partial``.
+        # A method's own docstring describes the operation; a partial's is its class's.
         registry = registry_of(
             tidy=open_spec(Shelf().tidy), later=open_spec(functools.partial(notes.ping))
         )
@@ -528,8 +509,7 @@ class TestHelp:
     def test_a_read_a_provider_may_fill_is_offered_and_not_required(
         self, capsys: pytest.CaptureFixture[str], owner: Any
     ) -> None:
-        # A return that says nothing about its keys may fill any read, so
-        # dispatch demands none of them of the caller and the help asks for none.
+        # A return saying nothing of its keys may fill any read, so none is demanded.
         def may_fill(**_: Any) -> dict[str, Any]:
             return {"project": 1}
 
@@ -543,9 +523,7 @@ class TestHelp:
     def test_a_read_a_provider_requires_itself_is_required(
         self, capsys: pytest.CaptureFixture[str], owner: Any
     ) -> None:
-        # A provider that takes the read by name, with no default, cannot be the
-        # one to fill it, so dispatch demands it of the caller. A kernel before
-        # 0.25.0 relaxed it, and a run leaving it out crashed in the provider.
+        # A provider taking the read by name with no default cannot fill it, so it is demanded.
         def needs_project(*, project: int) -> dict[str, Any]:
             return {"project": project}
 
@@ -609,13 +587,7 @@ class TestAFieldDeclaredToOneTransport:
 
 
 class TestAFieldDeclaredOnlyUnderCliThatTheKernelRefuses:
-    """A declaration only the cli-stamped read reaches is refused for its spec alone.
-
-    The Validator declares ``user``, a name dispatch seeds itself, only when
-    the transport is ``cli``. ``check_seeds`` is asked outside a call and
-    never sees the field, so only the read the parser makes under the stamped
-    dict raises, and it must stop that spec and no other.
-    """
+    """A declaration only the cli-stamped read reaches is refused for its spec alone."""
 
     REFUSAL = (
         "'bad' in manage.py test_spec_command cannot run as declared, and a run of it is "
@@ -674,7 +646,6 @@ class TestAFieldDeclaredOnlyUnderCliThatTheKernelRefuses:
     def test_a_percent_sign_in_the_reason_is_printed_as_it_is(
         self, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        # The spec's name is in the reason, and its docstring is in the listing.
         def discount() -> None:
             """Take 10% off."""
 
@@ -721,8 +692,7 @@ class TestAFieldDeclaredOnlyUnderCliThatTheKernelRefuses:
             self._command().run_from_argv(argv)
 
     def test_a_spec_the_kernel_refuses_outside_a_call_is_asked_first(self) -> None:
-        # Both refuse this spec; ``check_seeds`` is asked first, as it was
-        # before the parser's read could refuse.
+        # Both refuse this spec; check_seeds is asked first, as before the parser's read.
         def needs_project(*, project: int) -> dict[str, Any]:
             return {"project": project}
 
@@ -872,8 +842,7 @@ class TestUsage:
     def test_neither_a_spec_nor_explain_is_a_usage_error(self) -> None:
         error = refused()
         assert "name a spec to run, or pass --explain" in str(error)
-        # Through call_command every parser error is Django's CommandError
-        # with returncode 1; the command line's 2 is held by TestFromArgv.
+        # Through call_command every parser error is CommandError with returncode 1.
         assert error.returncode == 1
 
     def test_explain_with_a_spec_is_a_usage_error(self, owner: Any) -> None:
@@ -967,22 +936,14 @@ class _Probe:
         run("probe", "--as-user", str(owner.pk), command=Command())
 
     def of_the_parser(self) -> list[dict[str, Any]]:
-        """The declarations read while the command's parser was built, which are all of one dict.
-
-        The command reads the validator's declaration for ``--help`` under a
-        dict of its own, ahead of any run: its own read, and every one the
-        kernel's caller schema makes under the dict it is handed.
-        """
+        """The declarations read while the command's parser was built, which are all of one dict."""
         assert self.seen[0][0] == "validator parameters"
         first = self.seen[0][1]
         marker = self.stages_with_marker().index("principal")
         return [context for _, context in self.seen[:marker] if context is first]
 
     def of_the_run(self) -> list[tuple[str, dict[str, Any]]]:
-        """What the run saw, less the reads made under the parser's dict.
-
-        The marker the principal lookup leaves is no stage, and is left out too.
-        """
+        """What the run saw, less the reads made under the parser's dict."""
         parser = self.of_the_parser()[0]
         return [
             (stage, context)
@@ -1011,8 +972,7 @@ class TestTheTransportStamp:
     def test_every_stage_of_a_call_reads_cli_from_one_dict(self, owner: Any) -> None:
         probe = _Probe()
         probe.run(owner)
-        # Each stage a callable can read the context in, and the validator's
-        # declaration asked inside the call.
+        # Each stage a callable can read the context in, and the declaration asked inside the call.
         assert {"permission", "validator", "provider", "service", "presenter"} <= set(
             probe.stages()
         )
@@ -1029,9 +989,7 @@ class TestTheTransportStamp:
         assert len({id(context) for context in asked}) == 1
 
     def test_the_command_reads_the_declaration_stamped_ahead_of_the_run(self, owner: Any) -> None:
-        # Before the principal is looked up, which is before ``dispatch``: the
-        # parser's reads for ``--help`` and the one the command makes for the
-        # options it parses, each a dict stamped ``cli``, two dicts in all.
+        # Before the principal lookup: the parser's reads, two dicts stamped cli in all.
         probe = _Probe()
         probe.run(owner)
         ahead = probe.asked_ahead_of_dispatch()
@@ -1041,10 +999,7 @@ class TestTheTransportStamp:
     def test_the_schema_for_help_is_read_under_the_dict_help_describes_the_declaration_with(
         self, owner: Any
     ) -> None:
-        # The kernel's caller schema asks the Validator too, and every ask the
-        # parser makes ahead of the run's own is of one object: the schema is
-        # handed the dict ``_sendable`` reads the declaration with, not a
-        # second one built for it.
+        # The caller schema reads the Validator under the dict the parser reads with, not a second.
         probe = _Probe()
         probe.run(owner)
         parser_asks = probe.asked_ahead_of_dispatch()[:-1]
@@ -1075,9 +1030,7 @@ class TestTheTransportStamp:
         assert first[0] is not second[0]
 
     def test_a_callable_declaring_request_and_view_is_handed_none(self, owner: Any) -> None:
-        # The builder leaves both keys present as None, and the kernel reads
-        # a None entry as a missing one, so a callable written for HTTP binds
-        # here exactly as it did before the dict existed.
+        # Both keys stay present as None, and a None entry reads as missing, so HTTP callables bind.
         got: dict[str, Any] = {}
 
         def service(*, request: Any, view: Any, **_: Any) -> dict[str, Any]:
@@ -1093,9 +1046,7 @@ class TestTheTransportStamp:
         assert got == {"request": None, "view": None}
 
     def test_format_and_action_are_never_bound_to_a_callable(self, owner: Any) -> None:
-        # Both keys are in the dict as None, and neither is a pool name, so a
-        # callable declaring one keeps its own default rather than being
-        # handed the None.
+        # Both keys are None and neither is a pool name, so a callable keeps its own default.
         got: dict[str, Any] = {}
 
         def service(*, format: str = "own", action: str = "own", **_: Any) -> dict[str, Any]:
@@ -1251,5 +1202,4 @@ execute_from_command_line(["manage.py", "notes", "ping", "--as-user", str(user.p
     )
     assert completed.returncode == 0, completed.stderr
     assert completed.stdout == '"pong"\n'
-    # No check ran: neither app registered one.
     assert "W001" not in completed.stderr

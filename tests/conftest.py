@@ -1,9 +1,3 @@
-"""Fixtures the suite shares.
-
-``keep_the_test_connection`` is the one: two modules call ``run_from_argv`` and
-need it.
-"""
-
 from __future__ import annotations
 
 import pytest
