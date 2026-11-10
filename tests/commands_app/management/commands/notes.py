@@ -1,12 +1,3 @@
-"""A ``SpecCommand`` over a registry of note operations, one per shape the command tells apart.
-
-A write that acts on a row (``rename_note``), a read that lists
-(``list_notes``), a write echoing every flat type a command line spells
-(``schedule``), one raising each refusal a service can (``refuse``), a spec
-declared ``partial``, one any active user may run, and one declared by a
-``SpecSource``, so ``kernel_spec`` is what the command reads.
-"""
-
 from __future__ import annotations
 
 import datetime as dt
@@ -63,10 +54,7 @@ class NoteOut:
 
 
 def rename_note(*, instance: Note, title: str) -> Note:
-    """Give a note a new title.
-
-    Only its owner may.
-    """
+    """Give a note a new title."""
     instance.title = title
     instance.save(update_fields=["title"])
     return instance

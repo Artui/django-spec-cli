@@ -1,5 +1,3 @@
-"""A command that is no ``SpecCommand``, carrying an open registry the report must not read."""
-
 from __future__ import annotations
 
 from typing import Any
