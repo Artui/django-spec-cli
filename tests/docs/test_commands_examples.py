@@ -1,18 +1,3 @@
-"""The command line page's examples, run from argv as ``manage.py`` runs them.
-
-``docs/index.md`` includes its command classes from
-``docs/examples/commands.py`` and shows runs in ``console`` blocks. Every
-``$ python manage.py notes ...`` line there is run here through the example's
-``Command``, from argv, and what it prints - stdout and stderr, as a terminal
-shows them - must be the lines printed under it, and its exit status the
-number an ``echo $?`` after it shows. So the page cannot show an option, an
-output or an exit code the command does not have.
-
-The sentence the page prints for the example's ``Drafts``, whose spec the
-kernel refuses, must be the ``django_spec_cli.W004`` the system check reports
-and the refusal a run of the spec raises.
-"""
-
 from __future__ import annotations
 
 import io
@@ -41,10 +26,7 @@ RETITLE_ARGV = "retitle --as-user 1 --title Final"
 
 
 def _runs() -> list[tuple[str, list[str], int]]:
-    """Each command line the page shows: its argv, the lines printed under it, its exit status.
-
-    A run with no ``echo $?`` after it is shown succeeding, so its status is 0.
-    """
+    """Each command line the page shows: its argv, the lines printed under it, its exit status."""
     runs: list[tuple[str, list[str], int]] = []
     for block in re.findall(r"```console\n(.*?)```", PAGE.read_text(), re.S):
         shown = iter(block.splitlines())
@@ -83,8 +65,7 @@ def test_the_page_shows_runs_of_every_outcome_it_documents() -> None:
 def test_a_run_prints_and_exits_as_the_page_shows(
     capsys: pytest.CaptureFixture[str], argv: str, printed: list[str], status: int
 ) -> None:
-    # A run on the page changes the world only when it is shown succeeding,
-    # and the page reads top to bottom, so every earlier write runs first.
+    # A page run changes the world only when shown succeeding, so each earlier write runs first.
     for earlier, _, earlier_status in RUNS[: RUNS.index((argv, printed, status))]:
         if earlier_status == 0 and earlier.startswith("rename-note"):
             _run_from_argv(earlier)
@@ -95,8 +76,7 @@ def test_a_run_prints_and_exits_as_the_page_shows(
 
 
 def _run_from_argv(argv: str) -> int:
-    # ``--skip-checks``: this suite's project-wide check fails on another test
-    # app's models, and the page's runs show no warnings.
+    # --skip-checks: this suite's project-wide check fails on other apps' models.
     command = commands.Command()
     try:
         command.run_from_argv(["manage.py", "notes", "--skip-checks", *shlex.split(argv)])
@@ -121,11 +101,7 @@ def test_the_username_lookup_runs_as_the_user_it_names() -> None:
 
 
 def _refused_line() -> str:
-    """The line the page prints for the W004 example: the one opening with its spec and command.
-
-    Found by that opening rather than by its block, so another ``text`` block
-    on the page leaves it alone, and a page no longer printing it fails here.
-    """
+    """The line the page prints for the W004 example: the one opening with its spec and command."""
     (line,) = [
         line
         for line in PAGE.read_text().splitlines()
@@ -137,9 +113,7 @@ def _refused_line() -> str:
 def test_the_refused_spec_is_reported_as_w004_with_the_page_s_sentence(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    # The examples are no installed app, so the walk is pointed at the one
-    # command; it would otherwise never load it, and no other test's check
-    # sees this command.
+    # The examples are no installed app, so the walk is pointed at the one command.
     monkeypatch.setattr("django_spec_cli.checks.get_commands", lambda: {"drafts": "yourapp"})
     monkeypatch.setattr(
         "django_spec_cli.checks.load_command_class", lambda app_name, name: commands.Drafts()
@@ -159,8 +133,7 @@ def test_the_refused_spec_is_reported_as_w004_with_the_page_s_sentence(
 
 @pytest.mark.usefixtures("world")
 def test_a_run_of_the_refused_spec_raises_the_page_s_sentence() -> None:
-    # The run the page names, which sends every option the spec declares, and
-    # is still refused.
+    # The run the page names, which sends every option the spec declares, and is still refused.
     assert f"`manage.py drafts {RETITLE_ARGV}`" in PAGE.read_text()
     command = commands.Drafts()
     with pytest.raises(ImproperlyConfigured) as caught:
