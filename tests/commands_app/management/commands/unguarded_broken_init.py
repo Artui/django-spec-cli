@@ -1,5 +1,3 @@
-"""A ``SpecCommand`` whose construction fails, after its module imported cleanly."""
-
 from __future__ import annotations
 
 from typing import Any

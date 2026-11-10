@@ -49,8 +49,7 @@ def _instance(kind: type[Exception]) -> Exception:
     if kind is InvalidArguments:
         return InvalidArguments({"title": ["Required."]})
     if kind is PermissionCheckDenied:
-        # Built as ``authorize`` raises it: the check that answered and the
-        # spec declaring it.
+        # Built as ``authorize`` raises it: the check that answered and the spec declaring it.
         check = _Denies()
         spec = SelectorSpec(kind=SelectorKind.LIST, selector=list, permissions=[check])
         return PermissionCheckDenied(check=check, spec=spec)
@@ -64,18 +63,13 @@ def _instance(kind: type[Exception]) -> Exception:
 
 
 def test_every_refusal_the_kernel_raises_has_its_code() -> None:
-    # The kernel's own list of its refusals: one a later release adds is not
-    # in EXPECTED, and fails here until its code is decided, rather than
-    # falling through to its base's silently. A transport's own refusal, such
-    # as the HTTP entry points' unsupported media type, is not on the list.
+    # A refusal a later release adds fails here until its code is chosen, not by its base.
     assert set(REFUSALS) == set(EXPECTED)
     assert {kind: exit_code_for(_instance(kind)) for kind in EXPECTED} == EXPECTED
 
 
 def test_the_map_answers_every_refusal_and_shadows_no_row() -> None:
-    # The kernel's coverage check, over both shapes: the table itself, where
-    # it also finds a subclass's row below its base's, and the function, with
-    # ``ERROR`` as no answer since that is what anything unmapped gets.
+    # Covers the table and the function, where ERROR is the answer anything unmapped gets.
     assert unanswered_refusals(_CODES) == ()
     assert unanswered_refusals(exit_code_for, unanswered=ExitCode.ERROR) == ()
 

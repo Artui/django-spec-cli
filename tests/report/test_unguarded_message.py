@@ -16,8 +16,7 @@ def test_names_the_spec_and_the_command_the_operator_types() -> None:
 
 @pytest.mark.parametrize("reason", list(UnguardedReason))
 def test_every_reason_has_its_own_wording(reason: UnguardedReason) -> None:
-    # A member added without a sentence would fail here rather than at the
-    # first project whose spec falls under it.
+    # A member added without a sentence fails here, not in a project that hits it.
     assert unguarded_message(UnguardedSpec("op", reason), "svc").startswith(
         "'op' in manage.py svc authorizes nothing: "
     )

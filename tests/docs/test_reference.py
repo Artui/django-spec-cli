@@ -1,5 +1,3 @@
-"""The API reference documents every name the package root exports, at its own path."""
-
 from __future__ import annotations
 
 import importlib

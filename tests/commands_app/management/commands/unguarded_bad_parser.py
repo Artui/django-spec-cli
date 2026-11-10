@@ -1,5 +1,3 @@
-"""A ``SpecCommand`` that constructs, but whose parser cannot be built."""
-
 from __future__ import annotations
 
 from django_service_specs import (

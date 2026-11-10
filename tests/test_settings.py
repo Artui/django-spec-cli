@@ -1,5 +1,3 @@
-"""The package's setting, read at call so ``override_settings`` and a late configure reach it."""
-
 from __future__ import annotations
 
 from typing import Any
@@ -27,8 +25,7 @@ def test_the_command_output_setting_is_read_as_given(value: str) -> None:
     ids=["case", "unknown", "empty", "none", "bool"],
 )
 def test_a_command_output_that_names_no_format_is_refused_by_name(value: Any) -> None:
-    # Matched exactly: a spelling a reader of settings.py would take for one of
-    # the three is still refused, rather than quietly read as the default.
+    # Matched exactly: a near-spelling is still refused, not read as the default.
     with (
         override_settings(SPEC_CLI_OUTPUT=value),
         pytest.raises(

@@ -30,8 +30,7 @@ def test_every_parameter_a_command_line_can_send_has_an_option() -> None:
 
 @pytest.mark.parametrize("parameter", list(UNSENDABLE), ids=lambda p: p.name)
 def test_a_parameter_with_no_flat_spelling_has_no_option(parameter: Parameter) -> None:
-    # An object, an array of objects or of arrays, and a file: nothing a string
-    # on a command line can honestly spell, so no option is invented for it.
+    # Nothing a string on a command line can spell, so no option is invented for it.
     descriptor = describe_one(parameter)
     assert descriptor.argv is False
     assert descriptor.option is None
@@ -72,8 +71,7 @@ def test_the_declaration_is_carried_as_declared() -> None:
 
 
 def test_a_nested_array_reports_no_element_type() -> None:
-    # ``items`` on a descriptor is a type name or nothing: the Parameters of a
-    # row is no type a command line could show.
+    # A row's Parameters is no type a command line could show, so items is left out.
     rows = describe_one(Parameter("rows", "array", items=Parameters.of(Parameter("a", "string"))))
     assert rows.items is None
 
@@ -84,8 +82,7 @@ def test_a_nested_array_reports_no_element_type() -> None:
     ids=["none", "string", "zero", "false", "float", "list", "dict"],
 )
 def test_a_json_default_is_reported(default: Any) -> None:
-    # ``None`` and the falsy values included: a declared default of ``None``
-    # is a real default, which only ``UNSET`` is not.
+    # None is a real default, which only UNSET is not, so a None default is reported.
     assert describe_one(Parameter("x", "any", default=default)).default == default
 
 
@@ -99,8 +96,7 @@ def _factory() -> str:
     ids=["unset", "callable", "object", "nan", "infinity", "decimal"],
 )
 def test_a_default_with_no_json_spelling_is_not_reported(default: Any) -> None:
-    # Printing a repr of a callable or a sentinel would be a concrete
-    # falsehood in the help, and NaN and the infinities are no JSON value.
+    # A repr of a callable or sentinel would be a false help line; NaN and inf are no JSON.
     assert describe_one(Parameter("x", "any", default=default)).default is UNSET
 
 
@@ -111,8 +107,7 @@ def test_required_means_an_omitted_option_is_refused() -> None:
 
 @pytest.mark.parametrize("default", [_factory, "draft"], ids=["unreported", "reported"])
 def test_a_required_parameter_with_a_default_is_not_required(default: Any) -> None:
-    # The shape check refuses an absent required parameter only when no
-    # default is declared, reported or not, so the help must not say otherwise.
+    # The shape check refuses an absent required parameter only when no default is declared.
     assert describe_one(Parameter("x", "any", required=True, default=default)).required is False
 
 

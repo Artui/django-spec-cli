@@ -17,11 +17,7 @@ class Status(models.TextChoices):
 def pulled_before_the_first_write(
     render: Callable[[Iterator[Mapping[str, Any]], TextIO], None],
 ) -> tuple[int, str]:
-    """How many of three generated rows ``render`` read before its first write, and what it wrote.
-
-    One means streamed: a renderer that turned the rows into a list, or looked
-    ahead at the next one, would have read more.
-    """
+    """How many of three generated rows render read before its first write."""
     pulled = 0
     at_first_write: list[int] = []
 
