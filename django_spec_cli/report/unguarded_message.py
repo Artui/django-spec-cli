@@ -11,7 +11,16 @@ _WHY = {
 
 
 def unguarded_message(spec: UnguardedSpec, command_label: str) -> str:
-    """The one-line report of ``spec``, served by the command ``command_label``."""
+    """The one-line report of ``spec``, served by the command ``command_label``.
+
+    ``command_label`` is the name an operator types after ``manage.py``. The
+    system check and the command's own listing both print this, so the two
+    read the same.
+
+    The sentence says "any active user": dispatch refuses a deactivated
+    principal whatever the spec's checks allow, so an open spec is open to
+    every account that can still sign in, and to no other.
+    """
     return (
         f"{spec.name!r} in manage.py {command_label} authorizes nothing: "
         f"{_WHY[spec.reason]}, so any active user named by --as-user may run it."

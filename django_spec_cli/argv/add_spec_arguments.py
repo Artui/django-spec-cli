@@ -16,7 +16,49 @@ from django_spec_cli.argv.utils import destination, option_string
 def add_spec_arguments(
     parser: argparse.ArgumentParser, parameters: Parameters, *, reserved: Collection[str] = ()
 ) -> None:
-    """Add an option to ``parser`` for each parameter a command line can send."""
+    """Add an option to ``parser`` for each parameter a command line can send.
+
+    The option is ``--`` and the name with ``_`` as ``-``: ``due_at`` is
+    ``--due-at``. Argparse only collects strings here, and every decision about
+    them is the kernel's, so a command line refuses what an HTTP caller would
+    be refused, in the same words:
+
+    - **No value is converted.** No option sets ``type=``; every value stays
+      the string typed, and [`coerce_flat`][django_service_specs.parameters.coerce_flat.coerce_flat]
+      reads it as it reads a query string.
+    - **No option is required by argparse.** The shape check owns "missing",
+      so a required parameter is refused as HTTP refuses it, beside every other
+      mistake in the call, and ``--help`` marks it ``(required)``.
+    - **No choice is enforced by argparse.** The choices are listed in
+      ``--help`` and the shape check refuses any other value. Argparse's own
+      ``choices=`` would answer one mistake with a second message and exit
+      code, and only for a parameter whose choices are all strings.
+    - **An omitted option is absent from the namespace**, never ``None``: its
+      default is ``argparse.SUPPRESS``. That keeps it apart from an empty
+      string and from ``--no-flag``.
+    - A ``boolean`` is a ``--flag``/``--no-flag`` pair, and an ``array`` is a
+      repeated option, ``--ids 1 --ids 2``, each value one element.
+    - Each value lands under a namespaced destination rather than the
+      parameter's name, so a parameter named ``verbosity`` or ``settings``
+      cannot overwrite ``BaseCommand``'s own. Read the namespace back with
+      [`parsed_arguments`][django_spec_cli.argv.parsed_arguments.parsed_arguments].
+
+    A parameter with no honest flat spelling - an object, an array of objects,
+    a file - gets no option: see
+    [`ParameterDescriptor`][django_spec_cli.argv.parameter_descriptor.ParameterDescriptor].
+
+    ``reserved`` is the option strings the command owns itself, such as
+    ``--as-user`` and Django's ``--verbosity``; ``--help`` is always reserved,
+    since every parser owns its own.
+
+    Raises:
+        ImproperlyConfigured: naming the parameter and the option, when an
+            option would be one in ``reserved``, or one another parameter maps
+            to as well - ``a_b`` and ``a-b``, or a boolean ``x``, whose
+            ``--no-x`` is a parameter ``no_x``'s option. Every option is
+            checked before the first is added, so a refused spec leaves the
+            parser as it was.
+    """
     descriptors = [d for d in describe_parameters(parameters) if d.argv]
     _check_options(descriptors, frozenset(reserved) | {"--help"})
     for descriptor in descriptors:

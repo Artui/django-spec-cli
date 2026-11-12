@@ -17,7 +17,12 @@ declared ``items``, whose elements stay the strings given."""
 
 
 def describe_parameters(parameters: Parameters) -> tuple[ParameterDescriptor, ...]:
-    """One [`ParameterDescriptor`][django_spec_cli.argv.parameter_descriptor.ParameterDescriptor] per parameter, in declaration order."""  # noqa: E501
+    """One [`ParameterDescriptor`][django_spec_cli.argv.parameter_descriptor.ParameterDescriptor] per parameter, in declaration order.
+
+    Never refuses a declaration: a parameter with no flat spelling is
+    described with ``argv=False`` rather than left out, so a command can still
+    say in ``--help`` that a spec takes something argv cannot send.
+    """  # noqa: E501
     return tuple(_describe(param) for param in parameters)
 
 
