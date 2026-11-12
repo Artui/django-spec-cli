@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **The API reference's docstrings are restored.** The docstrings the reference renders
   carry their full text again.
+- **The guide states four things it left out.** The checks carry no tag, so a run
+  selecting by `--tag` skips them; finding the commands imports every command module
+  of the project's apps on each check run; a table hides a hidden field and JSON Lines
+  does not; and a table holds its whole result in memory.
 
 ## [0.6.0] — 2026-11-09
 

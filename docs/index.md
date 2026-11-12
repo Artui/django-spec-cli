@@ -173,10 +173,15 @@ id  title
 
 The table's columns come from the spec's `Output`, never from the first row;
 see [`render_table`][django_spec_cli.render.render_table.render_table]
-for what a field's marking does to them. JSON Lines are written one row at a
-time, but `present` builds a list result whole before the first row is
+for what a field's marking does to them. A marking hides a field from a table
+only. JSON Lines writes every key of a row, a hidden field included, as an HTTP
+response does, so a field that must not reach a terminal or a log is left out
+of the presented result rather than marked hidden. JSON Lines are written one
+row at a time, but `present` builds a list result whole before the first row is
 written, so a large read is held in memory once, as an HTTP response holds
-it. A service that returns nothing writes nothing.
+it. A service that returns nothing writes nothing. A table is no different: it
+reads every row before its first line, since each column's width is its widest
+cell, so `--table` on a large result holds all of it in memory.
 
 ## Exit codes
 
@@ -296,6 +301,10 @@ All three are warnings, so a spec nobody runs never stops `migrate`, and
 `SILENCED_SYSTEM_CHECKS` silences one by id. Silencing `W004` hides the report
 and does not let the spec run.
 
+The checks carry no tag, so `manage.py check --tag security` runs none of them.
+A CI step that selects checks by tag misses open specs and refused ones; run
+`manage.py check` without `--tag` to see them.
+
 The kernel keeps no check of its own: its app registers nothing, so a project
 listing only `"django_service_specs"` gets no check for a command. List
 `"django_spec_cli"`.
@@ -306,6 +315,12 @@ this page are shown without it; in a project listing the app, each would be
 preceded by the warnings for `whoami` and `retitle`. `call_command` skips
 system checks for every command but `check`, so a command run through it
 does not print them.
+
+Finding the commands to check imports each command module the project's apps
+provide, third-party ones included, and constructs it. Their import-time code
+therefore runs on every system-check run, `manage.py check` and `runserver`
+among them. `manage.py check <app_label>` loads only the commands of the apps
+named.
 
 ## What a callable reads here
 
