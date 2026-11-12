@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **`W003` is described as it behaves**: it reports any project command that fails to
+  load, since a command that will not import cannot be told apart from a `SpecCommand`.
 - **The API reference's docstrings are restored.** The docstrings the reference renders
   carry their full text again.
 - **The guide states four things it left out.** The checks carry no tag, so a run
