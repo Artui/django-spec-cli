@@ -27,7 +27,8 @@ Registered by `DjangoSpecCliConfig`, so a project gets them by listing
   nothing, every permission check it declares being `Unrestricted`. Once per
   open spec, worded by
   [`unguarded_message`][django_spec_cli.report.unguarded_message.unguarded_message].
-- **`django_spec_cli.W003`**: a command could not be loaded to be checked.
+- **`django_spec_cli.W003`**: a project command could not be loaded, so its
+  specs, if it serves any, were not checked.
 - **`django_spec_cli.W004`**: the kernel's
   [`check_seeds`][django_service_specs.dispatch.check_seeds.check_seeds]
   refuses a spec a `SpecCommand` serves, under the command's `pool_seeds`.

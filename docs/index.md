@@ -256,7 +256,10 @@ $ python manage.py notes --explain
 Listing `"django_spec_cli"` in `INSTALLED_APPS` reports the same
 sentence from `manage.py check`, as `django_spec_cli.W001`, once per
 open spec of every `SpecCommand` in the project, and a command that could not
-be loaded to be checked as `django_spec_cli.W003`. There is no
+be loaded as `django_spec_cli.W003`. A command that fails to import cannot be
+told apart from a `SpecCommand`, so `W003` reports any project command that
+fails to load, a plain management command included: fixing the import, or
+silencing `W003`, ends it. There is no
 `W002`: a spec with an empty `permissions` is refused when it is built, so
 none reaches a registry.
 
