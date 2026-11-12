@@ -34,5 +34,15 @@ case of test_every_refusal_the_kernel_raises_has_its_code."""
 
 
 def exit_code_for(error: BaseException) -> ExitCode:
-    """The [`ExitCode`][django_spec_cli.types.exit_code.ExitCode] ``error`` ends a run with."""
+    """The [`ExitCode`][django_spec_cli.types.exit_code.ExitCode] ``error`` ends a run with.
+
+    Every [`DispatchError`][django_service_specs.types.dispatch_error.DispatchError]
+    and [`ServiceError`][django_service_specs.services.service_error.ServiceError]
+    has a code, a subclass a later release adds included: it takes its
+    nearest listed base's, so a new refusal of the call is ``INVALID_ARGUMENTS``
+    as the HTTP transport answers it 400, and a new refusal by the operation
+    ``REFUSED``. Anything else is ``ERROR``, which a ``SpecCommand`` never
+    catches: an exception nobody declared is a bug, and its traceback is how
+    it is found.
+    """
     return next((code for kind, code in _CODES if isinstance(error, kind)), ExitCode.ERROR)

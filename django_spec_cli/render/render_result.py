@@ -13,7 +13,34 @@ _RESULT = "result"
 
 
 def render_result(presented: Any, output: Output | None, stream: TextIO, *, table: bool) -> None:
-    """Write ``presented`` to ``stream``, as a table when ``table`` and JSON Lines when not."""
+    """Write ``presented`` to ``stream``, as a table when ``table`` and JSON Lines when not.
+
+    ``presented`` is what
+    [`present`][django_service_specs.dispatch.present.present] returned for a
+    spec, and ``output`` what the spec declares (``spec.output()``), which
+    gives a table its columns. Read in this order:
+
+    - ``None``, what a service that returned nothing presents: **nothing is
+      written**, in either format. A header over no rows would read as an
+      empty list.
+    - **a mapping**, one row: a one-row table, or one line.
+    - **a string or bytes**, a scalar, though both are iterable: a string is
+      never read as rows of its characters. Bytes are refused by the JSON
+      encoder with ``TypeError``, as an HTTP response refuses them.
+    - **any other iterable**, rows: a table, or one line each, streamed, so a
+      generator is read one row at a time and nothing here turns it into a
+      list. A member that is no mapping - a spec with no presenter listing
+      plain values - is a row of one ``result`` column in a table, and its
+      own JSON on its own line.
+    - anything else, **a scalar**: a table of one ``result`` column and one
+      row, or one line holding its JSON (``42``, ``"done"``, ``true``).
+
+    A table reads every row before writing its first line; see
+    [`render_table`][django_spec_cli.render.render_table.render_table]
+    for its columns, cells and markings, and
+    [`render_json_lines`][django_spec_cli.render.render_json_lines.render_json_lines]
+    for the encoding. Only ``stream`` is written to.
+    """
     if presented is None:
         return
     if isinstance(presented, Mapping):

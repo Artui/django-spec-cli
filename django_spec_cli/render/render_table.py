@@ -38,7 +38,62 @@ class _Column:
 
 
 def render_table(rows: Sequence[Mapping[str, Any]], output: Output | None, stream: TextIO) -> None:
-    """Write ``rows`` to ``stream`` as a table with a header line."""
+    """Write ``rows`` to ``stream`` as a table with a header line.
+
+    **The columns are the declared ``output``'s, never the rows'**: its fields
+    in declaration order, each headed by its ``label``, else its name. So an
+    empty result still prints its header, a row with a null never shifts a
+    column, and a key a row carries that ``output`` does not declare - the
+    ``affordances`` that ``present`` adds - is no column. JSON Lines, which
+    writes each row whole, is where such a key is read.
+
+    A cell is:
+
+    - **empty** for a null, and for a key the row leaves out, as a presenter
+      may for a field not ``always_present``. The table cannot tell the two
+      apart; JSON Lines can.
+    - a choice's **display** rather than its value, read in the active
+      language, member by member for an array of choices. A value no choice
+      names is shown as itself. A field marked as a handle keeps its value,
+      because the operator pastes it into the next command, which takes the
+      value.
+    - **compact JSON** for a nested object or array, in one cell.
+    - otherwise the value in JSON's spelling with a string's quotes left off:
+      ``true``, ``12.50`` for a ``Decimal``, ISO 8601 for a date-time.
+
+    A line break, tab or other control character inside a value is written
+    escaped (``\\n``, ``\\x1b``), so a row stays on one line and a value
+    cannot send the terminal an escape sequence.
+
+    **Markings.** A field marked hidden is no column. Its marking says it is
+    plumbing, and the projection for an agent drops it for that reason; a
+    person reading a table has no more use for it. That is a choice of
+    readability and not a secret kept: no marking means a field never leaves
+    the server, so an HTTP response and JSON Lines both carry a hidden field.
+    Label, handle and ordinary content fields are columns. A marking's
+    formatter is how an agent audience reads a value, and a command names no
+    audience, so it is not applied.
+
+    ``output=None``, a spec that declares no output, is the one case a row is
+    read for its columns: the first row's keys, in its order. With no rows
+    there are then no columns, and nothing is printed; an ``Output`` with no
+    fields prints nothing either.
+
+    Plain text: columns padded with spaces, separated by two, numbers
+    (``integer`` and ``number`` fields) right-aligned and everything else
+    left-aligned, no colour and no box drawing, and no line ending in
+    whitespace. Widths are measured in terminal columns, per character: an
+    East Asian wide or full-width character counts two, most emoji among
+    them; a combining or enclosing mark and a format character (a zero-width
+    joiner, a variation selector) count none; anything else counts one. That
+    is an approximation of what a terminal draws, not a measurement of it:
+    an East Asian ambiguous character a terminal draws wide, or an emoji
+    sequence it draws as one glyph, leaves its row a column or two off.
+
+    **Every row is read before the first line is written**, because a
+    column's width is its widest cell. A table therefore holds the whole
+    result in memory; JSON Lines is the format that streams.
+    """
     columns = _columns(rows, output)
     if not columns:
         return

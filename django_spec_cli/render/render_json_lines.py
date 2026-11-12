@@ -14,7 +14,25 @@ _LINE_BREAKS = {" ": "\\u2028", " ": "\\u2029", "\x85": "\\u0085"}
 
 
 def render_json_lines(rows: Iterable[Mapping[str, Any]], stream: TextIO) -> None:
-    """Write each row to ``stream`` as one line of JSON."""
+    """Write each row to ``stream`` as one line of JSON.
+
+    **Streamed**: each row is encoded and written before the next is read, so
+    a generator over a large result is never held in memory whole. That is
+    why the format is JSON Lines rather than one JSON array.
+
+    Each row is written as it was presented: every key, in the row's own
+    order, including a key no ``Output`` declares (the ``affordances``
+    ``present`` adds) and a field marked hidden, which is how an HTTP response
+    carries it too. Text is written as itself (``ensure_ascii=False``), and
+    ``DjangoJSONEncoder`` encodes what JSON has no type for: a ``Decimal`` as
+    its string, a date-time, date or time in ISO 8601, a ``UUID``, a lazy
+    translation in the active language. A value the encoder refuses raises
+    ``TypeError`` before its line is written.
+
+    One ``write`` per line, each ending in ``"\\n"``: Django's
+    ``OutputWrapper`` appends a newline to any message that does not end in
+    one, so a line written in pieces would come out broken.
+    """
     for row in rows:
         line = compact_json(row)
         for raw, escaped in _LINE_BREAKS.items():

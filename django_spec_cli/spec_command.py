@@ -53,7 +53,69 @@ _OWN_OPTIONS = frozenset({"--as-user", "--json", "--table"})
 
 
 class SpecCommand(BaseCommand):
-    """A management command serving every spec in a registry, one subcommand each."""
+    """A management command serving every spec in a registry, one subcommand each.
+
+    Declared by subclassing, in the project's own ``management/commands/``
+    module, which names the registry::
+
+        class Command(SpecCommand):
+            registry = notes_registry
+
+    The registry is the subclass's to name, so one project can expose two
+    registries under two command names. It is read when the parser is built,
+    and a command naming none is refused then, as ``ImproperlyConfigured``.
+    ``pool_seeds`` names the seeds the specs' callables are resolved with, as
+    ``pool_seeds`` on django-spec-html's ``SpecView`` does, for a registry
+    whose callables read one.
+
+    It is run as ``manage.py <command> <spec> --as-user USER [--json|--table]
+    [--option value ...]``, or ``manage.py <command> --explain``:
+
+    - **One subcommand per registry entry**, named after the entry with each
+      ``_`` shown as ``-``. Its options are the spec's parameters, as
+      [`add_spec_arguments`][django_spec_cli.argv.add_spec_arguments.add_spec_arguments]
+      spells them, as the input schema a transport advertises asks for them
+      ([`spec_caller_input_schema`][django_service_specs.schema.spec_caller_input_schema.spec_caller_input_schema]
+      under ``pool_seeds`` and the stamped ``call_context``): less any key the server
+      fills, and required only where dispatch refuses leaving it out.
+      No option is matched by a prefix: an abbreviation is refused rather
+      than read as whichever option it begins.
+    - **``--as-user`` is required.** Its value goes through
+      [`resolve_as_user`][django_spec_cli.spec_command.SpecCommand.resolve_as_user],
+      and the user it returns is the principal ``dispatch`` runs the spec
+      for, with the permission checks enforced: the command passes no
+      ``Grant``, and opens no transaction of its own.
+    - The result goes through the spec's presenter and is written as a table
+      or as JSON Lines: ``--table`` and ``--json`` choose, then the
+      ``SPEC_CLI_OUTPUT`` setting, then whether stdout is a
+      terminal ([`wants_table`][django_spec_cli.render.wants_table.wants_table]).
+    - A refusal ends the run with a ``CommandError`` carrying its message and
+      an [`ExitCode`][django_spec_cli.types.exit_code.ExitCode].
+    - **A spec the kernel refuses as declared is never run.**
+      [`check_seeds`][django_service_specs.dispatch.check_seeds.check_seeds],
+      under ``pool_seeds``, is asked of the spec named before anything else,
+      and its refusal is raised as ``ImproperlyConfigured``, as a command
+      naming no registry is: a traceback and ``ExitCode.ERROR``, whatever
+      the options sent. The command's other specs still run, and the system
+      check reports the same spec as ``django_spec_cli.W004``. The same holds for a spec
+      whose Validator declares, only to ``cli``, a parameter dispatch seeds
+      itself: ``check_seeds`` is asked outside a call and never sees it, the
+      read the parser makes under the stamped dict does, and the parser takes
+      that refusal for its spec alone. Its subcommand takes no option and its
+      ``--help`` gives the reason; a run raises it as above, and W004 reports
+      it too
+      (test_a_run_of_it_is_refused_with_the_kernel_s_reason_whatever_is_sent).
+    - ``--explain`` runs no spec: it lists the ones that authorize nothing,
+      as the system check does.
+
+    The command is a mistake-prevention and attribution surface, **never an
+    authorization boundary**: whoever can run ``manage.py`` can run any code
+    the project can, and names any user they like with ``--as-user``. What
+    it guarantees is that a run is attributed to a user and checked against
+    the permissions that user holds.
+
+    Sync only: it dispatches with ``dispatch``, never ``adispatch``.
+    """
 
     registry: SpecRegistry
     pool_seeds: PoolSeeds = DEFAULT_POOL_SEEDS
@@ -74,7 +136,20 @@ class SpecCommand(BaseCommand):
         return parser
 
     def add_arguments(self, parser: CommandParser) -> None:
-        """``--explain``, then one subcommand per registry entry, each with its spec's options."""
+        """``--explain``, then one subcommand per registry entry, each with its spec's options.
+
+        Every subcommand is built here, on every run: one spec's options are
+        a handful of ``add_argument`` calls, and building them eagerly is
+        what lets ``--help`` list every spec.
+
+        Raises:
+            ImproperlyConfigured: the class names no ``SpecRegistry``; two
+                entries are one subcommand, ``a_b`` and ``a-b``; or a spec
+                parameter maps to an option the command owns - ``--as-user``,
+                ``--json``, ``--table``, or one of Django's own, such as
+                ``--settings``, which ``manage.py`` reads from anywhere on
+                the line.
+        """
         registry = getattr(self, "registry", None)
         if not isinstance(registry, SpecRegistry):
             cls = type(self)
@@ -143,7 +218,23 @@ class SpecCommand(BaseCommand):
             add_spec_arguments(subparser, parameters, reserved=reserved)
 
     def resolve_as_user(self, value: str) -> Any:
-        """The user ``--as-user VALUE`` names, or ``PrincipalUnavailable``."""
+        """The user ``--as-user VALUE`` names, or ``PrincipalUnavailable``.
+
+        By primary key, through
+        [`resolve_principal`][django_service_specs.authorization.resolve_principal.resolve_principal],
+        which refuses a missing row, a malformed key and a deactivated
+        account. A project whose runbooks name people by username or email
+        overrides this method with that lookup.
+
+        The contract is: return an authenticated user, or raise
+        [`PrincipalUnavailable`][django_service_specs.authorization.principal_unavailable.PrincipalUnavailable],
+        which ends the run with ``ExitCode.PRINCIPAL_UNAVAILABLE``. Anything
+        else an override raises is a bug in the lookup, and propagates. An
+        override need not refuse a deactivated user itself: ``dispatch``
+        refuses one whatever the lookup returns. A lookup answering ``None``
+        or an anonymous user is refused the same way, by the command. There is
+        no fallback to an anonymous user and no user of the command's own.
+        """
         return resolve_principal(value)
 
     def handle(self, *args: Any, **options: Any) -> None:
