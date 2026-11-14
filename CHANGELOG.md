@@ -15,22 +15,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `FileResult` with a `TypeError`. Its subcommand now writes the file's bytes to
   `--output-file PATH`, an option only a file spec's subcommand takes, or else to
   stdout's binary buffer when stdout is not a terminal. At a terminal without
-  `--output-file`, with `--table` or `--json`, or with a stdout that takes no bytes, the
-  run is a usage error raised before the user is looked up or the spec is run, so
-  nothing is written. `SPEC_CLI_OUTPUT` is not read for it. The file's name, type and
-  length go to stderr; the name is never used as a path, and a `PATH` naming a
-  directory is refused. The file is read whole before `PATH` is opened, so a refused
-  run leaves a file there as it was, and an `allow_none` spec finding nothing writes
-  nothing. A file spec the kernel's `file_output` refuses (a `LIST` selector, `many`,
+  `--output-file`, with `--table` or `--json`, with a stdout that takes no bytes, or with
+  a `PATH` that is a directory or whose directory does not exist, the run is a usage
+  error raised before the user is looked up or the spec is run, so nothing is written.
+  `SPEC_CLI_OUTPUT` is not read for it. The file's name, type and length go to stderr;
+  the name is never used as a path. The file is read whole before `PATH` is opened, so
+  a refused run leaves a file there as it was, and an `allow_none` spec finding
+  nothing writes nothing. A file spec the kernel's `file_output` refuses (a `LIST` selector, `many`,
   `returns_many`, presented affordances) is refused as declared, for its spec alone,
   and `django_spec_cli.W004` reports it. `write_file` is the new public helper.
 
 ### Changed
 - **The kernel floor is 0.33.0**, up from 0.30.0, for `FileResult`, `FilePresenter` and
-  `file_output`. Nothing the command does changes across 0.31.0 and 0.32.0: a filter's
-  choice labels were already listed in `--help`, a lazy affordance reason reaches
-  `ActionUnavailable` as text, and the `QueryDict` a `FormValidator` binds is behind
-  dispatch.
+  `file_output`. Two things a selector with a `filter_set` shows change with it, both
+  the kernel's (0.31.0): `--help` lists a choice filter's labels beside its values, as
+  in `one of: ada (Ada Lovelace)`, since the kernel now hands them on; and on Django
+  5.0 or later a named group of choices held in a mapping offers and accepts its
+  members, where it offered the group's name and refused a member. A lazy affordance
+  reason reaches `ActionUnavailable` as text, as before, and the `QueryDict` a
+  `FormValidator` now binds is behind dispatch.
 - **`W003` is described as it behaves**: it reports any project command that fails to
   load, since a command that will not import cannot be told apart from a `SpecCommand`.
 - **The API reference's docstrings are restored.** The docstrings the reference renders

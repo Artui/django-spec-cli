@@ -28,9 +28,10 @@ def write_file(presented: FileResult | None, sink: Path | BinaryIO) -> str | Non
     directory is refused with ``CommandError``, ``ExitCode.ERROR``, as is any
     other path the operating system will not write.
 
-    The answer, ``"<filename> (<content type>, <n> bytes)"``, is for stderr,
-    so a person sees the name the operation gave the file without it reaching
-    the bytes on stdout.
+    The answer, ``"<filename> (<content type>, <n> bytes)"``, or
+    ``"<filename> (<n> bytes)"`` for a result with no ``content_type``, is for
+    stderr, so a person sees the name the operation gave the file without it
+    reaching the bytes on stdout.
     """
     if presented is None:
         return None
@@ -46,4 +47,5 @@ def write_file(presented: FileResult | None, sink: Path | BinaryIO) -> str | Non
     else:
         sink.write(data)
         sink.flush()
-    return f"{presented.filename} ({presented.content_type}, {len(data)} bytes)"
+    kind = "" if presented.content_type is None else f"{presented.content_type}, "
+    return f"{presented.filename} ({kind}{len(data)} bytes)"

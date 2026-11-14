@@ -101,9 +101,10 @@ class SpecCommand(BaseCommand):
       ([`write_file`][django_spec_cli.render.write_file.write_file]): to
       ``--output-file PATH``, an option only its subcommand takes, or else to
       stdout's binary buffer when stdout is not a terminal. At a terminal
-      without ``--output-file``, ``--table`` or ``--json``, or a stdout that
-      takes no bytes, the run is refused before the user is looked up or the
-      spec is run, so nothing is written. The setting ``SPEC_CLI_OUTPUT`` is
+      without ``--output-file``, ``--table`` or ``--json``, a stdout that
+      takes no bytes, or a ``PATH`` that is a directory or whose directory does
+      not exist, the run is refused before the user is looked up or the spec
+      is run, so nothing is written. The setting ``SPEC_CLI_OUTPUT`` is
       not read for it. The file's name goes to stderr, and is never a path.
       A file spec ``file_output`` refuses is refused as declared, below.
     - A refusal ends the run with a ``CommandError`` carrying its message and
@@ -220,9 +221,8 @@ class SpecCommand(BaseCommand):
                 metavar="USER",
                 help="The user the operation runs as, and is checked and recorded for.",
             )
-            # A file spec keeps both, unlisted, so a run sending one is told why it does not apply.
-            hidden = argparse.SUPPRESS
-            formats = subparser.add_mutually_exclusive_group()
+            # A file spec keeps both unlisted and ungrouped: 3.10's usage asserts on a hidden group.
+            formats = subparser if file is not None else subparser.add_mutually_exclusive_group()
             formats.add_argument(
                 "--json",
                 dest="output_format",
@@ -230,14 +230,14 @@ class SpecCommand(BaseCommand):
                 const="json",
                 help="Write the result as JSON Lines, one row per line."
                 if file is None
-                else hidden,
+                else argparse.SUPPRESS,
             )
             formats.add_argument(
                 "--table",
                 dest="output_format",
                 action="store_const",
                 const="table",
-                help="Write the result as a table." if file is None else hidden,
+                help="Write the result as a table." if file is None else argparse.SUPPRESS,
             )
             if file is None:
                 add_spec_arguments(subparser, parameters, reserved=reserved)
@@ -339,7 +339,12 @@ class SpecCommand(BaseCommand):
                 f"pass {_OUTPUT_FILE} PATH, or send stdout to a pipe or a file."
             )
         if options["output_file"] is not None:
-            return Path(options["output_file"])
+            path = Path(options["output_file"])
+            if path.is_dir() or not path.parent.is_dir():
+                self._parser.error(
+                    f"{_OUTPUT_FILE} {str(path)!r} names no file in a directory that exists."
+                )
+            return path
         if stdout.isatty():
             self._parser.error(
                 f"{name} writes a file, and stdout is a terminal: pass {_OUTPUT_FILE} PATH, "
@@ -350,7 +355,6 @@ class SpecCommand(BaseCommand):
             self._parser.error(
                 f"{name} writes a file, and stdout takes no bytes: pass {_OUTPUT_FILE} PATH."
             )
-        stdout.flush()
         return cast("BinaryIO", buffer)
 
     def _explain(self) -> None:

@@ -212,8 +212,10 @@ Shopping
   naming a directory is refused rather than joined to the name.
 - **`--output-file` replaces what is at `PATH`**, once the spec has run and its
   file has been read whole into memory, so a refused run leaves the file there
-  as it was. A path that cannot be written ends the run with `ERROR`, its
-  reason in the message.
+  as it was. A `PATH` that is a directory, or whose directory does not exist, is
+  a usage error before anything runs; a path the system refuses to write
+  otherwise, such as one without write permission, ends the run with `ERROR`
+  after the spec has run, its reason in the message.
 - **An `allow_none` spec that finds nothing writes nothing** and creates no
   file, as a service returning nothing writes nothing.
 - **`--output-file` is the file spec's own.** A parameter of a file spec that

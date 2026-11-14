@@ -20,6 +20,23 @@ def test_a_stream_receives_the_bytes_and_the_answer_names_the_file() -> None:
     assert stream.getvalue() == b"a,b\n"
 
 
+class Flushed(io.BytesIO):
+    flushed = False
+
+    def flush(self) -> None:
+        self.flushed = True
+
+
+def test_a_stream_is_flushed() -> None:
+    stream = Flushed()
+    write_file(_file(), stream)
+    assert stream.flushed
+
+
+def test_a_result_with_no_type_is_named_without_one() -> None:
+    assert write_file(FileResult(b"ab", filename="a.bin"), io.BytesIO()) == "a.bin (2 bytes)"
+
+
 def test_a_path_receives_the_bytes_and_the_content_is_closed(tmp_path: Path) -> None:
     content = io.BytesIO(b"x" * 70_000)
     target = tmp_path / "out.csv"

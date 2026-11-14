@@ -1312,14 +1312,20 @@ class TestAFileSpec:
         )
         assert sorted(p.name for p in tmp_path.iterdir()) == ["out.bin"]
 
-    def test_a_directory_is_refused_and_nothing_is_written_inside_it(
-        self, owner: Any, tmp_path: Any
+    @pytest.mark.parametrize("where", ["", "missing/out.bin"], ids=["a-directory", "no-directory"])
+    def test_a_path_that_names_no_writable_file_is_refused_and_nothing_runs(
+        self, owner: Any, tmp_path: Any, where: str
     ) -> None:
-        argv = ("export", "--as-user", str(owner.pk), "--output-file", str(tmp_path))
-        with pytest.raises(CommandError, match="Could not write the file to") as caught:
-            self._piped(*argv, command=self._command())
-        assert caught.value.returncode == 1
-        assert list(tmp_path.iterdir()) == []
+        made: list[str] = []
+        argv = ("export", "--as-user", str(owner.pk), "--output-file", str(tmp_path / where))
+        with pytest.raises(CommandError, match="names no file in a directory that exists"):
+            self._piped(*argv, command=self._command(made))
+        assert (made, list(tmp_path.iterdir())) == ([], [])
+
+    def test_a_terminal_is_refused_before_the_user_is_looked_up(self) -> None:
+        terminal = Terminal(io.BytesIO(), encoding="utf-8")
+        with pytest.raises(CommandError, match="stdout is a terminal"):
+            self._piped("export", "--as-user", "999", command=self._command(), stdout=terminal)
 
     def test_a_refused_run_leaves_the_file_there_as_it_was(self, owner: Any, tmp_path: Any) -> None:
         target = tmp_path / "out.bin"
@@ -1358,6 +1364,30 @@ class TestAFileSpec:
         assert "application/pdf" in text
         assert "--table" not in text
         assert "--json" not in text
+
+    def test_help_wraps_with_many_options(self, capsys: pytest.CaptureFixture[str]) -> None:
+        # A wrapped usage line asserts in Python 3.10's argparse when hidden flags share a group.
+        reads = Parameters.of(*(Parameter(f"long_option_number_{i}", "string") for i in range(8)))
+        spec = ServiceSpec(
+            service=lambda **_: b"",
+            permissions=[Unrestricted()],
+            reads=reads,
+            presenter=FilePresenter("text/plain", filename="a.txt"),
+        )
+        text = help_of(capsys, "export", command=command_over(registry_of(export=spec)))
+        assert "--long-option-number-7" in text
+        assert "--output-file PATH" in text
+
+    def test_a_percent_sign_in_the_content_type_is_help_text(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        spec = ServiceSpec(
+            service=lambda: b"",
+            permissions=[Unrestricted()],
+            presenter=FilePresenter("text/plain; q=100%", filename="a.txt"),
+        )
+        text = help_of(capsys, "export", command=command_over(registry_of(export=spec)))
+        assert "text/plain; q=100% file" in text
 
     def test_another_spec_of_the_command_writes_json_lines(self, owner: Any) -> None:
         assert run("ping", "--as-user", str(owner.pk), command=self._command()) == '"pong"\n'
