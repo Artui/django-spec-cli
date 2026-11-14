@@ -1318,7 +1318,7 @@ class TestAFileSpec:
     ) -> None:
         made: list[str] = []
         argv = ("export", "--as-user", str(owner.pk), "--output-file", str(tmp_path / where))
-        with pytest.raises(CommandError, match="names no file in a directory that exists"):
+        with pytest.raises(CommandError, match="is a directory, or its directory does not exist"):
             self._piped(*argv, command=self._command(made))
         assert (made, list(tmp_path.iterdir())) == ([], [])
 

@@ -21,9 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `SPEC_CLI_OUTPUT` is not read for it. The file's name, type and length go to stderr;
   the name is never used as a path. The file is read whole before `PATH` is opened, so
   a refused run leaves a file there as it was, and an `allow_none` spec finding
-  nothing writes nothing. A file spec the kernel's `file_output` refuses (a `LIST` selector, `many`,
-  `returns_many`, presented affordances) is refused as declared, for its spec alone,
-  and `django_spec_cli.W004` reports it. `write_file` is the new public helper.
+  nothing writes nothing. A file spec the kernel's `file_output` refuses (a `LIST`
+  selector, `many`, `returns_many`, presented affordances) is refused as declared, for
+  its spec alone, and `django_spec_cli.W004` reports it. `write_file` is the new public
+  helper.
 
 ### Changed
 - **The kernel floor is 0.33.0**, up from 0.30.0, for `FileResult`, `FilePresenter` and

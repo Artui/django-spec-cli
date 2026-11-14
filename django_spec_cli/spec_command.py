@@ -342,7 +342,7 @@ class SpecCommand(BaseCommand):
             path = Path(options["output_file"])
             if path.is_dir() or not path.parent.is_dir():
                 self._parser.error(
-                    f"{_OUTPUT_FILE} {str(path)!r} names no file in a directory that exists."
+                    f"{_OUTPUT_FILE} {str(path)!r} is a directory, or its directory does not exist."
                 )
             return path
         if stdout.isatty():
