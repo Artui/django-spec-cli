@@ -15,6 +15,7 @@ from django.test import override_settings
 from django_service_specs import (
     DEFAULT_POOL_SEEDS,
     TRANSPORT_KEY,
+    FilePresenter,
     Output,
     OutputField,
     Parameter,
@@ -24,6 +25,7 @@ from django_service_specs import (
     Presenter,
     PrincipalUnavailable,
     ServiceSpec,
+    ServiceValidationError,
     SpecRegistry,
     UnguardedReason,
     UnguardedSpec,
@@ -1203,3 +1205,212 @@ execute_from_command_line(["manage.py", "notes", "ping", "--as-user", str(user.p
     assert completed.returncode == 0, completed.stderr
     assert completed.stdout == '"pong"\n'
     assert "W001" not in completed.stderr
+
+
+# --- a file --------------------------------------------------------------------------------------
+
+
+class Terminal(io.TextIOWrapper):
+    def isatty(self) -> bool:
+        return True
+
+
+class TestAFileSpec:
+    """A spec presenting a ``FileResult`` writes its bytes, never JSON Lines or a table."""
+
+    PDF = b"%PDF\x00\xff\n"
+
+    def _command(self, made: list[str] | None = None, **declared: Any) -> SpecCommand:
+        calls = [] if made is None else made
+
+        def export() -> bytes:
+            calls.append("export")
+            return self.PDF
+
+        presenter = FilePresenter("application/pdf", filename="report.pdf")
+        spec = ServiceSpec(
+            service=export, permissions=[Unrestricted()], presenter=presenter, **declared
+        )
+        return command_over(registry_of(export=spec, ping=open_spec(lambda: "pong")))
+
+    def _piped(self, *argv: str, command: SpecCommand, stdout: Any = None) -> tuple[bytes, str]:
+        raw = io.BytesIO()
+        out = io.TextIOWrapper(raw, encoding="utf-8") if stdout is None else stdout
+        err = io.StringIO()
+        call_command(command, *argv, stdout=out, stderr=err)
+        out.flush()
+        return raw.getvalue(), err.getvalue()
+
+    def test_piped_stdout_receives_the_exact_bytes_and_stderr_the_name(self, owner: Any) -> None:
+        out, err = self._piped("export", "--as-user", str(owner.pk), command=self._command())
+        assert out == self.PDF
+        assert err == "report.pdf (application/pdf, 7 bytes)\n"
+
+    def test_output_file_writes_the_bytes_and_stdout_gets_none(
+        self, owner: Any, tmp_path: Any
+    ) -> None:
+        target = tmp_path / "out.bin"
+        argv = ("export", "--as-user", str(owner.pk), "--output-file", str(target))
+        out, err = self._piped(*argv, command=self._command())
+        assert (target.read_bytes(), out) == (self.PDF, b"")
+        assert err == "report.pdf (application/pdf, 7 bytes)\n"
+
+    def test_output_file_replaces_what_is_there(self, owner: Any, tmp_path: Any) -> None:
+        target = tmp_path / "out.bin"
+        target.write_bytes(b"older and longer than the new file")
+        argv = ("export", "--as-user", str(owner.pk), "--output-file", str(target))
+        self._piped(*argv, command=self._command())
+        assert target.read_bytes() == self.PDF
+
+    def test_a_terminal_without_output_file_is_refused_and_nothing_runs(self, owner: Any) -> None:
+        made: list[str] = []
+        raw = io.BytesIO()
+        terminal = Terminal(raw, encoding="utf-8")
+        argv = ("export", "--as-user", str(owner.pk))
+        with pytest.raises(CommandError, match="stdout is a terminal: pass --output-file PATH"):
+            self._piped(*argv, command=self._command(made), stdout=terminal)
+        assert (made, raw.getvalue()) == ([], b"")
+
+    def test_a_terminal_with_output_file_writes_it(self, owner: Any, tmp_path: Any) -> None:
+        target = tmp_path / "out.bin"
+        raw = io.BytesIO()
+        argv = ("export", "--as-user", str(owner.pk), "--output-file", str(target))
+        terminal = Terminal(raw, encoding="utf-8")
+        self._piped(*argv, command=self._command(), stdout=terminal)
+        assert (target.read_bytes(), raw.getvalue()) == (self.PDF, b"")
+
+    @pytest.mark.parametrize("flag", ["--table", "--json"])
+    def test_a_format_flag_is_refused_and_nothing_runs(self, owner: Any, flag: str) -> None:
+        made: list[str] = []
+        with pytest.raises(CommandError, match=f"export writes a file, so {flag} does not apply"):
+            self._piped("export", "--as-user", str(owner.pk), flag, command=self._command(made))
+        assert made == []
+
+    @override_settings(SPEC_CLI_OUTPUT="xml")
+    def test_the_output_setting_is_not_read(self, owner: Any) -> None:
+        # A setting the table route refuses outright: reading it would raise here.
+        out, _ = self._piped("export", "--as-user", str(owner.pk), command=self._command())
+        assert out == self.PDF
+
+    def test_a_stdout_that_takes_no_bytes_is_refused_and_nothing_runs(self, owner: Any) -> None:
+        made: list[str] = []
+        with pytest.raises(CommandError, match="stdout takes no bytes: pass --output-file PATH"):
+            run("export", "--as-user", str(owner.pk), command=self._command(made))
+        assert made == []
+
+    def test_the_filename_is_never_joined_to_a_path(
+        self, owner: Any, tmp_path: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.chdir(tmp_path)
+        self._piped(
+            "export",
+            "--as-user",
+            str(owner.pk),
+            "--output-file",
+            "out.bin",
+            command=self._command(),
+        )
+        assert sorted(p.name for p in tmp_path.iterdir()) == ["out.bin"]
+
+    @pytest.mark.parametrize("where", ["", "missing/out.bin"], ids=["a-directory", "no-directory"])
+    def test_a_path_that_names_no_writable_file_is_refused_and_nothing_runs(
+        self, owner: Any, tmp_path: Any, where: str
+    ) -> None:
+        made: list[str] = []
+        argv = ("export", "--as-user", str(owner.pk), "--output-file", str(tmp_path / where))
+        with pytest.raises(CommandError, match="is a directory, or its directory does not exist"):
+            self._piped(*argv, command=self._command(made))
+        assert (made, list(tmp_path.iterdir())) == ([], [])
+
+    def test_a_terminal_is_refused_before_the_user_is_looked_up(self) -> None:
+        terminal = Terminal(io.BytesIO(), encoding="utf-8")
+        with pytest.raises(CommandError, match="stdout is a terminal"):
+            self._piped("export", "--as-user", "999", command=self._command(), stdout=terminal)
+
+    def test_a_refused_run_leaves_the_file_there_as_it_was(self, owner: Any, tmp_path: Any) -> None:
+        target = tmp_path / "out.bin"
+        target.write_bytes(b"old")
+        spec = ServiceSpec(
+            service=functools.partial(_refuse, ServiceValidationError("No export today.")),
+            permissions=[Unrestricted()],
+            presenter=FilePresenter("application/pdf", filename="report.pdf"),
+        )
+        argv = ("export", "--as-user", str(owner.pk), "--output-file", str(target))
+        with pytest.raises(CommandError, match="No export today."):
+            self._piped(*argv, command=command_over(registry_of(export=spec)))
+        assert target.read_bytes() == b"old"
+
+    def test_nothing_found_writes_nothing_and_creates_no_file(
+        self, owner: Any, tmp_path: Any
+    ) -> None:
+        spec = ServiceSpec(
+            service=lambda: None,
+            permissions=[Unrestricted()],
+            presenter=FilePresenter("application/pdf", filename="report.pdf"),
+            allow_none=True,
+        )
+        target = tmp_path / "out.bin"
+        command = command_over(registry_of(export=spec))
+        argv = ("export", "--as-user", str(owner.pk))
+        assert self._piped(*argv, command=command) == (b"", "")
+        assert self._piped(*argv, "--output-file", str(target), command=command) == (b"", "")
+        assert not target.exists()
+
+    def test_help_offers_output_file_and_lists_no_format(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        text = help_of(capsys, "export", command=self._command())
+        assert "--output-file PATH" in text
+        assert "application/pdf" in text
+        assert "--table" not in text
+        assert "--json" not in text
+
+    def test_help_wraps_with_many_options(self, capsys: pytest.CaptureFixture[str]) -> None:
+        # A wrapped usage line asserts in Python 3.10's argparse when hidden flags share a group.
+        reads = Parameters.of(*(Parameter(f"long_option_number_{i}", "string") for i in range(8)))
+        spec = ServiceSpec(
+            service=lambda **_: b"",
+            permissions=[Unrestricted()],
+            reads=reads,
+            presenter=FilePresenter("text/plain", filename="a.txt"),
+        )
+        text = help_of(capsys, "export", command=command_over(registry_of(export=spec)))
+        assert "--long-option-number-7" in text
+        assert "--output-file PATH" in text
+
+    def test_a_percent_sign_in_the_content_type_is_help_text(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        spec = ServiceSpec(
+            service=lambda: b"",
+            permissions=[Unrestricted()],
+            presenter=FilePresenter("text/plain; q=100%", filename="a.txt"),
+        )
+        text = help_of(capsys, "export", command=command_over(registry_of(export=spec)))
+        assert "text/plain; q=100% file" in text
+
+    def test_another_spec_of_the_command_writes_json_lines(self, owner: Any) -> None:
+        assert run("ping", "--as-user", str(owner.pk), command=self._command()) == '"pong"\n'
+
+    def test_only_a_file_spec_owns_output_file(self) -> None:
+        reads = Parameters.of(Parameter("output_file", "string"))
+        plain = echo_spec(Parameter("output_file", "string"))
+        command_over(registry_of(echo=plain)).create_parser("manage.py", "notes")
+        filed = ServiceSpec(
+            service=lambda **_: b"",
+            permissions=[Unrestricted()],
+            reads=reads,
+            presenter=FilePresenter("text/plain", filename="a.txt"),
+        )
+        with pytest.raises(ImproperlyConfigured, match="--output-file"):
+            command_over(registry_of(export=filed)).create_parser("manage.py", "notes")
+
+    def test_a_file_the_kernel_refuses_is_refused_for_its_spec_alone(self, owner: Any) -> None:
+        command = self._command(returns_many=True)
+        with pytest.raises(ImproperlyConfigured, match="is declared returns_many"):
+            run("export", "--as-user", str(owner.pk), command=command)
+        assert run("ping", "--as-user", str(owner.pk), command=command) == '"pong"\n'
+
+
+def _refuse(error: Exception) -> None:
+    raise error

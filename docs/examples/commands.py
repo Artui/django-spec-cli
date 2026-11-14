@@ -23,6 +23,7 @@ from django_service_specs import (
     DataclassPresenter,
     DataclassValidator,
     FieldMarking,
+    FilePresenter,
     Parameter,
     Parameters,
     PermissionCheck,
@@ -107,6 +108,10 @@ rename_note_spec = ServiceSpec(
 )
 
 
+def note_of(*, user: Any, note: int) -> QuerySet[Note]:
+    return Note.objects.filter(owner=user, pk=note)
+
+
 # --8<-- [start:command]
 def whoami(*, user: Any) -> str:
     """The username of the user the command runs as."""
@@ -117,6 +122,20 @@ notes = SpecRegistry()
 notes.register("rename_note", rename_note_spec)
 notes.register("list_notes", list_notes_spec)
 notes.register("whoami", ServiceSpec(service=whoami, permissions=[Unrestricted()]))
+notes.register(
+    "export_note",
+    SelectorSpec(
+        kind=SelectorKind.RETRIEVE,
+        selector=note_of,
+        permissions=[IsSignedIn()],
+        reads=Parameters.of(Parameter("note", "integer", required=True)),
+        presenter=FilePresenter(
+            "text/plain",
+            filename=lambda note: f"note-{note.pk}.txt",
+            render=lambda note: note.title.encode(),
+        ),
+    ),
+)
 
 
 # yourapp/management/commands/notes.py

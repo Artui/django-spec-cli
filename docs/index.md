@@ -27,7 +27,7 @@ pip install django-spec-cli
 ```
 
 It installs [`django-service-specs`](https://artui.github.io/django-service-specs/), the kernel whose specs it serves,
-from 0.30.0, on Python 3.10 and Django 4.2 or later. The command line was the
+from 0.33.0, on Python 3.10 and Django 4.2 or later. The command line was the
 kernel's `commands/` subpackage, and moved here so the kernel carries no
 transport.
 
@@ -182,6 +182,49 @@ written, so a large read is held in memory once, as an HTTP response holds
 it. A service that returns nothing writes nothing. A table is no different: it
 reads every row before its first line, since each column's width is its widest
 cell, so `--table` on a large result holds all of it in memory.
+
+### A file
+
+A spec whose presenter is the kernel's
+[`FilePresenter`](https://artui.github.io/django-service-specs/) writes the
+file's bytes, never JSON Lines or a table. Its subcommand takes
+`--output-file PATH`, and without it the bytes go to stdout. `export-note`
+above is one, writing a note's title as a text file:
+
+```shell
+$ python manage.py notes export-note --as-user 1 --note 2 > note-2.txt
+note-2.txt (text/plain, 8 bytes)
+$ python manage.py notes export-note --as-user 1 --note 2 --output-file note-2.txt
+note-2.txt (text/plain, 8 bytes)
+$ cat note-2.txt
+Shopping
+```
+
+- **At a terminal, `--output-file` is required.** Binary on a terminal is never
+  what a person meant, so a run there without it is a usage error, raised
+  before the user is looked up or the spec is run: nothing is written and
+  nothing runs. So are `--table` and `--json`, which a file spec does not list,
+  and a stdout that takes no bytes, such as the `StringIO` a test hands
+  `call_command`. `SPEC_CLI_OUTPUT` is not read.
+- **The file's name goes to stderr**, with its type and length, so a pipe
+  carries only the bytes. It is the name the operation gave the file, shown and
+  never used as a path: `--output-file` is written as given, and a `PATH`
+  naming a directory is refused rather than joined to the name.
+- **`--output-file` replaces what is at `PATH`**, once the spec has run and its
+  file has been read whole into memory, so a refused run leaves the file there
+  as it was. A `PATH` that is a directory, or whose directory does not exist, is
+  a usage error before anything runs; a path the system refuses to write
+  otherwise, such as one without write permission, ends the run with `ERROR`
+  after the spec has run, its reason in the message.
+- **An `allow_none` spec that finds nothing writes nothing** and creates no
+  file, as a service returning nothing writes nothing.
+- **`--output-file` is the file spec's own.** A parameter of a file spec that
+  maps to it is refused when the parser is built; any other spec's parameter
+  named `output_file` keeps the option it always had.
+- **A file the kernel refuses is refused as declared.** A file under a `LIST`
+  selector, from a `many` or `returns_many` service, or presented with
+  affordances is one `file_output` refuses: the spec's run is refused with that
+  sentence, and `django_spec_cli.W004` reports it.
 
 ## Exit codes
 

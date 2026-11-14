@@ -12,6 +12,7 @@ from django.core.management.base import SystemCheckError
 from django.test import override_settings
 from django_service_specs import (
     DEFAULT_POOL_SEEDS,
+    FilePresenter,
     Parameter,
     Parameters,
     PoolSeeds,
@@ -321,6 +322,23 @@ class TestADeclarationOnlyTheCliStampedReadRefuses:
         _, messages = self._walk(monkeypatch, registry)
         assert [m.id for m in messages] == ["django_spec_cli.W004"]
         assert "requires the keyword(s) ['project']" in messages[0].msg
+
+    def test_a_file_spec_the_kernel_refuses_is_reported_as_w004(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        many = ServiceSpec(
+            service=_echo,
+            permissions=[StaffOnly()],
+            presenter=FilePresenter("text/csv", filename="rows.csv"),
+            returns_many=True,
+        )
+        registry = SpecRegistry()
+        registry.register("export", many)
+        _, messages = self._walk(monkeypatch, registry)
+        assert [m.id for m in messages] == ["django_spec_cli.W004"]
+        assert "presents a file through FilePresenter and is declared returns_many" in (
+            messages[0].msg
+        )
 
 
 class TestAppConfigs:
