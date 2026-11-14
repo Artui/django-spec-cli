@@ -385,6 +385,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Output">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A file
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -556,6 +573,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Output">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#a-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        A file
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -646,7 +680,7 @@ nothing else.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span>django-spec-cli
 </span></code></pre></div>
 <p>It installs <a href="https://artui.github.io/django-service-specs/"><code>django-service-specs</code></a>, the kernel whose specs it serves,
-from 0.30.0, on Python 3.10 and Django 4.2 or later. The command line was the
+from 0.33.0, on Python 3.10 and Django 4.2 or later. The command line was the
 kernel's <code>commands/</code> subpackage, and moved here so the kernel carries no
 transport.</p>
 <h2 id="what-it-is-not">What it is not<a class="headerlink" href="#what-it-is-not" title="Permanent link">&para;</a></h2>
@@ -670,11 +704,25 @@ the command's:</p>
 </span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">notes</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">"rename_note"</span><span class="p">,</span> <span class="n">rename_note_spec</span><span class="p">)</span>
 </span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="n">notes</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">"list_notes"</span><span class="p">,</span> <span class="n">list_notes_spec</span><span class="p">)</span>
 </span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="n">notes</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">"whoami"</span><span class="p">,</span> <span class="n">ServiceSpec</span><span class="p">(</span><span class="n">service</span><span class="o">=</span><span class="n">whoami</span><span class="p">,</span> <span class="n">permissions</span><span class="o">=</span><span class="p">[</span><span class="n">Unrestricted</span><span class="p">()]))</span>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="c1"># yourapp/management/commands/notes.py</span>
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="k">class</span><span class="w"> </span><span class="nc">Command</span><span class="p">(</span><span class="n">SpecCommand</span><span class="p">):</span>
-</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>    <span class="n">registry</span> <span class="o">=</span> <span class="n">notes</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="n">notes</span><span class="o">.</span><span class="n">register</span><span class="p">(</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="s2">"export_note"</span><span class="p">,</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>    <span class="n">SelectorSpec</span><span class="p">(</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>        <span class="n">kind</span><span class="o">=</span><span class="n">SelectorKind</span><span class="o">.</span><span class="n">RETRIEVE</span><span class="p">,</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>        <span class="n">selector</span><span class="o">=</span><span class="n">note_of</span><span class="p">,</span>
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>        <span class="n">permissions</span><span class="o">=</span><span class="p">[</span><span class="n">IsSignedIn</span><span class="p">()],</span>
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>        <span class="n">reads</span><span class="o">=</span><span class="n">Parameters</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">Parameter</span><span class="p">(</span><span class="s2">"note"</span><span class="p">,</span> <span class="s2">"integer"</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)),</span>
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>        <span class="n">presenter</span><span class="o">=</span><span class="n">FilePresenter</span><span class="p">(</span>
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>            <span class="s2">"text/plain"</span><span class="p">,</span>
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>            <span class="n">filename</span><span class="o">=</span><span class="k">lambda</span> <span class="n">note</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"note-</span><span class="si">{</span><span class="n">note</span><span class="o">.</span><span class="n">pk</span><span class="si">}</span><span class="s2">.txt"</span><span class="p">,</span>
+</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>            <span class="n">render</span><span class="o">=</span><span class="k">lambda</span> <span class="n">note</span><span class="p">:</span> <span class="n">note</span><span class="o">.</span><span class="n">title</span><span class="o">.</span><span class="n">encode</span><span class="p">(),</span>
+</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>        <span class="p">),</span>
+</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>    <span class="p">),</span>
+</span><span id="__span-3-23"><a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="p">)</span>
+</span><span id="__span-3-24"><a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a>
+</span><span id="__span-3-25"><a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a>
+</span><span id="__span-3-26"><a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a><span class="c1"># yourapp/management/commands/notes.py</span>
+</span><span id="__span-3-27"><a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a><span class="k">class</span><span class="w"> </span><span class="nc">Command</span><span class="p">(</span><span class="n">SpecCommand</span><span class="p">):</span>
+</span><span id="__span-3-28"><a id="__codelineno-3-28" name="__codelineno-3-28" href="#__codelineno-3-28"></a>    <span class="n">registry</span> <span class="o">=</span> <span class="n">notes</span>
 </span></code></pre></div>
 <p>One project can serve two registries as two commands, each with its own name.
 The registry is read when the command's parser is built, on every run; a
@@ -782,10 +830,55 @@ default, which is what the flag and the setting are for:</p>
 </span></code></pre></div>
 <p>The table's columns come from the spec's <code>Output</code>, never from the first row;
 see <a class="autorefs autorefs-internal" title="render_table" href="reference/#django_spec_cli.render.render_table.render_table"><code>render_table</code></a>
-for what a field's marking does to them. JSON Lines are written one row at a
-time, but <code>present</code> builds a list result whole before the first row is
+for what a field's marking does to them. A marking hides a field from a table
+only. JSON Lines writes every key of a row, a hidden field included, as an HTTP
+response does, so a field that must not reach a terminal or a log is left out
+of the presented result rather than marked hidden. JSON Lines are written one
+row at a time, but <code>present</code> builds a list result whole before the first row is
 written, so a large read is held in memory once, as an HTTP response holds
-it. A service that returns nothing writes nothing.</p>
+it. A service that returns nothing writes nothing. A table is no different: it
+reads every row before its first line, since each column's width is its widest
+cell, so <code>--table</code> on a large result holds all of it in memory.</p>
+<h3 id="a-file">A file<a class="headerlink" href="#a-file" title="Permanent link">&para;</a></h3>
+<p>A spec whose presenter is the kernel's
+<a href="https://artui.github.io/django-service-specs/"><code>FilePresenter</code></a> writes the
+file's bytes, never JSON Lines or a table. Its subcommand takes
+<code>--output-file PATH</code>, and without it the bytes go to stdout. <code>export-note</code>
+above is one, writing a note's title as a text file:</p>
+<div class="language-shell highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>$<span class="w"> </span>python<span class="w"> </span>manage.py<span class="w"> </span>notes<span class="w"> </span>export-note<span class="w"> </span>--as-user<span class="w"> </span><span class="m">1</span><span class="w"> </span>--note<span class="w"> </span><span class="m">2</span><span class="w"> </span>&gt;<span class="w"> </span>note-2.txt
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>note-2.txt<span class="w"> </span><span class="o">(</span>text/plain,<span class="w"> </span><span class="m">8</span><span class="w"> </span>bytes<span class="o">)</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>$<span class="w"> </span>python<span class="w"> </span>manage.py<span class="w"> </span>notes<span class="w"> </span>export-note<span class="w"> </span>--as-user<span class="w"> </span><span class="m">1</span><span class="w"> </span>--note<span class="w"> </span><span class="m">2</span><span class="w"> </span>--output-file<span class="w"> </span>note-2.txt
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>note-2.txt<span class="w"> </span><span class="o">(</span>text/plain,<span class="w"> </span><span class="m">8</span><span class="w"> </span>bytes<span class="o">)</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>$<span class="w"> </span>cat<span class="w"> </span>note-2.txt
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>Shopping
+</span></code></pre></div>
+<ul>
+<li><strong>At a terminal, <code>--output-file</code> is required.</strong> Binary on a terminal is never
+  what a person meant, so a run there without it is a usage error, raised
+  before the user is looked up or the spec is run: nothing is written and
+  nothing runs. So are <code>--table</code> and <code>--json</code>, which a file spec does not list,
+  and a stdout that takes no bytes, such as the <code>StringIO</code> a test hands
+  <code>call_command</code>. <code>SPEC_CLI_OUTPUT</code> is not read.</li>
+<li><strong>The file's name goes to stderr</strong>, with its type and length, so a pipe
+  carries only the bytes. It is the name the operation gave the file, shown and
+  never used as a path: <code>--output-file</code> is written as given, and a <code>PATH</code>
+  naming a directory is refused rather than joined to the name.</li>
+<li><strong><code>--output-file</code> replaces what is at <code>PATH</code></strong>, once the spec has run and its
+  file has been read whole into memory, so a refused run leaves the file there
+  as it was. A <code>PATH</code> that is a directory, or whose directory does not exist, is
+  a usage error before anything runs; a path the system refuses to write
+  otherwise, such as one without write permission, ends the run with <code>ERROR</code>
+  after the spec has run, its reason in the message.</li>
+<li><strong>An <code>allow_none</code> spec that finds nothing writes nothing</strong> and creates no
+  file, as a service returning nothing writes nothing.</li>
+<li><strong><code>--output-file</code> is the file spec's own.</strong> A parameter of a file spec that
+  maps to it is refused when the parser is built; any other spec's parameter
+  named <code>output_file</code> keeps the option it always had.</li>
+<li><strong>A file the kernel refuses is refused as declared.</strong> A file under a <code>LIST</code>
+  selector, from a <code>many</code> or <code>returns_many</code> service, or presented with
+  affordances is one <code>file_output</code> refuses: the spec's run is refused with that
+  sentence, and <code>django_spec_cli.W004</code> reports it.</li>
+</ul>
 <h2 id="exit-codes">Exit codes<a class="headerlink" href="#exit-codes" title="Permanent link">&para;</a></h2>
 <p>A refusal ends the run with a <code>CommandError</code> whose message goes to stderr and
 whose
@@ -856,20 +949,20 @@ branch on:</p>
 <p><a class="autorefs autorefs-internal" title="exit_code_for" href="reference/#django_spec_cli.exit_code_for.exit_code_for"><code>exit_code_for</code></a>
 is the mapping, for a project that runs specs from a command of its own.</p>
 <p>An invalid argument prints one line per refused field, after its path:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="gp">$ </span>python<span class="w"> </span>manage.py<span class="w"> </span>notes<span class="w"> </span>rename-note<span class="w"> </span>--as-user<span class="w"> </span><span class="m">1</span><span class="w"> </span>--pk<span class="w"> </span><span class="m">1</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="go">CommandError: Invalid arguments.</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="go">title: This field is required.</span>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="gp">$ </span><span class="nb">echo</span><span class="w"> </span><span class="nv">$?</span>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="go">3</span>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="gp">$ </span>python<span class="w"> </span>manage.py<span class="w"> </span>notes<span class="w"> </span>rename-note<span class="w"> </span>--as-user<span class="w"> </span><span class="m">1</span><span class="w"> </span>--pk<span class="w"> </span>one<span class="w"> </span>--title<span class="w"> </span>Final
-</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="go">CommandError: Invalid arguments.</span>
-</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="go">pk: Enter a whole number.</span>
-</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="gp">$ </span><span class="nb">echo</span><span class="w"> </span><span class="nv">$?</span>
-</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="go">3</span>
-</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="gp">$ </span>python<span class="w"> </span>manage.py<span class="w"> </span>notes<span class="w"> </span>rename-note<span class="w"> </span>--as-user<span class="w"> </span><span class="m">1</span><span class="w"> </span>--pk<span class="w"> </span><span class="m">99</span><span class="w"> </span>--title<span class="w"> </span>Final
-</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="go">CommandError: Not found.</span>
-</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="gp">$ </span><span class="nb">echo</span><span class="w"> </span><span class="nv">$?</span>
-</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="go">6</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="gp">$ </span>python<span class="w"> </span>manage.py<span class="w"> </span>notes<span class="w"> </span>rename-note<span class="w"> </span>--as-user<span class="w"> </span><span class="m">1</span><span class="w"> </span>--pk<span class="w"> </span><span class="m">1</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="go">CommandError: Invalid arguments.</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="go">title: This field is required.</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="gp">$ </span><span class="nb">echo</span><span class="w"> </span><span class="nv">$?</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="go">3</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="gp">$ </span>python<span class="w"> </span>manage.py<span class="w"> </span>notes<span class="w"> </span>rename-note<span class="w"> </span>--as-user<span class="w"> </span><span class="m">1</span><span class="w"> </span>--pk<span class="w"> </span>one<span class="w"> </span>--title<span class="w"> </span>Final
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="go">CommandError: Invalid arguments.</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="go">pk: Enter a whole number.</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="gp">$ </span><span class="nb">echo</span><span class="w"> </span><span class="nv">$?</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="go">3</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="gp">$ </span>python<span class="w"> </span>manage.py<span class="w"> </span>notes<span class="w"> </span>rename-note<span class="w"> </span>--as-user<span class="w"> </span><span class="m">1</span><span class="w"> </span>--pk<span class="w"> </span><span class="m">99</span><span class="w"> </span>--title<span class="w"> </span>Final
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="go">CommandError: Not found.</span>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="gp">$ </span><span class="nb">echo</span><span class="w"> </span><span class="nv">$?</span>
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="go">6</span>
 </span></code></pre></div>
 <p>A command line cannot ask a question, so <code>AdditionalInputRequired</code> ends the
 run with code 8 and names the options its <code>schema</code> asks for. The operator, or
@@ -880,19 +973,22 @@ printed, with the code as its <code>returncode</code>. A malformed command line 
 <code>returncode</code> 1 rather than 2.</p>
 <h2 id="open-specs-explain">Open specs: <code>--explain</code> and the system check<a class="headerlink" href="#open-specs-explain" title="Permanent link">&para;</a></h2>
 <p><code>whoami</code> is open to every active user, which is what it is for:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="gp">$ </span>python<span class="w"> </span>manage.py<span class="w"> </span>notes<span class="w"> </span>whoami<span class="w"> </span>--as-user<span class="w"> </span><span class="m">2</span><span class="w"> </span>--json
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="go">"grace"</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="gp">$ </span>python<span class="w"> </span>manage.py<span class="w"> </span>notes<span class="w"> </span>whoami<span class="w"> </span>--as-user<span class="w"> </span><span class="m">2</span><span class="w"> </span>--json
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="go">"grace"</span>
 </span></code></pre></div>
 <p><code>--explain</code> runs no spec. It prints one line for each spec the command serves
 that <a href="https://artui.github.io/django-service-specs/registry/#open-specs-reported">authorizes nothing</a>, every check it
 declares being <code>Unrestricted</code>:</p>
-<div class="language-console highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="gp">$ </span>python<span class="w"> </span>manage.py<span class="w"> </span>notes<span class="w"> </span>--explain
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="go">'whoami' in manage.py notes authorizes nothing: every permission check it declares is Unrestricted, so any active user named by --as-user may run it.</span>
+<div class="language-console highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="gp">$ </span>python<span class="w"> </span>manage.py<span class="w"> </span>notes<span class="w"> </span>--explain
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="go">'whoami' in manage.py notes authorizes nothing: every permission check it declares is Unrestricted, so any active user named by --as-user may run it.</span>
 </span></code></pre></div>
 <p>Listing <code>"django_spec_cli"</code> in <code>INSTALLED_APPS</code> reports the same
 sentence from <code>manage.py check</code>, as <code>django_spec_cli.W001</code>, once per
 open spec of every <code>SpecCommand</code> in the project, and a command that could not
-be loaded to be checked as <code>django_spec_cli.W003</code>. There is no
+be loaded as <code>django_spec_cli.W003</code>. A command that fails to import cannot be
+told apart from a <code>SpecCommand</code>, so <code>W003</code> reports any project command that
+fails to load, a plain management command included: fixing the import, or
+silencing <code>W003</code>, ends it. There is no
 <code>W002</code>: a spec with an empty <code>permissions</code> is refused when it is built, so
 none reaches a registry.</p>
 <p><code>django_spec_cli.W004</code> reports, once per spec, a declaration the kernel's
@@ -915,37 +1011,40 @@ ends with the same sentence as <code>ImproperlyConfigured</code> whatever was se
 <code>check_seeds</code> reason.</p>
 <p>A <code>Parameter</code> is optional unless it says <code>required=True</code>, so a read declared
 plainly over a keyword with no default is one such declaration:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">retitle</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">title</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="k">return</span> <span class="n">title</span>
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>
-</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="n">drafts</span> <span class="o">=</span> <span class="n">SpecRegistry</span><span class="p">()</span>
-</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="n">drafts</span><span class="o">.</span><span class="n">register</span><span class="p">(</span>
-</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>    <span class="s2">"retitle"</span><span class="p">,</span>
-</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>    <span class="n">ServiceSpec</span><span class="p">(</span>
-</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>        <span class="n">service</span><span class="o">=</span><span class="n">retitle</span><span class="p">,</span>
-</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>        <span class="n">permissions</span><span class="o">=</span><span class="p">[</span><span class="n">IsSignedIn</span><span class="p">()],</span>
-</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>        <span class="c1"># Optional, as a Parameter is unless it says otherwise, over a keyword</span>
-</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>        <span class="c1"># with no default: a call leaving it out could not run, so the kernel's</span>
-</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>        <span class="c1"># check_seeds refuses the spec, and manage.py check reports it as</span>
-</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>        <span class="c1"># django_spec_cli.W004.</span>
-</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>        <span class="n">reads</span><span class="o">=</span><span class="n">Parameters</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">Parameter</span><span class="p">(</span><span class="s2">"title"</span><span class="p">,</span> <span class="s2">"string"</span><span class="p">)),</span>
-</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a>    <span class="p">),</span>
-</span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a><span class="p">)</span>
-</span><span id="__span-10-18"><a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a>
-</span><span id="__span-10-19"><a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a>
-</span><span id="__span-10-20"><a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a><span class="c1"># yourapp/management/commands/drafts.py</span>
-</span><span id="__span-10-21"><a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a><span class="k">class</span><span class="w"> </span><span class="nc">Drafts</span><span class="p">(</span><span class="n">SpecCommand</span><span class="p">):</span>
-</span><span id="__span-10-22"><a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a>    <span class="n">registry</span> <span class="o">=</span> <span class="n">drafts</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">retitle</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">title</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>    <span class="k">return</span> <span class="n">title</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="n">drafts</span> <span class="o">=</span> <span class="n">SpecRegistry</span><span class="p">()</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="n">drafts</span><span class="o">.</span><span class="n">register</span><span class="p">(</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>    <span class="s2">"retitle"</span><span class="p">,</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>    <span class="n">ServiceSpec</span><span class="p">(</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>        <span class="n">service</span><span class="o">=</span><span class="n">retitle</span><span class="p">,</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>        <span class="n">permissions</span><span class="o">=</span><span class="p">[</span><span class="n">IsSignedIn</span><span class="p">()],</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>        <span class="c1"># Optional, as a Parameter is unless it says otherwise, over a keyword</span>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>        <span class="c1"># with no default: a call leaving it out could not run, so the kernel's</span>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>        <span class="c1"># check_seeds refuses the spec, and manage.py check reports it as</span>
+</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>        <span class="c1"># django_spec_cli.W004.</span>
+</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>        <span class="n">reads</span><span class="o">=</span><span class="n">Parameters</span><span class="o">.</span><span class="n">of</span><span class="p">(</span><span class="n">Parameter</span><span class="p">(</span><span class="s2">"title"</span><span class="p">,</span> <span class="s2">"string"</span><span class="p">)),</span>
+</span><span id="__span-11-16"><a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a>    <span class="p">),</span>
+</span><span id="__span-11-17"><a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="p">)</span>
+</span><span id="__span-11-18"><a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a>
+</span><span id="__span-11-19"><a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a>
+</span><span id="__span-11-20"><a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a><span class="c1"># yourapp/management/commands/drafts.py</span>
+</span><span id="__span-11-21"><a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a><span class="k">class</span><span class="w"> </span><span class="nc">Drafts</span><span class="p">(</span><span class="n">SpecCommand</span><span class="p">):</span>
+</span><span id="__span-11-22"><a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a>    <span class="n">registry</span> <span class="o">=</span> <span class="n">drafts</span>
 </span></code></pre></div>
 <p><code>manage.py check</code> reports it as <code>django_spec_cli.W004</code>, and
 <code>manage.py drafts retitle --as-user 1 --title Final</code> is refused with the same
 sentence:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>'retitle' in manage.py drafts cannot run as declared, and a run of it is refused: ServiceSpec.service requires the keyword(s) ['title'], declared as optional reads that nothing else fills, so a call leaving one out is refused as missing. Declare the read required, or give the keyword a default.
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>'retitle' in manage.py drafts cannot run as declared, and a run of it is refused: ServiceSpec.service requires the keyword(s) ['title'], declared as optional reads that nothing else fills, so a call leaving one out is refused as missing. Declare the read required, or give the keyword a default.
 </span></code></pre></div>
 <p>All three are warnings, so a spec nobody runs never stops <code>migrate</code>, and
 <code>SILENCED_SYSTEM_CHECKS</code> silences one by id. Silencing <code>W004</code> hides the report
 and does not let the spec run.</p>
+<p>The checks carry no tag, so <code>manage.py check --tag security</code> runs none of them.
+A CI step that selects checks by tag misses open specs and refused ones; run
+<code>manage.py check</code> without <code>--tag</code> to see them.</p>
 <p>The kernel keeps no check of its own: its app registers nothing, so a project
 listing only <code>"django_service_specs"</code> gets no check for a command. List
 <code>"django_spec_cli"</code>.</p>
@@ -955,6 +1054,11 @@ this page are shown without it; in a project listing the app, each would be
 preceded by the warnings for <code>whoami</code> and <code>retitle</code>. <code>call_command</code> skips
 system checks for every command but <code>check</code>, so a command run through it
 does not print them.</p>
+<p>Finding the commands to check imports each command module the project's apps
+provide, third-party ones included, and constructs it. Their import-time code
+therefore runs on every system-check run, <code>manage.py check</code> and <code>runserver</code>
+among them. <code>manage.py check &lt;app_label&gt;</code> loads only the commands of the apps
+named.</p>
 <h2 id="what-a-callable-reads-here">What a callable reads here<a class="headerlink" href="#what-a-callable-reads-here" title="Permanent link">&para;</a></h2>
 <p>Every callable a run reaches is handed one <code>call_context</code>, built by the
 kernel's
@@ -963,18 +1067,18 @@ and stamped last with this package's transport name, the plain string <code>"cli
 exported as <code>django_spec_cli.CLI_TRANSPORT</code>. Read it with the kernel's
 <a class="autorefs autorefs-external" href="https://artui.github.io/django-service-specs/reference/#django_service_specs.types.call_transport.call_transport"><code>call_transport</code></a>,
 or compare <code>call_context["transport"] == "cli"</code> with nothing imported:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">where</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">call_context</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">    </span><span class="sd">"""The transport this call came over, as its context says."""</span>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    <span class="k">return</span> <span class="n">call_transport</span><span class="p">(</span><span class="n">call_context</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"in-process"</span>
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>
-</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="n">where_registry</span> <span class="o">=</span> <span class="n">SpecRegistry</span><span class="p">()</span>
-</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="n">where_registry</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">"where"</span><span class="p">,</span> <span class="n">ServiceSpec</span><span class="p">(</span><span class="n">service</span><span class="o">=</span><span class="n">where</span><span class="p">,</span> <span class="n">permissions</span><span class="o">=</span><span class="p">[</span><span class="n">IsSignedIn</span><span class="p">()]))</span>
-</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>
-</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>
-</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="c1"># yourapp/management/commands/where.py</span>
-</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="k">class</span><span class="w"> </span><span class="nc">Where</span><span class="p">(</span><span class="n">SpecCommand</span><span class="p">):</span>
-</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>    <span class="n">registry</span> <span class="o">=</span> <span class="n">where_registry</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">where</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">call_context</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">    </span><span class="sd">"""The transport this call came over, as its context says."""</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>    <span class="k">return</span> <span class="n">call_transport</span><span class="p">(</span><span class="n">call_context</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"in-process"</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="n">where_registry</span> <span class="o">=</span> <span class="n">SpecRegistry</span><span class="p">()</span>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="n">where_registry</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">"where"</span><span class="p">,</span> <span class="n">ServiceSpec</span><span class="p">(</span><span class="n">service</span><span class="o">=</span><span class="n">where</span><span class="p">,</span> <span class="n">permissions</span><span class="o">=</span><span class="p">[</span><span class="n">IsSignedIn</span><span class="p">()]))</span>
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>
+</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="c1"># yourapp/management/commands/where.py</span>
+</span><span id="__span-13-11"><a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="k">class</span><span class="w"> </span><span class="nc">Where</span><span class="p">(</span><span class="n">SpecCommand</span><span class="p">):</span>
+</span><span id="__span-13-12"><a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a>    <span class="n">registry</span> <span class="o">=</span> <span class="n">where_registry</span>
 </span></code></pre></div>
 <ul>
 <li><strong>One dict per run.</strong> The command builds it ahead of everything it asks of

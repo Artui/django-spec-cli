@@ -498,6 +498,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#django_spec_cli.render.write_file.write_file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        write_file
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#parameters-as-options" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -808,6 +819,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#django_spec_cli.render.write_file.write_file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        write_file
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#parameters-as-options" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -984,7 +1006,8 @@ command reads - <code>SpecRegistry</code>, <code>dispatch</code>, the refusals -
   nothing, every permission check it declares being <code>Unrestricted</code>. Once per
   open spec, worded by
   <a class="autorefs autorefs-internal" title="unguarded_message" href="#django_spec_cli.report.unguarded_message.unguarded_message"><code>unguarded_message</code></a>.</li>
-<li><strong><code>django_spec_cli.W003</code></strong>: a command could not be loaded to be checked.</li>
+<li><strong><code>django_spec_cli.W003</code></strong>: a project command could not be loaded, so its
+  specs, if it serves any, were not checked.</li>
 <li><strong><code>django_spec_cli.W004</code></strong>: the kernel's
   <a class="autorefs autorefs-external" href="https://artui.github.io/django-service-specs/reference/#django_service_specs.dispatch.check_seeds.check_seeds"><code>check_seeds</code></a>
   refuses a spec a <code>SpecCommand</code> serves, under the command's <code>pool_seeds</code>.
@@ -1031,8 +1054,8 @@ whose callables read one.</p>
   <a class="autorefs autorefs-internal" title="add_spec_arguments" href="#django_spec_cli.argv.add_spec_arguments.add_spec_arguments"><code>add_spec_arguments</code></a>
   spells them, as the input schema a transport advertises asks for them
   (<a class="autorefs autorefs-external" href="https://artui.github.io/django-service-specs/reference/#django_service_specs.schema.spec_caller_input_schema.spec_caller_input_schema"><code>spec_caller_input_schema</code></a>
-  under <code>pool_seeds</code> and the stamped <code>call_context</code>): less any key the server fills, and required only
-  where dispatch refuses leaving it out.
+  under <code>pool_seeds</code> and the stamped <code>call_context</code>): less any key the server
+  fills, and required only where dispatch refuses leaving it out.
   No option is matched by a prefix: an abbreviation is refused rather
   than read as whichever option it begins.</li>
 <li><strong><code>--as-user</code> is required.</strong> Its value goes through
@@ -1044,6 +1067,18 @@ whose callables read one.</p>
   or as JSON Lines: <code>--table</code> and <code>--json</code> choose, then the
   <code>SPEC_CLI_OUTPUT</code> setting, then whether stdout is a
   terminal (<a class="autorefs autorefs-internal" title="wants_table" href="#django_spec_cli.render.wants_table.wants_table"><code>wants_table</code></a>).</li>
+<li><strong>A spec whose result is a file</strong>, one
+  <a class="autorefs autorefs-external" href="https://artui.github.io/django-service-specs/reference/#django_service_specs.schema.file_output.file_output"><code>file_output</code></a>
+  answers a <code>FilePresenter</code> for, writes its bytes instead
+  (<a class="autorefs autorefs-internal" title="write_file" href="#django_spec_cli.render.write_file.write_file"><code>write_file</code></a>): to
+  <code>--output-file PATH</code>, an option only its subcommand takes, or else to
+  stdout's binary buffer when stdout is not a terminal. At a terminal
+  without <code>--output-file</code>, <code>--table</code> or <code>--json</code>, a stdout that
+  takes no bytes, or a <code>PATH</code> that is a directory or whose directory does
+  not exist, the run is refused before the user is looked up or the spec
+  is run, so nothing is written. The setting <code>SPEC_CLI_OUTPUT</code> is
+  not read for it. The file's name goes to stderr, and is never a path.
+  A file spec <code>file_output</code> refuses is refused as declared, below.</li>
 <li>A refusal ends the run with a <code>CommandError</code> carrying its message and
   an <a class="autorefs autorefs-internal" title="ExitCode" href="#django_spec_cli.types.exit_code.ExitCode"><code>ExitCode</code></a>.</li>
 <li><strong>A spec the kernel refuses as declared is never run.</strong>
@@ -1416,6 +1451,44 @@ by default, which is why both the flag and the setting exist. Django's
 
     </div>
 
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="django_spec_cli.render.write_file.write_file" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">write_file</span>
+
+
+<a href="#django_spec_cli.render.write_file.write_file" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">write_file</span><span class="p">(</span><span class="n">presented</span><span class="p">:</span> <span class="n">FileResult</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">sink</span><span class="p">:</span> <span class="n">Path</span> <span class="o">|</span> <span class="n">BinaryIO</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents first">
+
+        <p>Write a file spec's presented result to <code>sink</code>, and answer the line naming it.</p>
+<p><code>presented</code> is what
+<a class="autorefs autorefs-external" href="https://artui.github.io/django-service-specs/reference/#django_service_specs.dispatch.present.present"><code>present</code></a> returned for a
+spec that presents through a
+<a class="autorefs autorefs-external" href="https://artui.github.io/django-service-specs/reference/#django_service_specs.output.file_presenter.FilePresenter"><code>FilePresenter</code></a>:
+a <a class="autorefs autorefs-external" href="https://artui.github.io/django-service-specs/reference/#django_service_specs.types.file_result.FileResult"><code>FileResult</code></a>, or
+<code>None</code> from an <code>allow_none</code> spec that found nothing, for which nothing
+is written, no file is created and <code>None</code> is answered.</p>
+<p>The content is read whole, and closed, before <code>sink</code> is touched, so a
+file the read fails on leaves a file already at a <code>Path</code> as it was.
+<code>sink</code> is a <code>Path</code>, written as its bytes and replacing what is there,
+or a binary stream such as stdout's <code>buffer</code>, written and flushed. The
+result's <code>filename</code> is never joined to <code>sink</code>: a <code>Path</code> naming a
+directory is refused with <code>CommandError</code>, <code>ExitCode.ERROR</code>, as is any
+other path the operating system will not write.</p>
+<p>The answer, <code>"&lt;filename&gt; (&lt;content type&gt;, &lt;n&gt; bytes)"</code>, or
+<code>"&lt;filename&gt; (&lt;n&gt; bytes)"</code> for a result with no <code>content_type</code>, is for
+stderr, so a person sees the name the operation gave the file without it
+reaching the bytes on stdout.</p>
+
+
+    </div>
+
 </div><h2 id="parameters-as-options">Parameters as options<a class="headerlink" href="#parameters-as-options" title="Permanent link">&para;</a></h2>
 
 
@@ -1719,78 +1792,27 @@ every account that can still sign in, and to no other.</p>
 <p>A script branches on these, so a member's number never changes and a
 number is never reused. Each says who refused and what the caller can do
 about it, read the way the HTTP transport reads the same refusals:</p>
-<table>
-<thead>
-<tr>
-<th>Code</th>
-<th>Member</th>
-<th>The run</th>
-<th>Raised for</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>0</td>
-<td><code>SUCCESS</code></td>
-<td>ran, and its result was written</td>
-<td></td>
-</tr>
-<tr>
-<td>1</td>
-<td><code>ERROR</code></td>
-<td>failed in a way nobody declared</td>
-<td>anything else, with a traceback</td>
-</tr>
-<tr>
-<td>2</td>
-<td><code>USAGE</code></td>
-<td>never started: the command line was malformed</td>
-<td>argparse's own refusals</td>
-</tr>
-<tr>
-<td>3</td>
-<td><code>INVALID_ARGUMENTS</code></td>
-<td>was refused its arguments</td>
-<td><code>InvalidArguments</code>, <code>ServiceValidationError</code>, any other <code>DispatchError</code></td>
-</tr>
-<tr>
-<td>4</td>
-<td><code>NOT_PERMITTED</code></td>
-<td>was refused to the principal</td>
-<td><code>NotPermitted</code>, <code>PermissionCheckDenied</code></td>
-</tr>
-<tr>
-<td>5</td>
-<td><code>PRINCIPAL_UNAVAILABLE</code></td>
-<td>had nobody to run as</td>
-<td><code>PrincipalUnavailable</code></td>
-</tr>
-<tr>
-<td>6</td>
-<td><code>NOT_FOUND</code></td>
-<td>found no row to act on</td>
-<td>a <code>not_found</code> result, <code>ServiceNotFound</code></td>
-</tr>
-<tr>
-<td>7</td>
-<td><code>CONFLICT</code></td>
-<td>was refused by the row's current state</td>
-<td><code>ServiceConflict</code>, <code>ActionUnavailable</code></td>
-</tr>
-<tr>
-<td>8</td>
-<td><code>INPUT_REQUIRED</code></td>
-<td>needs a value it was not given</td>
-<td><code>AdditionalInputRequired</code></td>
-</tr>
-<tr>
-<td>9</td>
-<td><code>REFUSED</code></td>
-<td>was refused by the operation's own rule</td>
-<td>any other <code>ServiceError</code></td>
-</tr>
-</tbody>
-</table>
+<ul>
+<li><code>0</code> <code>SUCCESS</code>: the run ran, and its result was written.</li>
+<li><code>1</code> <code>ERROR</code>: it failed in a way nobody declared; raised for anything else,
+  with a traceback.</li>
+<li><code>2</code> <code>USAGE</code>: it never started, the command line was malformed; argparse's own
+  refusals.</li>
+<li><code>3</code> <code>INVALID_ARGUMENTS</code>: it was refused its arguments; raised for
+  <code>InvalidArguments</code>, <code>ServiceValidationError</code> and any other <code>DispatchError</code>.</li>
+<li><code>4</code> <code>NOT_PERMITTED</code>: it was refused to the principal; raised for <code>NotPermitted</code>
+  and <code>PermissionCheckDenied</code>.</li>
+<li><code>5</code> <code>PRINCIPAL_UNAVAILABLE</code>: it had nobody to run as; raised for
+  <code>PrincipalUnavailable</code>.</li>
+<li><code>6</code> <code>NOT_FOUND</code>: it found no row to act on; raised for a <code>not_found</code> result and
+  <code>ServiceNotFound</code>.</li>
+<li><code>7</code> <code>CONFLICT</code>: it was refused by the row's current state; raised for
+  <code>ServiceConflict</code> and <code>ActionUnavailable</code>.</li>
+<li><code>8</code> <code>INPUT_REQUIRED</code>: it needs a value it was not given; raised for
+  <code>AdditionalInputRequired</code>.</li>
+<li><code>9</code> <code>REFUSED</code>: it was refused by the operation's own rule; raised for any other
+  <code>ServiceError</code>.</li>
+</ul>
 <p><code>INPUT_REQUIRED</code> has its own code because a command line cannot ask:
 the operator re-runs the command with the option the message names, and
 a script that knows it may answer does so. <code>ActionUnavailable</code> is a
