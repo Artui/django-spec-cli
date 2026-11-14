@@ -4,7 +4,8 @@ import argparse
 import inspect
 from collections.abc import Mapping, Sequence
 from dataclasses import replace
-from typing import Any, TextIO, cast
+from pathlib import Path
+from typing import Any, BinaryIO, TextIO, cast
 
 from django.core.exceptions import ImproperlyConfigured
 from django.core.management.base import BaseCommand, CommandError, CommandParser
@@ -14,6 +15,7 @@ from django_service_specs import (
     ActionUnavailable,
     AdditionalInputRequired,
     DispatchError,
+    FilePresenter,
     InvalidArguments,
     Parameters,
     PoolSeeds,
@@ -28,6 +30,7 @@ from django_service_specs import (
     check_seeds,
     coerce_flat,
     dispatch,
+    file_output,
     kernel_spec,
     present,
     refusal_messages,
@@ -43,6 +46,7 @@ from django_spec_cli.argv.utils import option_string
 from django_spec_cli.exit_code_for import exit_code_for
 from django_spec_cli.render.render_result import render_result
 from django_spec_cli.render.wants_table import wants_table
+from django_spec_cli.render.write_file import write_file
 from django_spec_cli.report.unguarded_message import unguarded_message
 from django_spec_cli.report.utils import refused_message
 from django_spec_cli.types.cli_transport import CLI_TRANSPORT
@@ -50,6 +54,8 @@ from django_spec_cli.types.exit_code import ExitCode
 
 _OWN_OPTIONS = frozenset({"--as-user", "--json", "--table"})
 """The options every subcommand owns, which no spec parameter may map to."""
+
+_OUTPUT_FILE = "--output-file"
 
 
 class SpecCommand(BaseCommand):
@@ -89,6 +95,17 @@ class SpecCommand(BaseCommand):
       or as JSON Lines: ``--table`` and ``--json`` choose, then the
       ``SPEC_CLI_OUTPUT`` setting, then whether stdout is a
       terminal ([`wants_table`][django_spec_cli.render.wants_table.wants_table]).
+    - **A spec whose result is a file**, one
+      [`file_output`][django_service_specs.schema.file_output.file_output]
+      answers a ``FilePresenter`` for, writes its bytes instead
+      ([`write_file`][django_spec_cli.render.write_file.write_file]): to
+      ``--output-file PATH``, an option only its subcommand takes, or else to
+      stdout's binary buffer when stdout is not a terminal. At a terminal
+      without ``--output-file``, ``--table`` or ``--json``, or a stdout that
+      takes no bytes, the run is refused before the user is looked up or the
+      spec is run, so nothing is written. The setting ``SPEC_CLI_OUTPUT`` is
+      not read for it. The file's name goes to stderr, and is never a path.
+      A file spec ``file_output`` refuses is refused as declared, below.
     - A refusal ends the run with a ``CommandError`` carrying its message and
       an [`ExitCode`][django_spec_cli.types.exit_code.ExitCode].
     - **A spec the kernel refuses as declared is never run.**
@@ -125,6 +142,7 @@ class SpecCommand(BaseCommand):
     _parser: CommandParser
     _entries: dict[str, RegisteredSpec]
     _refused_by_declaration: dict[str, ImproperlyConfigured]
+    _files: dict[str, FilePresenter]
 
     def create_parser(self, prog_name: str, subcommand: str, **kwargs: Any) -> CommandParser:
         """Django's parser, with this command's options added and no option read by its prefix."""
@@ -165,6 +183,7 @@ class SpecCommand(BaseCommand):
         reserved = _OWN_OPTIONS | frozenset(parser._option_string_actions)
         subparsers = parser.add_subparsers(dest="spec_name", metavar="spec", title="specs")
         self._entries = {}
+        self._files = {}
         for entry in registry:
             name = entry.name.replace("_", "-")
             if name in self._entries:
@@ -177,6 +196,7 @@ class SpecCommand(BaseCommand):
             summary = _summary(spec, entry.name)
             try:
                 parameters = _sendable(spec, self.pool_seeds, _call_context())
+                file = file_output(spec)
             except ImproperlyConfigured as error:
                 self._refused_by_declaration[entry.name] = error
                 _add_refused_subparser(
@@ -200,22 +220,38 @@ class SpecCommand(BaseCommand):
                 metavar="USER",
                 help="The user the operation runs as, and is checked and recorded for.",
             )
+            # A file spec keeps both, unlisted, so a run sending one is told why it does not apply.
+            hidden = argparse.SUPPRESS
             formats = subparser.add_mutually_exclusive_group()
             formats.add_argument(
                 "--json",
                 dest="output_format",
                 action="store_const",
                 const="json",
-                help="Write the result as JSON Lines, one row per line.",
+                help="Write the result as JSON Lines, one row per line."
+                if file is None
+                else hidden,
             )
             formats.add_argument(
                 "--table",
                 dest="output_format",
                 action="store_const",
                 const="table",
-                help="Write the result as a table.",
+                help="Write the result as a table." if file is None else hidden,
             )
-            add_spec_arguments(subparser, parameters, reserved=reserved)
+            if file is None:
+                add_spec_arguments(subparser, parameters, reserved=reserved)
+                continue
+            self._files[entry.name] = file
+            subparser.add_argument(
+                _OUTPUT_FILE,
+                dest="output_file",
+                metavar="PATH",
+                help=f"Write the {file.content_type.replace('%', '%%')} file this makes to PATH, "
+                "replacing what is there. Without it the bytes go to stdout, which must not be a "
+                "terminal.",
+            )
+            add_spec_arguments(subparser, parameters, reserved=reserved | {_OUTPUT_FILE})
 
     def resolve_as_user(self, value: str) -> Any:
         """The user ``--as-user VALUE`` names, or ``PrincipalUnavailable``.
@@ -265,7 +301,11 @@ class SpecCommand(BaseCommand):
         parameters = spec.parameters(call_context=call_context)
         raw = parsed_arguments(argparse.Namespace(**options), parameters)
         stdout = cast("TextIO", self.stdout)
-        table = wants_table(stdout, requested=options["output_format"])
+        file = self._files.get(entry.name)
+        if file is None:
+            table = wants_table(stdout, requested=options["output_format"])
+        else:
+            sink = self._file_sink(name, options, stdout)
         try:
             principal = self.resolve_as_user(options["as_user"])
             # A lookup answering ``None`` is refused: ``filter(...).first()`` answers it for a typo.
@@ -284,7 +324,34 @@ class SpecCommand(BaseCommand):
             raise CommandError(_message(error), returncode=int(exit_code_for(error))) from error
         if result.kind == "not_found":
             raise CommandError(gettext("Not found."), returncode=int(ExitCode.NOT_FOUND))
-        render_result(present(entry.spec, result), spec.output(), stdout, table=table)
+        if file is None:
+            render_result(present(entry.spec, result), spec.output(), stdout, table=table)
+            return
+        written = write_file(present(entry.spec, result), sink)
+        if written is not None:
+            self.stderr.write(written, style_func=str)
+
+    def _file_sink(self, name: str, options: Mapping[str, Any], stdout: TextIO) -> Path | BinaryIO:
+        """Where a file spec's bytes go, or a usage error before anything runs."""
+        if options["output_format"] is not None:
+            self._parser.error(
+                f"{name} writes a file, so --{options['output_format']} does not apply: "
+                f"pass {_OUTPUT_FILE} PATH, or send stdout to a pipe or a file."
+            )
+        if options["output_file"] is not None:
+            return Path(options["output_file"])
+        if stdout.isatty():
+            self._parser.error(
+                f"{name} writes a file, and stdout is a terminal: pass {_OUTPUT_FILE} PATH, "
+                "or send stdout to a pipe or a file."
+            )
+        buffer = getattr(stdout, "buffer", None)
+        if buffer is None:
+            self._parser.error(
+                f"{name} writes a file, and stdout takes no bytes: pass {_OUTPUT_FILE} PATH."
+            )
+        stdout.flush()
+        return cast("BinaryIO", buffer)
 
     def _explain(self) -> None:
         label = self._command_label

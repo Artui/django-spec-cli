@@ -7,7 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-11-14
+
+### Added
+- **A spec whose result is a file writes its bytes.** A spec presenting through the
+  kernel's `FilePresenter` was presented as JSON Lines, and the encoder refused its
+  `FileResult` with a `TypeError`. Its subcommand now writes the file's bytes to
+  `--output-file PATH`, an option only a file spec's subcommand takes, or else to
+  stdout's binary buffer when stdout is not a terminal. At a terminal without
+  `--output-file`, with `--table` or `--json`, or with a stdout that takes no bytes, the
+  run is a usage error raised before the user is looked up or the spec is run, so
+  nothing is written. `SPEC_CLI_OUTPUT` is not read for it. The file's name, type and
+  length go to stderr; the name is never used as a path, and a `PATH` naming a
+  directory is refused. The file is read whole before `PATH` is opened, so a refused
+  run leaves a file there as it was, and an `allow_none` spec finding nothing writes
+  nothing. A file spec the kernel's `file_output` refuses (a `LIST` selector, `many`,
+  `returns_many`, presented affordances) is refused as declared, for its spec alone,
+  and `django_spec_cli.W004` reports it. `write_file` is the new public helper.
+
 ### Changed
+- **The kernel floor is 0.33.0**, up from 0.30.0, for `FileResult`, `FilePresenter` and
+  `file_output`. Nothing the command does changes across 0.31.0 and 0.32.0: a filter's
+  choice labels were already listed in `--help`, a lazy affordance reason reaches
+  `ActionUnavailable` as text, and the `QueryDict` a `FormValidator` binds is behind
+  dispatch.
 - **`W003` is described as it behaves**: it reports any project command that fails to
   load, since a command that will not import cannot be told apart from a `SpecCommand`.
 - **The API reference's docstrings are restored.** The docstrings the reference renders
@@ -196,7 +219,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `django-service-specs>=0.10.0`, the first kernel release with every name the
   command reads at its root.
 
-[Unreleased]: https://github.com/Artui/django-spec-cli/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/Artui/django-spec-cli/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/Artui/django-spec-cli/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/Artui/django-spec-cli/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Artui/django-spec-cli/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/Artui/django-spec-cli/compare/v0.4.0...v0.4.1

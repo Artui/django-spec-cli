@@ -142,6 +142,22 @@ def test_a_run_of_the_refused_spec_raises_the_page_s_sentence() -> None:
 
 
 @pytest.mark.usefixtures("world")
+def test_the_file_runs_write_what_the_page_shows(
+    capsys: pytest.CaptureFixture[str], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Run here rather than from the page: the page's first run is a shell redirect.
+    page = PAGE.read_text()
+    argv = "export-note --as-user 1 --note 2"
+    assert f"$ python manage.py notes {argv} > note-2.txt\nnote-2.txt (text/plain, 8 bytes)" in page
+    assert _run_from_argv(argv) == 0
+    assert capsys.readouterr() == ("Shopping", "note-2.txt (text/plain, 8 bytes)\n")
+    monkeypatch.chdir(tmp_path)
+    assert _run_from_argv(f"{argv} --output-file note-2.txt") == 0
+    assert f"{argv} --output-file note-2.txt\nnote-2.txt (text/plain, 8 bytes)" in page
+    assert (tmp_path / "note-2.txt").read_text() == "Shopping"
+
+
+@pytest.mark.usefixtures("world")
 def test_whoami_is_the_user_named(capsys: pytest.CaptureFixture[str]) -> None:
     assert _run_from_argv("whoami --as-user 1") == 0
     assert capsys.readouterr().out == '"ada"\n'

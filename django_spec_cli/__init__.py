@@ -7,6 +7,7 @@ from django_spec_cli.render.render_json_lines import render_json_lines
 from django_spec_cli.render.render_result import render_result
 from django_spec_cli.render.render_table import render_table
 from django_spec_cli.render.wants_table import wants_table
+from django_spec_cli.render.write_file import write_file
 from django_spec_cli.report.unguarded_message import unguarded_message
 from django_spec_cli.spec_command import SpecCommand
 from django_spec_cli.types.cli_transport import CLI_TRANSPORT
@@ -24,6 +25,7 @@ __all__ = [
     "render_result",
     "render_table",
     "wants_table",
+    "write_file",
     "add_spec_arguments",
     "describe_parameters",
     "parsed_arguments",
