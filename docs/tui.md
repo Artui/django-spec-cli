@@ -28,7 +28,8 @@ project that never uses the screens never needs it.
 
 ## Keys
 
-Every screen's footer lists its keys; this is the same list.
+Each screen's footer shows its main keys; this table lists every key, the ones the footer
+leaves out included.
 
 | Screen | Key | Does |
 | --- | --- | --- |
@@ -39,7 +40,7 @@ Every screen's footer lists its keys; this is the same list.
 | Form | `ctrl+s` | Run the spec; a write needs it twice |
 | Form | `esc` | Cancel a write waiting for its second `ctrl+s`, else go back |
 | Changelist | `/` | Move to the filter bar |
-| Changelist | `enter` in a field, `ctrl+s` | Run the list again with the filter, from page one |
+| Changelist | `enter` in a text field, `ctrl+s` | Run the list again with the filter, from page one |
 | Changelist | `n`, `p` | Next and previous page |
 | Changelist | `r` | Reload the page |
 | Changelist | `enter` on a row | Open the row as JSON |
@@ -68,7 +69,8 @@ subcommand would take: a choice list for declared choices, a switch for a boolea
 text area with one value per line for an array, and a text field otherwise.
 
 - **A field left untouched sends nothing**, as an option left off the command line, so
-  a default applies. A switch is sent once it has been toggled.
+  a default applies. A switch starts at its declared default and is sent once it has been
+  toggled; a required one is always sent, as it reads.
 - **Values are read by the kernel's `coerce_flat`**, so the form and the command line
   read a value alike. A refused value shows its message below its field, and nothing runs.
 - **A read runs on `ctrl+s`.** A write arms on the first `ctrl+s` and says so, and runs on
@@ -89,7 +91,7 @@ display, a handle's raw value, compact JSON for a nested value.
   status line says which page of how many and how many rows in all; asking past either
   end stays on the last or first page.
 - **The filter bar holds the spec's reads**, filled like the form's fields. `/` moves to
-  the first of them; `enter` in a field or `ctrl+s` runs the list again from page one.
+  the first of them; `enter` in a text field or `ctrl+s` runs the list again from page one.
   A refused value, or a refused run, leaves the rows and the filter they came from as
   they were, with the refusal shown.
 - **`enter` on a row** opens it as JSON: every key it was presented with, hidden fields
@@ -107,15 +109,17 @@ presented.
   screens can only run what the command runs, and one leading to a spec refused as
   declared, with the reason the specs list gives.
 - **Choosing one opens that subcommand's form** with the reads the link binds filled
-  from the row, a note's `id` into the target's `pk` say, and shown read-only. The
+  from the row, a note's `id` into the target's `pk` say, and shown read-only, one no
+  field could send included. The
   action runs on the row it was chosen from; the rest of the form is filled as any
   other, and a write still needs its second `ctrl+s`.
 - **The operation run is the one the registry holds** under the link's name, so a
   spec swapped in with `replace` runs in place of the one the link was declared with.
 - **The row is checked again when it runs.** A row changed since the list loaded, so
   that the action no longer applies, is refused by the kernel with `ActionUnavailable`
-  and its reason and code, and nothing is written. A run that succeeds reloads the
-  list beneath the form, so `esc` returns to the rows as they now are.
+  and its reason and code, and nothing is written. A run that is not refused, one
+  answering "Not found." included, reloads the list beneath the form, so `esc` returns
+  to the rows as they now are.
 
 A link that cannot be bound is a project's declaration error, which the kernel's
 `check_links` reports; the screens raise it rather than guess a value.
@@ -159,7 +163,8 @@ SpecFormScreen #refusal { color: $warning; }
 - **A spec whose result is a file.** Its form names the subcommand that writes it,
   `manage.py <command> <subcommand> --as-user USER --output-file PATH`, and runs nothing.
 - **A parameter no flat transport can send**, an object or a list of rows. The form says
-  which, in a line under the fields, and sends none of them.
+  which, in a line under the fields, and sends none of them, unless an action binds one
+  from its row, which the form then shows read-only and sends.
 - **A spec refused as declared**, which is listed greyed.
 - **An authorization the command line lacks.** The screens are no more a boundary than
   `manage.py` is: see [what it is not](index.md#what-it-is-not).

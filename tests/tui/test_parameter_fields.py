@@ -106,6 +106,19 @@ class TestTheValues:
             await pilot.pause()
             assert app.query_one(ParameterFields).values() == {"urgent": "false"}
 
+    async def test_a_required_switch_sends_its_value_untouched(self) -> None:
+        app = _Host((ParameterDescriptor("confirm", "boolean", required=True),))
+        async with app.run_test():
+            assert app.query_one(ParameterFields).values() == {"confirm": "false"}
+
+    async def test_a_switch_starts_at_its_declared_default(self) -> None:
+        on = ParameterDescriptor("notify", "boolean", default=True)
+        app = _Host((on, ParameterDescriptor("quiet", "boolean", default=False)))
+        async with app.run_test():
+            assert app.query_one("#field-notify", Switch).value is True
+            assert app.query_one("#field-quiet", Switch).value is False
+            assert app.query_one(ParameterFields).values() == {}
+
 
 class TestBoundReads:
     BOUND = {"title": MARKUP, "count": 7, "urgent": True, "payload": {"a": 1}}
@@ -120,6 +133,8 @@ class TestBoundReads:
             }
             assert all(field.disabled for field in shown.values())
             assert isinstance(app.query_one("#field-urgent"), Input)
+            payload = app.query_one("#field-payload", Input)
+            assert (payload.value, payload.disabled) == ('{"a":1}', True)
             shown["count"].focus()
             await pilot.press("end", "8")
             assert shown["count"].value == "7"

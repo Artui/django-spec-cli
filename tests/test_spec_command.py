@@ -428,6 +428,12 @@ class TestThePrincipal:
         error = refused("ping")
         assert "the following arguments are required: --as-user" in str(error)
 
+    def test_as_user_before_the_spec_name_says_where_it_goes(self) -> None:
+        error = refused("--as-user", "1", "ping")
+        assert str(error) == (
+            "Error: --as-user goes after the spec name: manage.py notes ping --as-user 1"
+        )
+
     def test_a_subclass_may_look_the_user_up_by_username(self, owner: Any) -> None:
         def resolve_as_user(self: SpecCommand, value: str) -> Any:
             try:

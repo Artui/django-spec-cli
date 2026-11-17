@@ -17,7 +17,7 @@ from django_spec_cli.render.utils import compact_json
 class ParameterFields(Vertical):
     """A field per sendable parameter, read back as the flat values ``coerce_flat`` takes.
 
-    An untouched field sends nothing, and a ``bound`` one is shown read-only and left out of it."""
+    An untouched optional field sends nothing; a ``bound`` one is shown read-only and not read."""
 
     DEFAULT_CSS = """
     ParameterFields { height: auto; }
@@ -34,7 +34,7 @@ class ParameterFields(Vertical):
     ) -> None:
         super().__init__(**kwargs)
         self.bound = dict(bound or {})
-        self.descriptors = tuple(d for d in descriptors if d.argv)
+        self.descriptors = tuple(d for d in descriptors if d.argv or d.name in self.bound)
         self.unsendable = tuple(
             d.name for d in descriptors if not d.argv and d.name not in self.bound
         )
@@ -61,14 +61,15 @@ class ParameterFields(Vertical):
         for descriptor in self.descriptors:
             if descriptor.name in self.bound:
                 continue
-            value = self._value(descriptor.name, self.query_one(f"#field-{descriptor.name}"))
+            value = self._value(descriptor, self.query_one(f"#field-{descriptor.name}"))
             if value is not None:
                 found[descriptor.name] = value
         return found
 
-    def _value(self, name: str, field: Widget) -> Any:
+    def _value(self, descriptor: ParameterDescriptor, field: Widget) -> Any:
         if isinstance(field, Switch):
-            return str(field.value).lower() if name in self._toggled else None
+            sent = descriptor.required or descriptor.name in self._toggled
+            return str(field.value).lower() if sent else None
         if isinstance(field, Select):
             return None if field.value is Select.NULL else field.value
         if isinstance(field, TextArea):
@@ -114,7 +115,7 @@ def _field(descriptor: ParameterDescriptor) -> Widget:
         options = [(Text(str(labels.get(c, c))), c) for c in descriptor.choices]
         return Select(options, id=field_id, prompt="(not sent)")
     if descriptor.type == "boolean":
-        return Switch(id=field_id, name=descriptor.name)
+        return Switch(descriptor.default is True, id=field_id, name=descriptor.name)
     if descriptor.type == "array":
         return TextArea(id=field_id)
     shown = "" if descriptor.default is UNSET else f"default {compact_json(descriptor.default)}"

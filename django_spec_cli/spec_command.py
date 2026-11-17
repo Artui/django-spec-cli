@@ -190,7 +190,9 @@ class SpecCommand(BaseCommand):
             metavar="USER",
             help="With --tui: the user every spec on the screens runs as.",
         )
-        subparsers = parser.add_subparsers(dest="spec_name", metavar="spec", title="specs")
+        subparsers = parser.add_subparsers(
+            dest="spec_name", metavar="spec", title="specs", action=_Specs
+        )
         self._entries = {}
         self._files = {}
         for entry in registry:
@@ -432,6 +434,25 @@ class SpecCommand(BaseCommand):
             )
         for unguarded in found:
             self.stdout.write(unguarded_message(unguarded, label))
+
+
+class _Specs(argparse._SubParsersAction):
+    """The specs, refusing a ``--as-user`` before the spec name, which only ``--tui`` reads."""
+
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: Any,
+        option_string: str | None = None,
+    ) -> None:
+        if namespace.tui_as_user is not None and not namespace.tui:
+            parser.error(
+                f"--as-user goes after the spec name: manage.py "
+                f"{parser.prog.rpartition(' ')[2]} {values[0]} "
+                f"--as-user {namespace.tui_as_user}"
+            )
+        super().__call__(parser, namespace, values, option_string)
 
 
 def _add_refused_subparser(subparsers: Any, name: str, summary: str, message: str) -> None:
