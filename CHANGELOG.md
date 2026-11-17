@@ -56,6 +56,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A documentation page for the `--tui` screens.** It covers opening them, each screen's
   keys, the second `ctrl+s` a write asks for, and what they do not run, with a screenshot
   of each made by `scripts/tui_screenshots.py` through `App.save_screenshot()`.
+- **`SpecCommand.tui_css` styles the `--tui` screens.** It names a Textual stylesheet,
+  a path read against the directory of the module declaring the command (an absolute
+  path where it is), whose rules win over the screens' own. A path that is no file is
+  refused as `ImproperlyConfigured` before the user is looked up. Unset, the screens
+  keep their own look.
 - **`refusal_text`** is a new public helper: a kernel refusal as the text the command
   prints for it, each refused field on its own line. The `--tui` form shows refusals
   through it, so both read alike.

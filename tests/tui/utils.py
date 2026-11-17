@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from django_service_specs import DEFAULT_POOL_SEEDS, RegisteredSpec, SpecRegistry
@@ -13,7 +14,10 @@ def entries_of(registry: SpecRegistry) -> dict[str, RegisteredSpec]:
 
 
 def app_over(
-    registry: SpecRegistry, principal: Any = None, refusals: dict[str, str] | None = None
+    registry: SpecRegistry,
+    principal: Any = None,
+    refusals: dict[str, str] | None = None,
+    css_path: Path | None = None,
 ) -> SpecTui:
     return SpecTui(
         entries=entries_of(registry),
@@ -21,4 +25,5 @@ def app_over(
         principal=principal,
         pool_seeds=DEFAULT_POOL_SEEDS,
         command_label="notes",
+        css_path=css_path,
     )

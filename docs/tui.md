@@ -120,6 +120,40 @@ presented.
 A link that cannot be bound is a project's declaration error, which the kernel's
 `check_links` reports; the screens raise it rather than guess a value.
 
+## Styling
+
+What the screens show is the spec's: the declared output's fields and their labels, which
+ones are hidden or a handle, a choice's display, a parameter's help. How they look is a
+[Textual stylesheet](https://textual.textualize.io/guide/CSS/) the command names:
+
+```python
+class Command(SpecCommand):
+    registry = notes_registry
+    tui_css = "notes.tcss"
+```
+
+```css
+ChangelistScreen DataTable { height: 1fr; }
+SpecFormScreen #refusal { color: $warning; }
+```
+
+- **A relative path is read against the directory of the module declaring the command**,
+  as Textual reads an App's `CSS_PATH` beside its module, so `"notes.tcss"` above sits
+  next to `management/commands/notes.py`. An absolute path is read where it is.
+- **A path that is no file is refused** as `ImproperlyConfigured`, naming the path it
+  looked for, before the user is looked up or anything opens.
+- **The stylesheet's rules win over the screens' own.** It is the App's stylesheet, and
+  each screen's defaults are `DEFAULT_CSS`, which an App's rules override.
+- **What a rule can target**: the screens by class, `SpecsScreen`, `SpecFormScreen`,
+  `ChangelistScreen`, `RowScreen` and `ActionsScreen`, and Textual's widgets inside
+  them (`OptionList`, `DataTable`, `Input`, `Select`, `Switch`, `TextArea`, `Static`),
+  plus these ids: `#prompt`, `#refusal`, `#result` and `#file` on the form, `#refusal`
+  and `#status` on the changelist, `#row` on the row, `#field-NAME` for a bound field,
+  and `#refusal-NAME` (class `refusal`) under each field. These names are the screens'
+  structure, not a promise: a release that changes one says so in its changelog.
+- Without `tui_css` the screens keep their own look. `tui_css` is read only by `--tui`,
+  so a command line run never opens it.
+
 ## What the screens do not run
 
 - **A spec whose result is a file.** Its form names the subcommand that writes it,

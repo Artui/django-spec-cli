@@ -4,6 +4,7 @@ import functools
 import io
 import json
 import sys
+from pathlib import Path
 from typing import Any, TypedDict
 
 import pytest
@@ -1524,6 +1525,50 @@ class TestTui:
         with pytest.raises(ImportError) as caught:
             run("--tui", "--as-user", "1")
         assert caught.value.name == "django_spec_cli.tui.spec_tui"
+
+    def test_with_no_stylesheet_named_none_is_handed_over(
+        self, owner: Any, opened: list[SpecTui]
+    ) -> None:
+        run("--tui", "--as-user", str(owner.pk))
+        assert opened[0].css_path == []
+
+    def test_a_relative_stylesheet_is_read_beside_the_command_s_module(
+        self, owner: Any, opened: list[SpecTui]
+    ) -> None:
+        # This module is tests/test_spec_command.py, so the path is tests/tui/consumer.tcss.
+        command = command_over(notes.registry, tui_css="tui/consumer.tcss")
+        run("--tui", "--as-user", str(owner.pk), command=command)
+        assert opened[0].css_path == [Path(__file__).parent / "tui" / "consumer.tcss"]
+
+    def test_an_absolute_stylesheet_is_read_where_it_is(
+        self, owner: Any, opened: list[SpecTui], tmp_path: Path
+    ) -> None:
+        css = tmp_path / "ops.tcss"
+        css.write_text("Screen { background: black; }")
+        run("--tui", "--as-user", str(owner.pk), command=command_over(notes.registry, tui_css=css))
+        assert opened[0].css_path == [css]
+
+    def test_a_stylesheet_that_is_no_file_is_refused_before_anyone_is_looked_up(
+        self, opened: list[SpecTui]
+    ) -> None:
+        looked_up: list[str] = []
+
+        def resolve_as_user(self: SpecCommand, value: str) -> Any:
+            looked_up.append(value)
+            raise PrincipalUnavailable("nobody")
+
+        command = command_over(
+            notes.registry, tui_css="tui/missing.tcss", resolve_as_user=resolve_as_user
+        )
+        with pytest.raises(ImproperlyConfigured) as caught:
+            run("--tui", "--as-user", "1", command=command)
+        missing = Path(__file__).parent / "tui" / "missing.tcss"
+        assert str(caught.value) == (
+            f"tests.test_spec_command.Command.tui_css is 'tui/missing.tcss', and "
+            f"{str(missing)!r} is no file."
+        )
+        assert not looked_up
+        assert not opened
 
     def test_a_spec_parameter_named_tui_is_its_subcommand_s_option(
         self, owner: Any, opened: list[SpecTui]

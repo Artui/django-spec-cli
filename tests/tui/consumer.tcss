@@ -1,0 +1,7 @@
+SpecsScreen OptionList {
+    background: #102030;
+}
+
+SpecFormScreen #refusal {
+    color: #a0b0c0;
+}

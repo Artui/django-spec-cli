@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import inspect
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any, BinaryIO, TextIO, cast
@@ -112,6 +113,11 @@ class SpecCommand(BaseCommand):
       ``--help`` gives the reason; a run raises it as above, and W004 reports
       it too
       (test_a_run_of_it_is_refused_with_the_kernel_s_reason_whatever_is_sent).
+    - **``--tui --as-user USER``** opens the terminal screens over every spec,
+      with the ``tui`` extra installed. ``tui_css`` names a Textual stylesheet
+      they are styled with, a path read against the directory of the module
+      declaring the command, as Textual reads an App's ``CSS_PATH``; one that
+      is no file is refused as ``ImproperlyConfigured`` before anything opens.
     - ``--explain`` runs no spec: it lists the ones that authorize nothing,
       as the system check does.
 
@@ -126,6 +132,7 @@ class SpecCommand(BaseCommand):
 
     registry: SpecRegistry
     pool_seeds: PoolSeeds = DEFAULT_POOL_SEEDS
+    tui_css: str | Path | None = None
     help = "Run one operation of a registry of specs, as the user --as-user names."
 
     _command_label: str
@@ -341,6 +348,18 @@ class SpecCommand(BaseCommand):
             raise PrincipalUnavailable(f"The user {as_user!r} resolved to nobody who can sign in.")
         return principal
 
+    def _tui_css(self) -> Path | None:
+        if self.tui_css is None:
+            return None
+        path = Path(inspect.getfile(type(self))).parent / self.tui_css
+        if not path.is_file():
+            cls = type(self)
+            raise ImproperlyConfigured(
+                f"{cls.__module__}.{cls.__qualname__}.tui_css is {str(self.tui_css)!r}, and "
+                f"{str(path)!r} is no file."
+            )
+        return path
+
     def _tui(self, name: str | None, options: Mapping[str, Any]) -> None:
         if name is not None or options["explain"]:
             self._parser.error("--tui runs no spec from the command line; leave out the spec name.")
@@ -355,6 +374,7 @@ class SpecCommand(BaseCommand):
             raise CommandError(
                 "--tui needs the tui extra: pip install 'django-spec-cli[tui]'."
             ) from error
+        css = self._tui_css()
         try:
             principal = self._principal(options["tui_as_user"])
         except PrincipalUnavailable as error:
@@ -370,6 +390,7 @@ class SpecCommand(BaseCommand):
             principal=principal,
             pool_seeds=self.pool_seeds,
             command_label=self._command_label,
+            css_path=css,
         ).run()
 
     def _file_sink(self, name: str, options: Mapping[str, Any], stdout: TextIO) -> Path | BinaryIO:

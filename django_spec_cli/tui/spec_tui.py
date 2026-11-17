@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from functools import partial
+from pathlib import Path
 from typing import Any, TypeVar
 
 from django.db import connections
@@ -41,8 +42,9 @@ class SpecTui(App[None]):
         principal: Any,
         pool_seeds: PoolSeeds,
         command_label: str,
+        css_path: Path | None = None,
     ) -> None:
-        super().__init__()
+        super().__init__(css_path=css_path)
         self.entries = dict(entries)
         self.refusals = dict(refusals)
         self.principal = principal

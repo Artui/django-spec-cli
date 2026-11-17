@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import threading
+from pathlib import Path
 from typing import Any
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import SynchronousOnlyOperation
 from django_service_specs import DispatchResult, InvalidArguments, dispatch, present
+from textual.color import Color
+from textual.widgets import OptionList, Static
 from textual.worker import WorkerFailed
 
 from django_spec_cli.tui.changelist_screen import ChangelistScreen
@@ -75,3 +78,22 @@ class TestTheApp:
             await pilot.press("j", "enter")
             assert isinstance(app.screen, ChangelistScreen)
             assert app.screen.subcommand == "list-notes"
+
+
+CONSUMER_CSS = Path(__file__).with_name("consumer.tcss")
+
+
+class TestAStylesheet:
+    async def test_a_consumer_s_rules_style_the_screens_over_their_defaults(self) -> None:
+        app = app_over(notes.registry, css_path=CONSUMER_CSS)
+        async with app.run_test() as pilot:
+            assert app.screen.query_one(OptionList).styles.background == Color.parse("#102030")
+            await pilot.press("enter")
+            assert app.screen.query_one("#refusal", Static).styles.color == Color.parse("#a0b0c0")
+
+    async def test_without_one_the_screens_keep_their_own(self) -> None:
+        app = app_over(notes.registry)
+        async with app.run_test() as pilot:
+            assert app.screen.query_one(OptionList).styles.background != Color.parse("#102030")
+            await pilot.press("enter")
+            assert app.screen.query_one("#refusal", Static).styles.color != Color.parse("#a0b0c0")
