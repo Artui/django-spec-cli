@@ -9,14 +9,19 @@ from typing import Annotated, Any
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
+from django.core.exceptions import ImproperlyConfigured
+from django.db.models import Q
 from django_service_specs import (
+    Affordance,
     DataclassPresenter,
+    DataclassValidator,
     FieldMarking,
     Parameter,
     Parameters,
     SelectorKind,
     SelectorSpec,
     ServiceError,
+    ServiceSpec,
     SpecRegistry,
     Unrestricted,
 )
@@ -25,8 +30,10 @@ from textual.widgets import DataTable, Input, Static
 from textual.worker import WorkerFailed
 
 from django_spec_cli.render.render_table import render_table
+from django_spec_cli.tui.actions_screen import ActionsScreen
 from django_spec_cli.tui.changelist_screen import ChangelistScreen
 from django_spec_cli.tui.row_screen import RowScreen
+from django_spec_cli.tui.spec_form_screen import SpecFormScreen
 from django_spec_cli.tui.specs_screen import SpecsScreen
 from tests.commands_app.management.commands import notes
 from tests.dispatch_app.models import Note
@@ -105,6 +112,70 @@ registry.register(
 registry.register(
     "broken",
     SelectorSpec(kind=SelectorKind.LIST, selector=_broken, permissions=[Unrestricted()]),
+)
+
+
+@dataclass
+class Archive:
+    note: str = ""
+
+
+def archive_note(*, instance: Note, note: str = "") -> Note:
+    instance.archived = True
+    instance.title = f"{instance.title} {note}".strip()
+    instance.save(update_fields=["archived", "title"])
+    return instance
+
+
+def archive_spec_of(service: Any) -> ServiceSpec:
+    return ServiceSpec(
+        service=service,
+        permissions=[notes.IsOwner()],
+        validator=DataclassValidator(Archive),
+        presenter=DataclassPresenter(NoteRow),
+        instance_selector_spec=SelectorSpec(
+            kind=SelectorKind.RETRIEVE,
+            selector=lambda *, pk: Note.objects.filter(pk=pk),
+            reads=Parameters.of(Parameter("pk", "integer", required=True)),
+        ),
+        affordances=[
+            Affordance(
+                code="archived", reason="An archived note stays archived.", when=Q(archived=False)
+            )
+        ],
+    )
+
+
+archive_spec = archive_spec_of(archive_note)
+acting = SpecRegistry()
+acting.register(
+    "my_notes",
+    SelectorSpec(
+        kind=SelectorKind.LIST,
+        selector=lambda *, user: Note.objects.filter(owner=user).order_by("pk"),
+        permissions=[notes.IsSignedIn()],
+        presenter=DataclassPresenter(NoteRow),
+        affordances={"archive": archive_spec, "rename": notes.rename_note_spec},
+    ),
+)
+acting.register("archive_note", archive_spec)
+
+
+@dataclass
+class Titled:
+    title: str
+
+
+unbound = SpecRegistry()
+unbound.register(
+    "titles",
+    SelectorSpec(
+        kind=SelectorKind.LIST,
+        selector=lambda: Note.objects.order_by("pk"),
+        permissions=[Unrestricted()],
+        presenter=DataclassPresenter(Titled),
+        affordances={"rename": notes.rename_note_spec},
+    ),
 )
 
 
@@ -354,3 +425,142 @@ class TestKeys:
             assert screen.focused is screen.query_one(DataTable)
             await pilot.press("escape")
             assert isinstance(app.screen, SpecsScreen)
+
+
+def _actions(app: Any) -> list[tuple[str, bool]]:
+    assert isinstance(app.screen, ActionsScreen)
+    options = app.screen.query_one("OptionList")
+    shown = [options.get_option_at_index(n) for n in range(options.option_count)]
+    return [(option.prompt.plain, option.disabled) for option in shown]
+
+
+async def _act(pilot: Pilot[None], screen: ChangelistScreen, *keys: str) -> SpecFormScreen:
+    await _press(pilot, screen, *keys, "a", "enter")
+    form = pilot.app.screen
+    assert isinstance(form, SpecFormScreen)
+    return form
+
+
+async def _run(pilot: Pilot[None], form: SpecFormScreen, screen: ChangelistScreen) -> None:
+    for _ in range(2):
+        await pilot.press("ctrl+s")
+        await form.workers.wait_for_complete()
+        await pilot.pause()
+    await _settle(pilot, screen)
+
+
+@pytest.mark.django_db(transaction=True)
+class TestRowActions:
+    async def test_a_lists_the_row_s_actions_greying_one_this_command_does_not_serve(
+        self, owner: Any
+    ) -> None:
+        app = app_over(acting, owner)
+        async with app.run_test() as pilot:
+            screen = await _open(app, pilot, "my-notes")
+            await _press(pilot, screen, "a")
+            assert _actions(app) == [
+                ("archive  runs archive-note", False),
+                ("rename  leads to an operation this command does not serve", True),
+            ]
+
+    async def test_one_the_row_does_not_afford_is_greyed_with_reason_and_code(
+        self, owner: Any
+    ) -> None:
+        await Note.objects.filter(pk=await _first_pk(owner)).aupdate(archived=True)
+        app = app_over(acting, owner)
+        async with app.run_test() as pilot:
+            screen = await _open(app, pilot, "my-notes")
+            await _press(pilot, screen, "a")
+            assert _actions(app)[0] == (
+                "archive  An archived note stays archived. (archived)",
+                True,
+            )
+
+    async def test_choosing_one_opens_its_form_with_the_row_s_read_filled_and_read_only(
+        self, owner: Any
+    ) -> None:
+        second = await _first_pk(owner) + 1
+        app = app_over(acting, owner)
+        async with app.run_test() as pilot:
+            screen = await _open(app, pilot, "my-notes")
+            form = await _act(pilot, screen, "down")
+            assert form.subcommand == "archive-note"
+            assert form.entry is acting.get("archive_note")
+            assert form.bound == {"pk": second}
+            field = form.query_one("#field-pk", Input)
+            assert (field.value, field.disabled) == (str(second), True)
+
+    async def test_a_success_reloads_the_list(self, owner: Any) -> None:
+        app = app_over(acting, owner)
+        async with app.run_test() as pilot:
+            screen = await _open(app, pilot, "my-notes")
+            form = await _act(pilot, screen)
+            form.query_one("#field-note", Input).value = "done"
+            await pilot.pause()
+            await _run(pilot, form, screen)
+            assert _text(form, "#refusal") == ""
+            assert _titles(screen)[0] == "Note 0 done"
+            assert screen.rows[0]["affordances"]["archive"]["available"] is False
+
+    async def test_a_row_changed_since_the_list_loaded_is_refused(self, owner: Any) -> None:
+        app = app_over(acting, owner)
+        async with app.run_test() as pilot:
+            screen = await _open(app, pilot, "my-notes")
+            await Note.objects.filter(pk=await _first_pk(owner)).aupdate(archived=True)
+            form = await _act(pilot, screen)
+            await _run(pilot, form, screen)
+            assert _text(form, "#refusal") == "An archived note stays archived. (code: archived)"
+            assert _titles(screen)[0] == "Note 0"
+
+    async def test_a_replaced_target_runs_the_operation_its_name_now_holds(
+        self, owner: Any
+    ) -> None:
+        def replaced(*, instance: Note, note: str = "") -> Note:
+            instance.title = "replaced"
+            instance.save(update_fields=["title"])
+            return instance
+
+        app = app_over(acting.replace("archive_note", archive_spec_of(replaced)), owner)
+        async with app.run_test() as pilot:
+            screen = await _open(app, pilot, "my-notes")
+            form = await _act(pilot, screen)
+            await _run(pilot, form, screen)
+            assert _titles(screen)[0] == "replaced"
+
+    async def test_esc_on_the_actions_returns_to_the_list(self, owner: Any) -> None:
+        app = app_over(acting, owner)
+        async with app.run_test() as pilot:
+            screen = await _open(app, pilot, "my-notes")
+            await _press(pilot, screen, "a", "escape")
+            assert app.screen is screen
+
+    async def test_a_typed_into_the_filter_bar_is_text(self, owner: Any) -> None:
+        app = app_over(registry, owner)
+        async with app.run_test() as pilot:
+            screen = await _open(app, pilot, "my-notes")
+            await _press(pilot, screen, "slash", "a")
+            assert app.screen is screen
+            assert screen.query_one("#field-search", Input).value == "a"
+
+    async def test_a_with_no_rows_or_no_actions_says_so(
+        self, owner: Any, django_user_model: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        said: list[str] = []
+        nobody = await django_user_model.objects.acreate(username="nobody")
+        for app, subcommand in (
+            (app_over(acting, nobody), "my-notes"),
+            (app_over(registry), "books"),
+        ):
+            async with app.run_test() as pilot:
+                monkeypatch.setattr(app, "notify", lambda text, **_: said.append(text))
+                screen = await _open(app, pilot, subcommand)
+                await _press(pilot, screen, "a")
+                assert app.screen is screen
+        assert said == ["No row to act on.", "This row has no actions."]
+
+    async def test_a_link_no_row_can_bind_raises_rather_than_guessing(self, owner: Any) -> None:
+        app = app_over(unbound)
+        with pytest.raises(ImproperlyConfigured, match="rename"):
+            async with app.run_test() as pilot:
+                screen = await _open(app, pilot, "titles")
+                await _press(pilot, screen, "a")

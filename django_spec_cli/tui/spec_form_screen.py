@@ -36,7 +36,7 @@ from django_spec_cli.tui.parameter_fields import ParameterFields
 class SpecFormScreen(Screen[None]):
     """One spec's parameters as a form, run with ``ctrl+s``, as the admin's change form saves.
 
-    A write runs on a second ``ctrl+s``; a spec whose result is a file is named, never run."""
+    A write runs on a second ``ctrl+s``; a file spec is named, not run; ``bound`` reads are sent."""
 
     DEFAULT_CSS = """
     SpecFormScreen #refusal { color: $error; }
@@ -56,9 +56,13 @@ class SpecFormScreen(Screen[None]):
         pool_seeds: PoolSeeds,
         command: str,
         call: Callable[..., Worker[Any]],
+        bound: Mapping[str, Any] | None = None,
+        on_success: Callable[[], object] | None = None,
     ) -> None:
         super().__init__()
         self.subcommand = subcommand
+        self.bound = dict(bound or {})
+        self._on_success = on_success
         self.entry = entry
         self.spec = kernel_spec(entry.spec)
         self.writes = not isinstance(self.spec, SelectorSpec)
@@ -76,7 +80,7 @@ class SpecFormScreen(Screen[None]):
             if self.file:
                 yield Static(Text(self._file_notice()), id="file")
             else:
-                yield ParameterFields(describe_parameters(self._parameters))
+                yield ParameterFields(describe_parameters(self._parameters), bound=self.bound)
             yield Static(id="prompt")
             yield Static(id="refusal")
             yield Static(id="result")
@@ -95,7 +99,8 @@ class SpecFormScreen(Screen[None]):
         fields.show_refusals({})
         context = call_context()
         try:
-            arguments = coerce_flat(self.spec.parameters(call_context=context), fields.values())
+            sent = {**fields.values(), **self.bound}
+            arguments = coerce_flat(self.spec.parameters(call_context=context), sent)
         except InvalidArguments as error:
             self._disarm()
             self._refused(error)
@@ -117,6 +122,8 @@ class SpecFormScreen(Screen[None]):
             self._refused(failed.error)
             return
         self._say("#result", shown)
+        if self._on_success is not None:
+            self._on_success()
 
     def _shown(self, result: DispatchResult) -> str:
         """The result as the command's table spells it; run in the dispatch's thread."""

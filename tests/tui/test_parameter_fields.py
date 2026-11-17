@@ -21,12 +21,17 @@ DESCRIPTORS = (
 
 
 class _Host(App[None]):
-    def __init__(self, descriptors: tuple[ParameterDescriptor, ...] = DESCRIPTORS) -> None:
+    def __init__(
+        self,
+        descriptors: tuple[ParameterDescriptor, ...] = DESCRIPTORS,
+        bound: dict[str, Any] | None = None,
+    ) -> None:
         super().__init__()
         self.descriptors = descriptors
+        self.bound = bound
 
     def compose(self) -> ComposeResult:
-        yield ParameterFields(self.descriptors)
+        yield ParameterFields(self.descriptors, bound=self.bound)
 
 
 def _text(app: App[Any], selector: str) -> str:
@@ -100,6 +105,36 @@ class TestTheValues:
             switch.value = False
             await pilot.pause()
             assert app.query_one(ParameterFields).values() == {"urgent": "false"}
+
+
+class TestBoundReads:
+    BOUND = {"title": MARKUP, "count": 7, "urgent": True, "payload": {"a": 1}}
+
+    async def test_each_shows_its_value_and_cannot_be_edited(self) -> None:
+        app = _Host(bound=self.BOUND)
+        async with app.run_test() as pilot:
+            shown = {name: app.query_one(f"#field-{name}", Input) for name in ("title", "count")}
+            assert {name: field.value for name, field in shown.items()} == {
+                "title": MARKUP,
+                "count": "7",
+            }
+            assert all(field.disabled for field in shown.values())
+            assert isinstance(app.query_one("#field-urgent"), Input)
+            shown["count"].focus()
+            await pilot.press("end", "8")
+            assert shown["count"].value == "7"
+
+    async def test_values_leave_them_to_the_sender(self) -> None:
+        app = _Host(bound=self.BOUND)
+        async with app.run_test():
+            app.query_one("#field-tags", TextArea).text = "sf"
+            assert app.query_one(ParameterFields).values() == {"tags": ["sf"]}
+
+    async def test_a_bound_read_no_field_can_send_is_not_named_unsendable(self) -> None:
+        app = _Host(bound=self.BOUND)
+        async with app.run_test():
+            shown = [str(static.content) for static in app.query(Static)]
+            assert not [line for line in shown if line.startswith("Takes arguments")]
 
 
 class TestTheRefusals:

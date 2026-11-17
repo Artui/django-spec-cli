@@ -58,7 +58,12 @@ class SpecTui(App[None]):
         # Halves held by test_one_ctrl_s_runs_nothing_..., test_a_spec_source_..._to_a_read.
         if isinstance(spec, SelectorSpec) and spec.kind is SelectorKind.LIST:
             listed = ChangelistScreen(
-                message.subcommand, entry, pool_seeds=self.pool_seeds, call=self.call_off_loop
+                message.subcommand,
+                entry,
+                entries=self.entries,
+                pool_seeds=self.pool_seeds,
+                command=self.title,
+                call=self.call_off_loop,
             )
             self.push_screen(listed)
             return

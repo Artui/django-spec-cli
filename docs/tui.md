@@ -43,10 +43,14 @@ Every screen's footer lists its keys; this is the same list.
 | Changelist | `n`, `p` | Next and previous page |
 | Changelist | `r` | Reload the page |
 | Changelist | `enter` on a row | Open the row as JSON |
+| Changelist | `a` on a row | List the row's actions |
 | Changelist | `esc` | Leave the filter bar for the table, then go back |
 | Row | `esc` | Go back |
+| Actions | `up`, `down` | Move between actions, skipping greyed ones |
+| Actions | `enter` | Open the action's form, the row's values filled |
+| Actions | `esc` | Go back to the list |
 
-`n`, `p` and `r` are typed into a field when one has the focus; press `esc` to return to
+`n`, `p`, `r` and `a` are typed into a field when one has the focus; press `esc` to return to
 the table first.
 
 ### Specs
@@ -90,6 +94,30 @@ display, a handle's raw value, compact JSON for a nested value.
   they were, with the refusal shown.
 - **`enter` on a row** opens it as JSON: every key it was presented with, hidden fields
   and `affordances` included, which the table leaves out.
+
+### Actions
+
+`a` on a changelist row lists what that row affords: the `affordances` its list
+selector declares, answered by the kernel's `row_links` for the row as it was
+presented.
+
+- **Each action names the subcommand it runs.** One the row does not afford is greyed
+  with its reason and code, as the row's `affordances` answer them, and cannot be
+  chosen. So is one leading to an operation this command does not serve, since the
+  screens can only run what the command runs.
+- **Choosing one opens that subcommand's form** with the reads the link binds filled
+  from the row, a note's `id` into the target's `pk` say, and shown read-only. The
+  action runs on the row it was chosen from; the rest of the form is filled as any
+  other, and a write still needs its second `ctrl+s`.
+- **The operation run is the one the registry holds** under the link's name, so a
+  spec swapped in with `replace` runs in place of the one the link was declared with.
+- **The row is checked again when it runs.** A row changed since the list loaded, so
+  that the action no longer applies, is refused by the kernel with `ActionUnavailable`
+  and its reason and code, and nothing is written. A run that succeeds reloads the
+  list beneath the form, so `esc` returns to the rows as they now are.
+
+A link that cannot be bound is a project's declaration error, which the kernel's
+`check_links` reports; the screens raise it rather than guess a value.
 
 ## What the screens do not run
 

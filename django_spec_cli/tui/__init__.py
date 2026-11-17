@@ -1,3 +1,4 @@
+from django_spec_cli.tui.actions_screen import ActionsScreen
 from django_spec_cli.tui.changelist_screen import ChangelistScreen
 from django_spec_cli.tui.parameter_fields import ParameterFields
 from django_spec_cli.tui.row_screen import RowScreen
@@ -6,6 +7,7 @@ from django_spec_cli.tui.spec_tui import SpecTui
 from django_spec_cli.tui.specs_screen import SpecsScreen
 
 __all__ = [
+    "ActionsScreen",
     "ChangelistScreen",
     "ParameterFields",
     "RowScreen",

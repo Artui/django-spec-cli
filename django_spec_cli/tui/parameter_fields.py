@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any, cast
 
 from django_service_specs import UNSET, refusal_messages
@@ -17,7 +17,7 @@ from django_spec_cli.render.utils import compact_json
 class ParameterFields(Vertical):
     """A field per sendable parameter, read back as the flat values ``coerce_flat`` takes.
 
-    An untouched field sends nothing, as an option left off a command line; refusals sit below."""
+    An untouched field sends nothing, and a ``bound`` one is shown read-only and left out of it."""
 
     DEFAULT_CSS = """
     ParameterFields { height: auto; }
@@ -25,16 +25,28 @@ class ParameterFields(Vertical):
     ParameterFields TextArea { height: 4; }
     """
 
-    def __init__(self, descriptors: Sequence[ParameterDescriptor], **kwargs: Any) -> None:
+    def __init__(
+        self,
+        descriptors: Sequence[ParameterDescriptor],
+        *,
+        bound: Mapping[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> None:
         super().__init__(**kwargs)
+        self.bound = dict(bound or {})
         self.descriptors = tuple(d for d in descriptors if d.argv)
-        self.unsendable = tuple(d.name for d in descriptors if not d.argv)
+        self.unsendable = tuple(
+            d.name for d in descriptors if not d.argv and d.name not in self.bound
+        )
         self._toggled: set[str] = set()
 
     def compose(self) -> ComposeResult:
         for descriptor in self.descriptors:
             yield Static(_label(descriptor))
-            yield _field(descriptor)
+            if descriptor.name in self.bound:
+                yield _bound_field(descriptor.name, self.bound[descriptor.name])
+            else:
+                yield _field(descriptor)
             yield Static(classes="refusal", id=f"refusal-{descriptor.name}")
         if self.unsendable:
             names = ", ".join(self.unsendable)
@@ -47,6 +59,8 @@ class ParameterFields(Vertical):
         """What the operator filled in, by parameter name, each as a flat transport spells it."""
         found: dict[str, Any] = {}
         for descriptor in self.descriptors:
+            if descriptor.name in self.bound:
+                continue
             value = self._value(descriptor.name, self.query_one(f"#field-{descriptor.name}"))
             if value is not None:
                 found[descriptor.name] = value
@@ -86,6 +100,11 @@ def _label(descriptor: ParameterDescriptor) -> Text:
     if descriptor.help:
         label.append(f"\n{descriptor.help}", "dim")
     return label
+
+
+def _bound_field(name: str, value: Any) -> Widget:
+    shown = value if isinstance(value, str) else compact_json(value)
+    return Input(shown, id=f"field-{name}", disabled=True)
 
 
 def _field(descriptor: ParameterDescriptor) -> Widget:
