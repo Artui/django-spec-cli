@@ -122,7 +122,8 @@ presented.
   to the rows as they now are.
 
 A link that cannot be bound is a project's declaration error, which the kernel's
-`check_links` reports; the screens raise it rather than guess a value.
+`check_links` reports; the screens raise it rather than guess a value. A link whose target
+the registry holds under two names is reported too, and `a` says so and stays on the list.
 
 ## Styling
 

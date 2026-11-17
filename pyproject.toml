@@ -62,7 +62,8 @@ dependencies = [
 # ``--tui``: the terminal screens over a registry. Only ``django_spec_cli.tui`` imports it.
 # 8.0.0 is the first release of the current major, and the floor job runs the TUI's tests
 # on it: ``App.run_test``, thread workers, ``OptionList`` with disabled ``Option``s.
-tui = ["textual>=8.0.0"]
+# ``rich`` is imported here too, at the floor textual 8.0.0 declares, so the floor job tests it.
+tui = ["textual>=8.0.0", "rich>=14.2.0"]
 
 [project.urls]
 Homepage = "https://github.com/Artui/django-spec-cli"
@@ -91,6 +92,7 @@ dev = [
     # The ``[tui]`` extra's package at its floor, for the same reason, so every
     # ``--all-groups`` sync runs the TUI's tests.
     "textual>=8.0.0",
+    "rich>=14.2.0",
 ]
 docs = [
     "mkdocs>=1.6.0",

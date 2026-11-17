@@ -139,7 +139,12 @@ class ChangelistScreen(Screen[None]):
             self.notify("No row to act on.")
             return
         row = self.rows[self.query_one(DataTable).cursor_row]
-        links = row_links(self.entry.spec, row, registry=self._registry)
+        try:
+            links = row_links(self.entry.spec, row, registry=self._registry)
+        except ValueError as error:
+            # A target under two names, which ``check_links`` reports as ``E002``; the list stays.
+            self.notify(str(error), severity="error")
+            return
         if not links:
             self.notify("This row has no actions.")
             return

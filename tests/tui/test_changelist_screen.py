@@ -569,6 +569,24 @@ class TestRowActions:
                 assert app.screen is screen
         assert said == ["No row to act on.", "This row has no actions."]
 
+    async def test_a_target_registered_twice_is_said_and_the_list_stays(
+        self, owner: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        said: list[tuple[str, str]] = []
+        twice = SpecRegistry.merge(acting)
+        twice.register("archive_again", archive_spec)
+        app = app_over(twice, owner)
+        async with app.run_test() as pilot:
+            monkeypatch.setattr(
+                app, "notify", lambda text, **kw: said.append((text, kw.get("severity", "")))
+            )
+            screen = await _open(app, pilot, "my-notes")
+            await _press(pilot, screen, "a")
+            assert app.screen is screen
+        [(text, severity)] = said
+        assert "archive_again" in text
+        assert severity == "error"
+
     async def test_a_link_no_row_can_bind_raises_rather_than_guessing(self, owner: Any) -> None:
         app = app_over(unbound)
         with pytest.raises(ImproperlyConfigured, match="rename"):
