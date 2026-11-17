@@ -53,7 +53,9 @@ dependencies = [
     # ``spec_caller_input_schema`` take that context, so the options offered are
     # read under it. 0.33.0 adds ``FileResult``, ``FilePresenter`` and
     # ``file_output``, which a file spec's subcommand is built and written by.
-    "django-service-specs>=0.33.0",
+    # 0.34.0 adds ``SpecLink``, ``row_links`` and ``SpecRegistry.name_of``, which a
+    # row's actions on the ``--tui`` changelist are listed and bound through.
+    "django-service-specs>=0.34.0",
 ]
 
 [project.optional-dependencies]

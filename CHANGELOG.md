@@ -50,6 +50,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   prints for it, each refused field on its own line. The `--tui` form shows refusals
   through it, so both read alike.
 
+### Changed
+- **The kernel floor is 0.34.0**, up from 0.33.0, for `SpecLink`, `row_links` and
+  `SpecRegistry.name_of`, which the `--tui` changelist lists and binds a row's actions
+  through.
+
 ## [0.7.0] — 2026-11-14
 
 ### Added
