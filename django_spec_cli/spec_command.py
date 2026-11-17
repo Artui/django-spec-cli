@@ -369,7 +369,7 @@ class SpecCommand(BaseCommand):
             # Textual is the ``[tui]`` extra's, so only ``--tui`` imports it (rule 4).
             from django_spec_cli.tui.spec_tui import SpecTui
         except ImportError as error:
-            if (error.name or "").partition(".")[0] != "textual":
+            if (error.name or "").partition(".")[0] not in {"textual", "rich"}:
                 raise
             raise CommandError(
                 "--tui needs the tui extra: pip install 'django-spec-cli[tui]'."

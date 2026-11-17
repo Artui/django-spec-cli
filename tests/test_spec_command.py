@@ -1509,9 +1509,12 @@ class TestTui:
         assert message in str(refused("--tui", *argv))
         assert not opened
 
-    def test_without_the_extra_it_names_the_extra(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        _unloaded(monkeypatch, "django_spec_cli.tui", "textual")
-        monkeypatch.setitem(sys.modules, "textual", None)
+    @pytest.mark.parametrize("missing", ["textual", "rich"])
+    def test_without_the_extra_it_names_the_extra(
+        self, monkeypatch: pytest.MonkeyPatch, missing: str
+    ) -> None:
+        _unloaded(monkeypatch, "django_spec_cli.tui", "textual", "rich")
+        monkeypatch.setitem(sys.modules, missing, None)
         error = refused("--tui", "--as-user", "1")
         assert str(error) == "--tui needs the tui extra: pip install 'django-spec-cli[tui]'."
         assert isinstance(error.__cause__, ImportError)

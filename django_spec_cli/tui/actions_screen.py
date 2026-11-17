@@ -51,7 +51,9 @@ class ActionsScreen(Screen[str | None]):
         label = Text(name, "bold")
         target = link.get("name", "")
         if not link["available"]:
-            label.append(f"  {link['reason']} ({link['code']})")
+            # A row gone before its answers were asked is a bare ``{"available": False}``.
+            why = f"{link['reason']} ({link['code']})" if "reason" in link else "unavailable"
+            label.append(f"  {why}")
         elif target not in self._subcommands:
             label.append("  leads to an operation this command does not serve")
         elif target in self._refusals:

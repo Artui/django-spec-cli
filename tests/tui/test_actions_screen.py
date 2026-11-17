@@ -71,6 +71,12 @@ class TestTheList:
             screen = await _open(pilot, links, [])
             assert _labels(screen) == [(f"{MARKUP}  {MARKUP} ({MARKUP})", True)]
 
+    async def test_a_bare_unavailable_answer_is_greyed_with_no_reason(self) -> None:
+        links = {**LINKS, "archive": {"available": False}}
+        async with app_over(SpecRegistry()).run_test() as pilot:
+            screen = await _open(pilot, links, [])
+            assert _labels(screen)[1] == ("archive  unavailable", True)
+
 
 class TestChoosing:
     async def test_enter_on_an_available_action_hands_back_its_name(self) -> None:
