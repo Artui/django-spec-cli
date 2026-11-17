@@ -4,10 +4,12 @@ import threading
 from typing import Any
 
 import pytest
+from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import SynchronousOnlyOperation
 from django_service_specs import DispatchResult, InvalidArguments, dispatch, present
 from textual.worker import WorkerFailed
 
+from django_spec_cli.tui.changelist_screen import ChangelistScreen
 from django_spec_cli.tui.specs_screen import SpecsScreen
 from tests.commands_app.management.commands import notes
 from tests.dispatch_app.models import Note
@@ -67,11 +69,9 @@ class TestTheApp:
             await pilot.press("q")
         assert app.return_code == 0
 
-    async def test_choosing_a_list_names_it(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        told: list[str] = []
-        app = app_over(notes.registry)
-        monkeypatch.setattr(app, "notify", lambda message, **_: told.append(message))
+    async def test_choosing_a_list_opens_its_changelist(self) -> None:
+        app = app_over(notes.registry, AnonymousUser())
         async with app.run_test() as pilot:
             await pilot.press("j", "enter")
-            assert isinstance(app.screen, SpecsScreen)
-        assert told == ["list-notes has no screen yet."]
+            assert isinstance(app.screen, ChangelistScreen)
+            assert app.screen.subcommand == "list-notes"

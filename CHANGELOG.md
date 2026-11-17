@@ -31,6 +31,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and "Done." for nothing. A refused argument's message sits below its field, and any
   other refusal reads as the command prints it, markup included, as typed. A spec whose
   result is a file is not run there: the form names the subcommand that writes it.
+- **A list selector opens as a paged, filterable table on the `--tui` screens.** Its
+  columns and cells are the ones the command's `--table` prints for the same rows: the
+  declared output's fields with hidden ones left out, a choice's display, a handle's raw
+  value, compact JSON for a nested value. Rows come a page at a time through the
+  kernel's `paginate_output`, and the screen says which page of how many and how many
+  rows in all; `n` and `p` turn the page, and asking past either end stays on the last
+  or first page. `/` moves to a filter bar of the spec's reads, filled like the form's
+  fields; `enter` in a field or `ctrl+s` runs the list again with them from page one,
+  and a refused value or a refused run leaves the rows, and the filter they came from,
+  as they were, with the refusal shown. `r` reloads the page. `enter` on a row opens it
+  as JSON, every key it was presented with, hidden fields and `affordances` included.
+  A value carrying markup shows as typed, in a cell, a header or the row.
 - **`refusal_text`** is a new public helper: a kernel refusal as the text the command
   prints for it, each refused field on its own line. The `--tui` form shows refusals
   through it, so both read alike.

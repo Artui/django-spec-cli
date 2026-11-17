@@ -4,6 +4,7 @@ from typing import Any
 
 import pytest
 from asgiref.sync import sync_to_async
+from django.contrib.auth.models import AnonymousUser
 from django_service_specs import (
     DataclassPresenter,
     FilePresenter,
@@ -20,6 +21,7 @@ from textual.pilot import Pilot
 from textual.widgets import Input, Select, Static, TextArea
 from textual.worker import WorkerFailed
 
+from django_spec_cli.tui.changelist_screen import ChangelistScreen
 from django_spec_cli.tui.spec_form_screen import SpecFormScreen
 from django_spec_cli.tui.spec_tui import SpecTui
 from django_spec_cli.tui.specs_screen import SpecsScreen
@@ -121,17 +123,12 @@ class TestOpening:
             await pilot.press("escape")
             assert isinstance(app.screen, SpecsScreen)
 
-    async def test_a_spec_source_compiling_to_a_list_keeps_the_placeholder(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        told: list[str] = []
-        app = app_over(registry)
-        monkeypatch.setattr(app, "notify", lambda message, **_: told.append(message))
+    async def test_a_spec_source_compiling_to_a_list_opens_its_changelist(self) -> None:
+        app = app_over(registry, AnonymousUser())
         async with app.run_test() as pilot:
             app.on_specs_screen_chosen(SpecsScreen.Chosen("my-notes"))
             await pilot.pause()
-            assert isinstance(app.screen, SpecsScreen)
-        assert told == ["my-notes has no screen yet."]
+            assert isinstance(app.screen, ChangelistScreen)
 
 
 @pytest.mark.django_db(transaction=True)

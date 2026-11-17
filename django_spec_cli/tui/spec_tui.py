@@ -19,6 +19,7 @@ from textual.binding import Binding
 from textual.worker import Worker
 
 from django_spec_cli.argv.utils import call_context
+from django_spec_cli.tui.changelist_screen import ChangelistScreen
 from django_spec_cli.tui.spec_form_screen import SpecFormScreen
 from django_spec_cli.tui.specs_screen import SpecsScreen
 
@@ -56,7 +57,10 @@ class SpecTui(App[None]):
         spec = kernel_spec(entry.spec)
         # Halves held by test_one_ctrl_s_runs_nothing_..., test_a_spec_source_..._to_a_read.
         if isinstance(spec, SelectorSpec) and spec.kind is SelectorKind.LIST:
-            self.notify(f"{message.subcommand} has no screen yet.", markup=False)
+            listed = ChangelistScreen(
+                message.subcommand, entry, pool_seeds=self.pool_seeds, call=self.call_off_loop
+            )
+            self.push_screen(listed)
             return
         form = SpecFormScreen(
             message.subcommand,
