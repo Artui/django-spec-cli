@@ -10,17 +10,13 @@ from django.core.management.base import BaseCommand, CommandError, CommandParser
 from django.utils.translation import gettext
 from django_service_specs import (
     DEFAULT_POOL_SEEDS,
-    ActionUnavailable,
-    AdditionalInputRequired,
     DispatchError,
     FilePresenter,
-    InvalidArguments,
     Parameters,
     PoolSeeds,
     PrincipalUnavailable,
     RegisteredSpec,
     ServiceError,
-    ServiceValidationError,
     SpecRegistry,
     check_seeds,
     coerce_flat,
@@ -28,7 +24,6 @@ from django_service_specs import (
     file_output,
     kernel_spec,
     present,
-    refusal_messages,
     resolve_principal,
     unguarded_specs,
 )
@@ -36,8 +31,9 @@ from django_service_specs import (
 from django_spec_cli.argv.add_spec_arguments import add_spec_arguments
 from django_spec_cli.argv.describe_parameters import describe_parameters
 from django_spec_cli.argv.parsed_arguments import parsed_arguments
-from django_spec_cli.argv.utils import call_context, option_string, sendable, spec_summary
+from django_spec_cli.argv.utils import call_context, sendable, spec_summary
 from django_spec_cli.exit_code_for import exit_code_for
+from django_spec_cli.render.refusal_text import refusal_text
 from django_spec_cli.render.render_result import render_result
 from django_spec_cli.render.wants_table import wants_table
 from django_spec_cli.render.write_file import write_file
@@ -320,7 +316,7 @@ class SpecCommand(BaseCommand):
                 call_context=context,
             )
         except (DispatchError, ServiceError) as error:
-            raise CommandError(_message(error), returncode=int(exit_code_for(error))) from error
+            raise CommandError(refusal_text(error), returncode=int(exit_code_for(error))) from error
         if result.kind == "not_found":
             raise CommandError(gettext("Not found."), returncode=int(ExitCode.NOT_FOUND))
         if file is None:
@@ -362,7 +358,7 @@ class SpecCommand(BaseCommand):
         try:
             principal = self._principal(options["tui_as_user"])
         except PrincipalUnavailable as error:
-            raise CommandError(_message(error), returncode=int(exit_code_for(error))) from error
+            raise CommandError(refusal_text(error), returncode=int(exit_code_for(error))) from error
         refusals = {
             entry.name: refused_message(entry.name, self._command_label, refusal)
             for entry in self._entries.values()
@@ -444,25 +440,3 @@ def _unsendable(parameters: Parameters) -> str | None:
     """The epilog naming the parameters no option can send, or ``None`` when there are none."""
     names = [d.name for d in describe_parameters(parameters) if not d.argv]
     return f"Takes arguments a command line cannot send: {', '.join(names)}." if names else None
-
-
-def _message(error: DispatchError | ServiceError) -> str:
-    """A refusal as the text a person reads: its message, and each refused field on a line."""
-    if isinstance(error, InvalidArguments):
-        return _with_fields(error.message, error.detail)
-    if isinstance(error, ServiceValidationError) and isinstance(error.detail, Mapping | list):
-        return _with_fields(error.message, error.detail)
-    if isinstance(error, ActionUnavailable):
-        return f"{error.message} (code: {error.code})"
-    if isinstance(error, AdditionalInputRequired) and error.schema:
-        options = ", ".join(option_string(key) for key in error.schema)
-        return f"{error.message} Run it again with: {options}"
-    return str(error.message)
-
-
-def _with_fields(header: Any, detail: Any) -> str:
-    """``header``, then each message in ``detail`` on its own line, after its path."""
-    rows = [
-        f"{'.'.join(path)}: {text}" if path else text for path, text in refusal_messages(detail)
-    ]
-    return "\n".join([str(header), *rows])

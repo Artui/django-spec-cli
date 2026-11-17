@@ -5,12 +5,21 @@ from functools import partial
 from typing import Any, TypeVar
 
 from django.db import connections
-from django_service_specs import DispatchResult, PoolSeeds, RegisteredSpec, dispatch
+from django_service_specs import (
+    DispatchResult,
+    PoolSeeds,
+    RegisteredSpec,
+    SelectorKind,
+    SelectorSpec,
+    dispatch,
+    kernel_spec,
+)
 from textual.app import App
 from textual.binding import Binding
 from textual.worker import Worker
 
 from django_spec_cli.argv.utils import call_context
+from django_spec_cli.tui.spec_form_screen import SpecFormScreen
 from django_spec_cli.tui.specs_screen import SpecsScreen
 
 T = TypeVar("T")
@@ -43,7 +52,19 @@ class SpecTui(App[None]):
         self.push_screen(SpecsScreen(self.entries, self.refusals))
 
     def on_specs_screen_chosen(self, message: SpecsScreen.Chosen) -> None:
-        self.notify(f"{message.subcommand} has no screen yet.", markup=False)
+        entry = self.entries[message.subcommand]
+        spec = kernel_spec(entry.spec)
+        if isinstance(spec, SelectorSpec) and spec.kind is SelectorKind.LIST:
+            self.notify(f"{message.subcommand} has no screen yet.", markup=False)
+            return
+        form = SpecFormScreen(
+            message.subcommand,
+            entry,
+            pool_seeds=self.pool_seeds,
+            command=self.title,
+            call=self.call_off_loop,
+        )
+        self.push_screen(form)
 
     def call_off_loop(
         self,

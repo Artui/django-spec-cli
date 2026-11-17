@@ -67,10 +67,11 @@ class TestTheApp:
             await pilot.press("q")
         assert app.return_code == 0
 
-    async def test_choosing_a_spec_names_it(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_choosing_a_list_names_it(self, monkeypatch: pytest.MonkeyPatch) -> None:
         told: list[str] = []
         app = app_over(notes.registry)
         monkeypatch.setattr(app, "notify", lambda message, **_: told.append(message))
         async with app.run_test() as pilot:
-            await pilot.press("enter")
-        assert told == ["rename-note has no screen yet."]
+            await pilot.press("j", "enter")
+            assert isinstance(app.screen, SpecsScreen)
+        assert told == ["list-notes has no screen yet."]

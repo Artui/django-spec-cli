@@ -20,6 +20,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--explain` or without `--as-user`, it is a usage error. `--tui` is added after the
   options a spec may not take are fixed, so a spec with a `tui` parameter keeps its
   own `--tui` option. Nothing imports Textual unless `--tui` is passed.
+- **Any spec but a list runs from a form on the `--tui` screens.** Choosing a spec opens
+  a field per parameter its subcommand would take: a choice list for declared choices, a
+  switch for a boolean, one value per line for an array, and a text field otherwise; a
+  parameter no flat transport can send is named instead. A field left untouched sends
+  nothing, as an option left off the command line, and every value is read by the
+  kernel's `coerce_flat`, so the form and the command line read a value alike. `ctrl+s`
+  runs a read; a write runs only on a second `ctrl+s`, and an edit or `esc` cancels it.
+  The result shows as the command's `--table` prints it, "Not found." for a missing row
+  and "Done." for nothing. A refused argument's message sits below its field, and any
+  other refusal reads as the command prints it, markup included, as typed. A spec whose
+  result is a file is not run there: the form names the subcommand that writes it.
 
 ## [0.7.0] — 2026-11-14
 
