@@ -61,7 +61,9 @@ Non-negotiable. They keep the package navigable, and they are the kernel's.
    two modules the whole package exists for: `spec_command.py`, the command
    class, and `exit_code_for.py`, its outcome map. Everything else lives in a
    subpackage named for a **concern**: `argv/` (parameters as options and back),
-   `render/` (a result on stdout) and `report/` (what the system check says).
+   `render/` (a result on stdout), `report/` (what the system check says) and
+   `tui/` (the terminal screens `--tui` opens, the only package importing Textual,
+   which the root does not re-export).
    `types/` is the one standing subpackage, for value types.
 8. **`types/` imports nothing else in the package.** A subpackage's `__init__`
    re-exports its whole surface, so a module every subpackage imports must sit
@@ -160,7 +162,7 @@ configured and enforced. isort order is stdlib, third party, first party.
 | --- | --- | --- |
 | Python | 3.10 | 3.10 through 3.14 |
 | Django | 4.2 | 4.2, 5.0, 5.1, 5.2, 6.0, 6.1 |
-| django-service-specs | 0.33.0 | the newest release, and the floor in the `floor` job |
+| django-service-specs | 0.34.0 | the newest release, and the floor in the `floor` job |
 
 The Python and Django floors are the kernel's, and cannot sit below them.
 

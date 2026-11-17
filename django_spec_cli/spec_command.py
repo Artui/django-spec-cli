@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import inspect
 from collections.abc import Mapping, Sequence
-from dataclasses import replace
 from pathlib import Path
 from typing import Any, BinaryIO, TextIO, cast
 
@@ -12,44 +11,35 @@ from django.core.management.base import BaseCommand, CommandError, CommandParser
 from django.utils.translation import gettext
 from django_service_specs import (
     DEFAULT_POOL_SEEDS,
-    ActionUnavailable,
-    AdditionalInputRequired,
     DispatchError,
     FilePresenter,
-    InvalidArguments,
     Parameters,
     PoolSeeds,
     PrincipalUnavailable,
     RegisteredSpec,
-    SelectorSpec,
     ServiceError,
-    ServiceSpec,
-    ServiceValidationError,
     SpecRegistry,
-    build_call_context,
     check_seeds,
     coerce_flat,
     dispatch,
     file_output,
     kernel_spec,
     present,
-    refusal_messages,
     resolve_principal,
-    spec_caller_input_schema,
     unguarded_specs,
 )
 
 from django_spec_cli.argv.add_spec_arguments import add_spec_arguments
 from django_spec_cli.argv.describe_parameters import describe_parameters
 from django_spec_cli.argv.parsed_arguments import parsed_arguments
-from django_spec_cli.argv.utils import option_string
+from django_spec_cli.argv.utils import call_context, sendable, spec_summary
 from django_spec_cli.exit_code_for import exit_code_for
+from django_spec_cli.render.refusal_text import refusal_text
 from django_spec_cli.render.render_result import render_result
 from django_spec_cli.render.wants_table import wants_table
 from django_spec_cli.render.write_file import write_file
 from django_spec_cli.report.unguarded_message import unguarded_message
 from django_spec_cli.report.utils import refused_message
-from django_spec_cli.types.cli_transport import CLI_TRANSPORT
 from django_spec_cli.types.exit_code import ExitCode
 
 _OWN_OPTIONS = frozenset({"--as-user", "--json", "--table"})
@@ -123,6 +113,11 @@ class SpecCommand(BaseCommand):
       ``--help`` gives the reason; a run raises it as above, and W004 reports
       it too
       (test_a_run_of_it_is_refused_with_the_kernel_s_reason_whatever_is_sent).
+    - **``--tui --as-user USER``** opens the terminal screens over every spec,
+      with the ``tui`` extra installed. ``tui_css`` names a Textual stylesheet
+      they are styled with, a path read against the directory of the module
+      declaring the command, as Textual reads an App's ``CSS_PATH``; one that
+      is no file is refused as ``ImproperlyConfigured`` before anything opens.
     - ``--explain`` runs no spec: it lists the ones that authorize nothing,
       as the system check does.
 
@@ -137,6 +132,7 @@ class SpecCommand(BaseCommand):
 
     registry: SpecRegistry
     pool_seeds: PoolSeeds = DEFAULT_POOL_SEEDS
+    tui_css: str | Path | None = None
     help = "Run one operation of a registry of specs, as the user --as-user names."
 
     _command_label: str
@@ -182,7 +178,21 @@ class SpecCommand(BaseCommand):
             help="List the specs this command serves that authorize nothing, and run none.",
         )
         reserved = _OWN_OPTIONS | frozenset(parser._option_string_actions)
-        subparsers = parser.add_subparsers(dest="spec_name", metavar="spec", title="specs")
+        parser.add_argument(
+            "--tui",
+            action="store_true",
+            help="Open the terminal screens over every spec, as the user --as-user names. "
+            "Needs the tui extra.",
+        )
+        parser.add_argument(
+            "--as-user",
+            dest="tui_as_user",
+            metavar="USER",
+            help="With --tui: the user every spec on the screens runs as.",
+        )
+        subparsers = parser.add_subparsers(
+            dest="spec_name", metavar="spec", title="specs", action=_Specs
+        )
         self._entries = {}
         self._files = {}
         for entry in registry:
@@ -194,9 +204,9 @@ class SpecCommand(BaseCommand):
                 )
             self._entries[name] = entry
             spec = kernel_spec(entry.spec)
-            summary = _summary(spec, entry.name)
+            summary = spec_summary(spec, entry.name)
             try:
-                parameters = _sendable(spec, self.pool_seeds, _call_context())
+                parameters = sendable(spec, self.pool_seeds, call_context())
                 file = file_output(spec)
             except ImproperlyConfigured as error:
                 self._refused_by_declaration[entry.name] = error
@@ -275,6 +285,9 @@ class SpecCommand(BaseCommand):
 
     def handle(self, *args: Any, **options: Any) -> None:
         name = options["spec_name"]
+        if options["tui"]:
+            self._tui(name, options)
+            return
         if options["explain"]:
             if name is not None:
                 self._parser.error("--explain runs no spec; leave out the spec name.")
@@ -287,18 +300,14 @@ class SpecCommand(BaseCommand):
                 else "name a spec to run, or pass --explain. --help lists the specs."
             )
         entry = self._entries[name]
-        try:
-            check_seeds(entry.spec, pool_seeds=self.pool_seeds)
-            declared = self._refused_by_declaration.get(entry.name)
-            if declared is not None:
-                raise declared
-        except ImproperlyConfigured as error:
+        refusal = self._declaration_refusal(entry)
+        if refusal is not None:
             raise ImproperlyConfigured(
-                refused_message(entry.name, self._command_label, error)
-            ) from error
+                refused_message(entry.name, self._command_label, refusal)
+            ) from refusal
         spec = kernel_spec(entry.spec)
-        call_context = _call_context()
-        parameters = spec.parameters(call_context=call_context)
+        context = call_context()
+        parameters = spec.parameters(call_context=context)
         raw = parsed_arguments(argparse.Namespace(**options), parameters)
         stdout = cast("TextIO", self.stdout)
         file = self._files.get(entry.name)
@@ -307,21 +316,16 @@ class SpecCommand(BaseCommand):
         else:
             sink = self._file_sink(name, options, stdout)
         try:
-            principal = self.resolve_as_user(options["as_user"])
-            # A lookup answering ``None`` is refused: ``filter(...).first()`` answers it for a typo.
-            if principal is None or not getattr(principal, "is_authenticated", False):
-                raise PrincipalUnavailable(
-                    f"The user {options['as_user']!r} resolved to nobody who can sign in."
-                )
+            principal = self._principal(options["as_user"])
             result = dispatch(
                 entry.spec,
                 principal=principal,
                 arguments=coerce_flat(parameters, raw),
                 pool_seeds=self.pool_seeds,
-                call_context=call_context,
+                call_context=context,
             )
         except (DispatchError, ServiceError) as error:
-            raise CommandError(_message(error), returncode=int(exit_code_for(error))) from error
+            raise CommandError(refusal_text(error), returncode=int(exit_code_for(error))) from error
         if result.kind == "not_found":
             raise CommandError(gettext("Not found."), returncode=int(ExitCode.NOT_FOUND))
         if file is None:
@@ -330,6 +334,66 @@ class SpecCommand(BaseCommand):
         written = write_file(present(entry.spec, result), sink)
         if written is not None:
             self.stderr.write(written, style_func=str)
+
+    def _declaration_refusal(self, entry: RegisteredSpec) -> ImproperlyConfigured | None:
+        """Why the kernel refuses ``entry`` as declared, read as a run reads it, or ``None``."""
+        try:
+            check_seeds(entry.spec, pool_seeds=self.pool_seeds)
+        except ImproperlyConfigured as error:
+            return error
+        return self._refused_by_declaration.get(entry.name)
+
+    def _principal(self, as_user: str) -> Any:
+        principal = self.resolve_as_user(as_user)
+        # A lookup answering ``None`` is refused: ``filter(...).first()`` answers it for a typo.
+        if principal is None or not getattr(principal, "is_authenticated", False):
+            raise PrincipalUnavailable(f"The user {as_user!r} resolved to nobody who can sign in.")
+        return principal
+
+    def _tui_css(self) -> Path | None:
+        if self.tui_css is None:
+            return None
+        path = Path(inspect.getfile(type(self))).parent / self.tui_css
+        if not path.is_file():
+            cls = type(self)
+            raise ImproperlyConfigured(
+                f"{cls.__module__}.{cls.__qualname__}.tui_css is {str(self.tui_css)!r}, and "
+                f"{str(path)!r} is no file."
+            )
+        return path
+
+    def _tui(self, name: str | None, options: Mapping[str, Any]) -> None:
+        if name is not None or options["explain"]:
+            self._parser.error("--tui runs no spec from the command line; leave out the spec name.")
+        if options["tui_as_user"] is None:
+            self._parser.error("--tui needs --as-user USER, the user every spec there runs as.")
+        try:
+            # Textual is the ``[tui]`` extra's, so only ``--tui`` imports it (rule 4).
+            from django_spec_cli.tui.spec_tui import SpecTui
+        except ImportError as error:
+            if (error.name or "").partition(".")[0] not in {"textual", "rich"}:
+                raise
+            raise CommandError(
+                "--tui needs the tui extra: pip install 'django-spec-cli[tui]'."
+            ) from error
+        css = self._tui_css()
+        try:
+            principal = self._principal(options["tui_as_user"])
+        except PrincipalUnavailable as error:
+            raise CommandError(refusal_text(error), returncode=int(exit_code_for(error))) from error
+        refusals = {
+            entry.name: refused_message(entry.name, self._command_label, refusal)
+            for entry in self._entries.values()
+            if (refusal := self._declaration_refusal(entry)) is not None
+        }
+        SpecTui(
+            entries=self._entries,
+            refusals=refusals,
+            principal=principal,
+            pool_seeds=self.pool_seeds,
+            command_label=self._command_label,
+            css_path=css,
+        ).run()
 
     def _file_sink(self, name: str, options: Mapping[str, Any], stdout: TextIO) -> Path | BinaryIO:
         """Where a file spec's bytes go, or a usage error before anything runs."""
@@ -372,24 +436,23 @@ class SpecCommand(BaseCommand):
             self.stdout.write(unguarded_message(unguarded, label))
 
 
-def _call_context() -> dict[str, Any]:
-    """A new context for the command's own reads and one run, stamped ``cli``."""
-    return build_call_context(CLI_TRANSPORT)
+class _Specs(argparse._SubParsersAction):
+    """The specs, refusing a ``--as-user`` before the spec name, which only ``--tui`` reads."""
 
-
-def _sendable(
-    spec: ServiceSpec | SelectorSpec, pool_seeds: PoolSeeds, call_context: dict[str, Any]
-) -> Parameters:
-    """What a caller may send, as the kernel reads it: required only where dispatch demands it."""
-    schema = spec_caller_input_schema(spec, pool_seeds=pool_seeds, call_context=call_context)
-    required = frozenset(schema.get("required", ()))
-    return Parameters.of(
-        *(
-            param if param.name in required else replace(param, required=False)
-            for param in spec.parameters(call_context=call_context)
-            if param.name in schema["properties"]
-        )
-    )
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: Any,
+        option_string: str | None = None,
+    ) -> None:
+        if namespace.tui_as_user is not None and not namespace.tui:
+            parser.error(
+                f"--as-user goes after the spec name: manage.py "
+                f"{parser.prog.rpartition(' ')[2]} {values[0]} "
+                f"--as-user {namespace.tui_as_user}"
+            )
+        super().__call__(parser, namespace, values, option_string)
 
 
 def _add_refused_subparser(subparsers: Any, name: str, summary: str, message: str) -> None:
@@ -415,38 +478,7 @@ def _add_refused_subparser(subparsers: Any, name: str, summary: str, message: st
     subparser.parse_known_args = take_everything
 
 
-def _summary(spec: ServiceSpec | SelectorSpec, name: str) -> str:
-    """The first paragraph of the spec callable's own doc, and whether it reads or writes."""
-    call = spec.selector if isinstance(spec, SelectorSpec) else spec.service
-    kind = "read" if isinstance(spec, SelectorSpec) else "write"
-    doc = call.__doc__ if inspect.isfunction(call) or inspect.ismethod(call) else None
-    first = " ".join(inspect.cleandoc(doc).split("\n\n")[0].split()) if doc else name
-    return f"{first} ({kind})"
-
-
 def _unsendable(parameters: Parameters) -> str | None:
     """The epilog naming the parameters no option can send, or ``None`` when there are none."""
     names = [d.name for d in describe_parameters(parameters) if not d.argv]
     return f"Takes arguments a command line cannot send: {', '.join(names)}." if names else None
-
-
-def _message(error: DispatchError | ServiceError) -> str:
-    """A refusal as the text a person reads: its message, and each refused field on a line."""
-    if isinstance(error, InvalidArguments):
-        return _with_fields(error.message, error.detail)
-    if isinstance(error, ServiceValidationError) and isinstance(error.detail, Mapping | list):
-        return _with_fields(error.message, error.detail)
-    if isinstance(error, ActionUnavailable):
-        return f"{error.message} (code: {error.code})"
-    if isinstance(error, AdditionalInputRequired) and error.schema:
-        options = ", ".join(option_string(key) for key in error.schema)
-        return f"{error.message} Run it again with: {options}"
-    return str(error.message)
-
-
-def _with_fields(header: Any, detail: Any) -> str:
-    """``header``, then each message in ``detail`` on its own line, after its path."""
-    rows = [
-        f"{'.'.join(path)}: {text}" if path else text for path, text in refusal_messages(detail)
-    ]
-    return "\n".join([str(header), *rows])

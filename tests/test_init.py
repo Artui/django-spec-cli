@@ -17,12 +17,18 @@ def _subpackages() -> list[ModuleType]:
     ]
 
 
+def _re_exported() -> list[ModuleType]:
+    # The root never imports Textual, the ``[tui]`` extra's, so ``tui`` is public alone.
+    return [package for package in _subpackages() if package.__name__ != "django_spec_cli.tui"]
+
+
 def test_the_package_has_the_subpackages_it_re_exports() -> None:
     # The two tests below walk the subpackages, so an empty walk would pass them both.
     assert sorted(package.__name__ for package in _subpackages()) == [
         "django_spec_cli.argv",
         "django_spec_cli.render",
         "django_spec_cli.report",
+        "django_spec_cli.tui",
         "django_spec_cli.types",
     ]
 
@@ -31,7 +37,7 @@ def test_every_subpackage_name_is_re_exported_at_the_root() -> None:
     # A name in a subpackage's __all__ but not the root is public in one place only.
     missing = {
         f"{package.__name__}.{name}"
-        for package in _subpackages()
+        for package in _re_exported()
         for name in package.__all__
         if name not in django_spec_cli.__all__
     }
@@ -40,7 +46,7 @@ def test_every_subpackage_name_is_re_exported_at_the_root() -> None:
 
 def test_each_root_name_is_the_subpackage_s_own_object() -> None:
     # Identity, not equality: each root name is the subpackage's own object.
-    for package in _subpackages():
+    for package in _re_exported():
         for name in package.__all__:
             assert getattr(django_spec_cli, name) is getattr(package, name), name
 

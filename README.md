@@ -25,7 +25,7 @@ the import path, the system check ids and the setting key are this package's.
 pip install django-spec-cli
 ```
 
-Python 3.10 or later, Django 4.2 or later, and `django-service-specs` 0.33.0 or
+Python 3.10 or later, Django 4.2 or later, and `django-service-specs` 0.34.0 or
 later, which it installs.
 
 ## Quickstart
@@ -52,6 +52,17 @@ $ python manage.py notes rename-note --as-user 1 --pk 1 --title Final --json
 The run goes through the kernel's `dispatch`, so the permission checks are
 enforced for the user `--as-user` names. `--explain` lists the specs that
 authorize nothing.
+
+## The terminal screens
+
+```bash
+pip install 'django-spec-cli[tui]'
+python manage.py notes --tui --as-user 1
+```
+
+`--tui` opens a keyboard-driven app over the registry: the specs it serves, each run
+from a form (a write asks for a second `ctrl+s`) or, for a list selector, browsed as a
+paged, filterable table. See [the docs page](https://artui.github.io/django-spec-cli/tui/).
 
 ## The system check
 

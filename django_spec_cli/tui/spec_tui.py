@@ -1,0 +1,109 @@
+from __future__ import annotations
+
+from collections.abc import Callable, Mapping
+from functools import partial
+from pathlib import Path
+from typing import Any, TypeVar
+
+from django.db import connections
+from django_service_specs import (
+    DispatchResult,
+    PoolSeeds,
+    RegisteredSpec,
+    SelectorKind,
+    SelectorSpec,
+    dispatch,
+    kernel_spec,
+)
+from textual.app import App
+from textual.binding import Binding
+from textual.worker import Worker
+
+from django_spec_cli.argv.utils import call_context
+from django_spec_cli.tui.changelist_screen import ChangelistScreen
+from django_spec_cli.tui.spec_form_screen import SpecFormScreen
+from django_spec_cli.tui.specs_screen import SpecsScreen
+
+T = TypeVar("T")
+
+
+class SpecTui(App[None]):
+    """The terminal screens ``manage.py <command> --tui --as-user USER`` opens over a registry.
+
+    Every call goes through ``dispatch`` as ``principal``, in a thread off Textual's event loop."""
+
+    BINDINGS = [Binding("q", "quit", "Quit")]
+
+    def __init__(
+        self,
+        *,
+        entries: Mapping[str, RegisteredSpec],
+        refusals: Mapping[str, str],
+        principal: Any,
+        pool_seeds: PoolSeeds,
+        command_label: str,
+        css_path: Path | None = None,
+    ) -> None:
+        super().__init__(css_path=css_path)
+        self.entries = dict(entries)
+        self.refusals = dict(refusals)
+        self.principal = principal
+        self.pool_seeds = pool_seeds
+        self.title = f"manage.py {command_label}"
+
+    def on_mount(self) -> None:
+        self.push_screen(SpecsScreen(self.entries, self.refusals))
+
+    def on_specs_screen_chosen(self, message: SpecsScreen.Chosen) -> None:
+        entry = self.entries[message.subcommand]
+        spec = kernel_spec(entry.spec)
+        # Halves held by test_one_ctrl_s_runs_nothing_..., test_a_spec_source_..._to_a_read.
+        if isinstance(spec, SelectorSpec) and spec.kind is SelectorKind.LIST:
+            listed = ChangelistScreen(
+                message.subcommand,
+                entry,
+                entries=self.entries,
+                refusals=self.refusals,
+                pool_seeds=self.pool_seeds,
+                command=self.title,
+                call=self.call_off_loop,
+            )
+            self.push_screen(listed)
+            return
+        form = SpecFormScreen(
+            message.subcommand,
+            entry,
+            pool_seeds=self.pool_seeds,
+            command=self.title,
+            call=self.call_off_loop,
+        )
+        self.push_screen(form)
+
+    def call_off_loop(
+        self,
+        entry: RegisteredSpec,
+        arguments: Mapping[str, Any],
+        then: Callable[[DispatchResult], T],
+    ) -> Worker[T]:
+        """Dispatch ``entry`` as the principal in a worker thread, and ``then`` its result there."""
+        work = partial(self._call, entry, arguments, then)
+        return self.run_worker(work, thread=True, exit_on_error=False)
+
+    def _call(
+        self,
+        entry: RegisteredSpec,
+        arguments: Mapping[str, Any],
+        then: Callable[[DispatchResult], T],
+    ) -> T:
+        # The ORM refuses a sync call on the loop; this thread's connection closes with its work.
+        try:
+            result = dispatch(
+                entry.spec,
+                principal=self.principal,
+                arguments=arguments,
+                pool_seeds=self.pool_seeds,
+                call_context=call_context(),
+            )
+            return then(result)
+        finally:
+            connections.close_all()

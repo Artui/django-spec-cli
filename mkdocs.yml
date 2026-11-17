@@ -93,4 +93,5 @@ markdown_extensions:
 
 nav:
   - Home: index.md
+  - Terminal screens: tui.md
   - API reference: reference.md

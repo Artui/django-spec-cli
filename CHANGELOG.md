@@ -7,6 +7,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-11-17
+
+### Added
+- **`--tui` opens terminal screens over the command's registry.** `manage.py <command>
+  --tui --as-user USER` opens a keyboard-driven app, built on Textual and installed with
+  the new `tui` extra (`pip install 'django-spec-cli[tui]'`, Textual 8.0.0 and Rich
+  14.2.0 or later), whose first screen lists
+  every spec the command serves with its summary and whether it reads or writes. A spec
+  the kernel refuses as declared, which `django_spec_cli.W004` reports, is listed greyed
+  with the reason and cannot be chosen. The user is looked up once, through
+  `resolve_as_user`, so a project's override applies, and every call the screens make
+  goes through `dispatch` as that user, in a worker thread off Textual's event loop.
+  Without the extra, `--tui` is refused with a message naming it; with a spec name, with
+  `--explain` or without `--as-user`, it is a usage error. `--tui` is added after the
+  options a spec may not take are fixed, so a spec with a `tui` parameter keeps its
+  own `--tui` option. Nothing imports Textual unless `--tui` is passed. A `--as-user`
+  given before a spec name is refused with a message saying it goes after the name.
+- **Any spec but a list runs from a form on the `--tui` screens.** Choosing a spec opens
+  a field per parameter its subcommand would take: a choice list for declared choices, a
+  switch for a boolean, one value per line for an array, and a text field otherwise; a
+  parameter no flat transport can send is named instead. A field left untouched sends
+  nothing, as an option left off the command line; a switch starts at its declared
+  default, and a required one is always sent as it reads. Every value is read by the
+  kernel's `coerce_flat`, so the form and the command line read a value alike. `ctrl+s`
+  runs a read; a write runs only on a second `ctrl+s`, and an edit or `esc` cancels it.
+  The result shows as the command's `--table` prints it, "Not found." for a missing row
+  and "Done." for nothing. A refused argument's message sits below its field, and any
+  other refusal reads as the command prints it, markup included, as typed. A spec whose
+  result is a file is not run there: the form names the subcommand that writes it.
+- **A list selector opens as a paged, filterable table on the `--tui` screens.** Its
+  columns and cells are the ones the command's `--table` prints for the same rows: the
+  declared output's fields with hidden ones left out, a choice's display, a handle's raw
+  value, compact JSON for a nested value. Rows come a page at a time through the
+  kernel's `paginate_output`, and the screen says which page of how many and how many
+  rows in all; `n` and `p` turn the page, and asking past either end stays on the last
+  or first page. `/` moves to a filter bar of the spec's reads, filled like the form's
+  fields; `enter` in a text field or `ctrl+s` runs the list again with them from page one,
+  and a refused value or a refused run leaves the rows, and the filter they came from,
+  as they were, with the refusal shown. `r` reloads the page. `enter` on a row opens it
+  as JSON, every key it was presented with, hidden fields and `affordances` included.
+  A value carrying markup shows as typed, in a cell, a header or the row.
+- **A row's actions run from the `--tui` changelist.** `a` on a row lists what the row
+  affords, from the kernel's `row_links`: each action names the subcommand it runs, and
+  one the row does not afford is greyed with its reason and code and cannot be chosen,
+  as is one leading to an operation the command does not serve or to a spec refused as
+  declared. Choosing one opens that subcommand's form with the reads the link binds
+  filled from the row and shown read-only, one no field could send included, so the
+  action runs on the row it was chosen from, never on a value typed by hand. The form
+  runs the operation the registry holds under the link's name, the replacement where
+  `replace` displaced the linked spec. A row changed since the list loaded is refused by
+  the kernel with `ActionUnavailable`, shown with its reason and code, and a run that is
+  not refused, "Not found." included, reloads the list beneath the form. A row the
+  kernel answers with a bare `{"available": false}` lists its actions greyed, and a
+  registry holding a link's target under two names is said, not raised.
+- **A documentation page for the `--tui` screens.** It covers opening them, each screen's
+  keys, the second `ctrl+s` a write asks for, and what they do not run, with a screenshot
+  of each made by `scripts/tui_screenshots.py` through `App.save_screenshot()`, which
+  the test suite runs.
+- **`SpecCommand.tui_css` styles the `--tui` screens.** It names a Textual stylesheet,
+  a path read against the directory of the module declaring the command (an absolute
+  path where it is), whose rules win over the screens' own. A path that is no file is
+  refused as `ImproperlyConfigured` before the user is looked up. Unset, the screens
+  keep their own look.
+- **`refusal_text`** is a new public helper: a kernel refusal as the text the command
+  prints for it, each refused field on its own line. The `--tui` form shows refusals
+  through it, so both read alike.
+
+### Changed
+- **The kernel floor is 0.34.0**, up from 0.33.0, for `SpecLink`, `row_links` and
+  `SpecRegistry.name_of`, which the `--tui` changelist lists and binds a row's actions
+  through.
+
 ## [0.7.0] — 2026-11-14
 
 ### Added
@@ -223,7 +295,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `django-service-specs>=0.10.0`, the first kernel release with every name the
   command reads at its root.
 
-[Unreleased]: https://github.com/Artui/django-spec-cli/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/Artui/django-spec-cli/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/Artui/django-spec-cli/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/Artui/django-spec-cli/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/Artui/django-spec-cli/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Artui/django-spec-cli/compare/v0.4.1...v0.5.0
