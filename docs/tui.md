@@ -144,7 +144,9 @@ SpecFormScreen #refusal { color: $warning; }
 
 - **A relative path is read against the directory of the module declaring the command**,
   as Textual reads an App's `CSS_PATH` beside its module, so `"notes.tcss"` above sits
-  next to `management/commands/notes.py`. An absolute path is read where it is.
+  next to `management/commands/notes.py`. An absolute path is read where it is. A base
+  class that sets `tui_css` for several commands is read beside each command's own module,
+  so such a base names an absolute path.
 - **A path that is no file is refused** as `ImproperlyConfigured`, naming the path it
   looked for, before the user is looked up or anything opens.
 - **The stylesheet's rules win over the screens' own.** It is the App's stylesheet, and
