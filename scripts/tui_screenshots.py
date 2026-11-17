@@ -29,6 +29,7 @@ from django_service_specs import (  # noqa: E402
     SpecRegistry,
     Unrestricted,
 )
+from textual.widgets import Input  # noqa: E402
 
 from django_spec_cli.tui.spec_tui import SpecTui  # noqa: E402
 
@@ -105,6 +106,7 @@ async def _shoot(out: Path) -> None:
         app.save_screenshot("tui-changelist.svg", str(out))
         await pilot.press("escape", "down", "enter")
         await pilot.pause()
+        app.screen.query_one(Input).focus()
         await pilot.press("1", "tab", *"Emma, revised", "ctrl+s")
         await pilot.pause()
         app.save_screenshot("tui-form.svg", str(out))
