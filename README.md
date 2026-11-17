@@ -53,6 +53,17 @@ The run goes through the kernel's `dispatch`, so the permission checks are
 enforced for the user `--as-user` names. `--explain` lists the specs that
 authorize nothing.
 
+## The terminal screens
+
+```bash
+pip install 'django-spec-cli[tui]'
+python manage.py notes --tui --as-user 1
+```
+
+`--tui` opens a keyboard-driven app over the registry: the specs it serves, each run
+from a form (a write asks for a second `ctrl+s`) or, for a list selector, browsed as a
+paged, filterable table. See [the docs page](https://artui.github.io/django-spec-cli/tui/).
+
 ## The system check
 
 List `"django_spec_cli"` in `INSTALLED_APPS` and `manage.py check` reports

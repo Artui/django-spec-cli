@@ -43,6 +43,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   as they were, with the refusal shown. `r` reloads the page. `enter` on a row opens it
   as JSON, every key it was presented with, hidden fields and `affordances` included.
   A value carrying markup shows as typed, in a cell, a header or the row.
+- **A documentation page for the `--tui` screens.** It covers opening them, each screen's
+  keys, the second `ctrl+s` a write asks for, and what they do not run, with a screenshot
+  of each made by `scripts/tui_screenshots.py` through `App.save_screenshot()`.
 - **`refusal_text`** is a new public helper: a kernel refusal as the text the command
   prints for it, each refused field on its own line. The `--tui` form shows refusals
   through it, so both read alike.
