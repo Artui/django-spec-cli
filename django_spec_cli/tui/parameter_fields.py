@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, cast
 
 from django_service_specs import UNSET, refusal_messages
 from rich.text import Text
@@ -60,14 +60,14 @@ class ParameterFields(Vertical):
         if isinstance(field, TextArea):
             lines = [line.strip() for line in field.text.splitlines() if line.strip()]
             return lines or None
-        return field.value if isinstance(field, Input) and field.value else None
+        return cast("Input", field).value or None
 
     def show_refusals(self, detail: Any) -> list[str]:
         """Place each message in ``detail`` below its field; return those that name none."""
         placed: dict[str, list[str]] = {d.name: [] for d in self.descriptors}
         rest: list[str] = []
         for path, text in refusal_messages(detail):
-            if path and path[0] in placed:
+            if (path[0] if path else None) in placed:
                 inner = ".".join(path[1:])
                 placed[path[0]].append(f"{inner}: {text}" if inner else text)
             else:

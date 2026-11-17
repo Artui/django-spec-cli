@@ -54,10 +54,17 @@ note_spec = SelectorSpec(
     presenter=DataclassPresenter(notes.NoteOut),
 )
 
+
+class NoteSource:
+    def as_kernel_spec(self) -> SelectorSpec:
+        return note_spec
+
+
 registry = SpecRegistry()
 for entry in notes.registry:
     registry.register(entry.name, entry.spec)
 registry.register("note", note_spec)
+registry.register("note_source", NoteSource())
 registry.register("marked", ServiceSpec(service=_refuse_with_markup, permissions=[Unrestricted()]))
 registry.register("nothing", ServiceSpec(service=_nothing, permissions=[Unrestricted()]))
 registry.register("broken", ServiceSpec(service=_broken, permissions=[Unrestricted()]))
@@ -114,12 +121,17 @@ class TestOpening:
             await pilot.press("escape")
             assert isinstance(app.screen, SpecsScreen)
 
-    async def test_a_spec_source_opens_the_form_of_the_spec_it_compiles_to(self) -> None:
+    async def test_a_spec_source_compiling_to_a_list_keeps_the_placeholder(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        told: list[str] = []
         app = app_over(registry)
+        monkeypatch.setattr(app, "notify", lambda message, **_: told.append(message))
         async with app.run_test() as pilot:
-            screen = await _open(app, pilot, "schedule")
-            assert screen.query("#field-due_at")
-            assert screen.writes
+            app.on_specs_screen_chosen(SpecsScreen.Chosen("my-notes"))
+            await pilot.pause()
+            assert isinstance(app.screen, SpecsScreen)
+        assert told == ["my-notes has no screen yet."]
 
 
 @pytest.mark.django_db(transaction=True)
@@ -135,6 +147,17 @@ class TestARead:
             shown = _text(screen, "#result")
         assert "Old" in shown
         assert shown.splitlines()[0].split() == ["id", "title"]
+
+    async def test_a_spec_source_compiling_to_a_read_runs_from_its_form(
+        self, owner: Any, note: Note
+    ) -> None:
+        app = app_over(registry, owner)
+        async with app.run_test() as pilot:
+            screen = await _open(app, pilot, "note-source")
+            assert not screen.writes
+            await _fill(pilot, screen, pk=str(note.pk))
+            await _run(pilot, screen)
+            assert "Old" in _text(screen, "#result")
 
     async def test_a_row_that_is_not_there_reads_not_found(self, owner: Any) -> None:
         app = app_over(registry, owner)

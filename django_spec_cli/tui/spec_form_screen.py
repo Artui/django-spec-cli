@@ -100,6 +100,7 @@ class SpecFormScreen(Screen[None]):
             self._disarm()
             self._refused(error)
             return
+        # Halves held by test_it_runs_on_one_key_..., test_one_ctrl_s_runs_nothing_...
         if self.writes and not self.armed:
             self.armed = True
             self._say("#prompt", f"{self.subcommand} writes: ctrl+s again runs it, esc cancels.")

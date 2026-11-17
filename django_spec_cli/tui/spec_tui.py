@@ -54,6 +54,7 @@ class SpecTui(App[None]):
     def on_specs_screen_chosen(self, message: SpecsScreen.Chosen) -> None:
         entry = self.entries[message.subcommand]
         spec = kernel_spec(entry.spec)
+        # Halves held by test_one_ctrl_s_runs_nothing_..., test_a_spec_source_..._to_a_read.
         if isinstance(spec, SelectorSpec) and spec.kind is SelectorKind.LIST:
             self.notify(f"{message.subcommand} has no screen yet.", markup=False)
             return
