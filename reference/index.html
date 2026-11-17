@@ -13,7 +13,7 @@
         <link rel="canonical" href="https://artui.github.io/django-spec-cli/reference/">
       
       
-        <link rel="prev" href="..">
+        <link rel="prev" href="../tui/">
       
       
       
@@ -286,6 +286,33 @@
       
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../tui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Terminal screens
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
     
   
   
@@ -502,6 +529,17 @@
     <span class="md-ellipsis">
       
         write_file
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#django_spec_cli.render.refusal_text.refusal_text" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        refusal_text
       
     </span>
   </a>
@@ -830,6 +868,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#django_spec_cli.render.refusal_text.refusal_text" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        refusal_text
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#parameters-as-options" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1095,6 +1144,11 @@ whose callables read one.</p>
   <code>--help</code> gives the reason; a run raises it as above, and W004 reports
   it too
   (test_a_run_of_it_is_refused_with_the_kernel_s_reason_whatever_is_sent).</li>
+<li><strong><code>--tui --as-user USER</code></strong> opens the terminal screens over every spec,
+  with the <code>tui</code> extra installed. <code>tui_css</code> names a Textual stylesheet
+  they are styled with, a path read against the directory of the module
+  declaring the command, as Textual reads an App's <code>CSS_PATH</code>; one that
+  is no file is refused as <code>ImproperlyConfigured</code> before anything opens.</li>
 <li><code>--explain</code> runs no spec: it lists the ones that authorize nothing,
   as the system check does.</li>
 </ul>
@@ -1485,6 +1539,26 @@ other path the operating system will not write.</p>
 <code>"&lt;filename&gt; (&lt;n&gt; bytes)"</code> for a result with no <code>content_type</code>, is for
 stderr, so a person sees the name the operation gave the file without it
 reaching the bytes on stdout.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="django_spec_cli.render.refusal_text.refusal_text" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">refusal_text</span>
+
+
+<a href="#django_spec_cli.render.refusal_text.refusal_text" class="headerlink" title="Permanent link">&para;</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">refusal_text</span><span class="p">(</span><span class="n">error</span><span class="p">:</span> <span class="n">DispatchError</span> <span class="o">|</span> <span class="n">ServiceError</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents first">
+
+        <p>A refusal as the text a person reads: its message, and each refused field on a line.</p>
 
 
     </div>
