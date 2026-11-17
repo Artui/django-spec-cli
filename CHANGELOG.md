@@ -31,6 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and "Done." for nothing. A refused argument's message sits below its field, and any
   other refusal reads as the command prints it, markup included, as typed. A spec whose
   result is a file is not run there: the form names the subcommand that writes it.
+- **`refusal_text`** is a new public helper: a kernel refusal as the text the command
+  prints for it, each refused field on its own line. The `--tui` form shows refusals
+  through it, so both read alike.
 
 ## [0.7.0] — 2026-11-14
 

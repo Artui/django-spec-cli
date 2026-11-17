@@ -47,6 +47,7 @@ Registered by `DjangoSpecCliConfig`, so a project gets them by listing
 ::: django_spec_cli.render.render_json_lines.render_json_lines
 ::: django_spec_cli.render.wants_table.wants_table
 ::: django_spec_cli.render.write_file.write_file
+::: django_spec_cli.render.refusal_text.refusal_text
 
 ## Parameters as options
 
