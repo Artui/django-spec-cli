@@ -28,9 +28,13 @@ SUBCOMMANDS = {"rename_note": "rename-note", "archive_note": "archive-note"}
 
 
 async def _open(
-    pilot: Pilot[None], links: dict[str, dict[str, Any]], chosen: list[str | None]
+    pilot: Pilot[None],
+    links: dict[str, dict[str, Any]],
+    chosen: list[str | None],
+    refusals: dict[str, str] | None = None,
 ) -> ActionsScreen:
-    screen = ActionsScreen(links, subcommands=SUBCOMMANDS, title="notes")
+    refusals = refusals or {}
+    screen = ActionsScreen(links, subcommands=SUBCOMMANDS, refusals=refusals, title="notes")
     pilot.app.push_screen(screen, chosen.append)
     await pilot.pause()
     return screen
@@ -55,6 +59,11 @@ class TestTheList:
                 ("archive  An archived note stays archived. (archived)", True),
                 ("export  leads to an operation this command does not serve", True),
             ]
+
+    async def test_one_leading_to_a_spec_refused_as_declared_is_greyed_with_why(self) -> None:
+        async with app_over(SpecRegistry()).run_test() as pilot:
+            screen = await _open(pilot, LINKS, [], {"rename_note": MARKUP})
+            assert _labels(screen)[0] == (f"rename  {MARKUP}", True)
 
     async def test_markup_in_a_name_or_a_reason_shows_as_typed(self) -> None:
         links = {MARKUP: {**LINKS["archive"], "reason": MARKUP, "code": MARKUP}}

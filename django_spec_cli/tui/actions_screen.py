@@ -14,7 +14,7 @@ from textual.widgets.option_list import Option
 class ActionsScreen(Screen[str | None]):
     """A row's actions as ``row_links`` answers them, as the admin's actions menu lists them.
 
-    One the row does not afford, or this command does not serve, is greyed and cannot be chosen."""
+    One the row does not afford, or this command cannot run, is greyed and cannot be chosen."""
 
     BINDINGS = [Binding("escape", "back", "Back")]
 
@@ -23,18 +23,19 @@ class ActionsScreen(Screen[str | None]):
         links: Mapping[str, Mapping[str, Any]],
         *,
         subcommands: Mapping[str, str],
+        refusals: Mapping[str, str],
         title: str,
     ) -> None:
         super().__init__()
         self.links = dict(links)
         self._subcommands = dict(subcommands)
+        self._refusals = dict(refusals)
         self._title = title
 
     def compose(self) -> ComposeResult:
         yield Header()
         yield Static(Text.assemble(("Actions", "bold"), "  ", self._title))
-        options = (_option(name, link, self._subcommands) for name, link in self.links.items())
-        yield OptionList(*options)
+        yield OptionList(*(self._option(name, link) for name, link in self.links.items()))
         yield Footer()
 
     def on_mount(self) -> None:
@@ -46,15 +47,16 @@ class ActionsScreen(Screen[str | None]):
     def action_back(self) -> None:
         self.dismiss(None)
 
-
-def _option(name: str, link: Mapping[str, Any], subcommands: Mapping[str, str]) -> Option:
-    label = Text(name, "bold")
-    if not link["available"]:
-        label.append(f"  {link['reason']} ({link['code']})")
+    def _option(self, name: str, link: Mapping[str, Any]) -> Option:
+        label = Text(name, "bold")
+        target = link.get("name", "")
+        if not link["available"]:
+            label.append(f"  {link['reason']} ({link['code']})")
+        elif target not in self._subcommands:
+            label.append("  leads to an operation this command does not serve")
+        elif target in self._refusals:
+            label.append(f"  {self._refusals[target]}")
+        else:
+            label.append(f"  runs {self._subcommands[target]}")
+            return Option(label, id=name)
         return Option(label, id=name, disabled=True)
-    subcommand = subcommands.get(link.get("name", ""))
-    if subcommand is None:
-        label.append("  leads to an operation this command does not serve")
-        return Option(label, id=name, disabled=True)
-    label.append(f"  runs {subcommand}")
-    return Option(label, id=name)

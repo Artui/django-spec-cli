@@ -463,6 +463,13 @@ class TestRowActions:
                 ("rename  leads to an operation this command does not serve", True),
             ]
 
+    async def test_one_leading_to_a_spec_refused_as_declared_is_greyed(self, owner: Any) -> None:
+        app = app_over(acting, owner, {"archive_note": "'archive_note' cannot run."})
+        async with app.run_test() as pilot:
+            screen = await _open(app, pilot, "my-notes")
+            await _press(pilot, screen, "a", "enter")
+            assert _actions(app)[0] == ("archive  'archive_note' cannot run.", True)
+
     async def test_one_the_row_does_not_afford_is_greyed_with_reason_and_code(
         self, owner: Any
     ) -> None:
@@ -506,9 +513,13 @@ class TestRowActions:
         app = app_over(acting, owner)
         async with app.run_test() as pilot:
             screen = await _open(app, pilot, "my-notes")
-            await Note.objects.filter(pk=await _first_pk(owner)).aupdate(archived=True)
+            first = await _first_pk(owner)
+            await Note.objects.filter(pk=first).aupdate(archived=True)
             form = await _act(pilot, screen)
+            form.query_one("#field-note", Input).value = "done"
+            await pilot.pause()
             await _run(pilot, form, screen)
+            assert (await Note.objects.aget(pk=first)).title == "Note 0"
             assert _text(form, "#refusal") == "An archived note stays archived. (code: archived)"
             assert _titles(screen)[0] == "Note 0"
 

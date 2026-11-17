@@ -46,10 +46,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A row's actions run from the `--tui` changelist.** `a` on a row lists what the row
   affords, from the kernel's `row_links`: each action names the subcommand it runs, and
   one the row does not afford is greyed with its reason and code and cannot be chosen,
-  as is one leading to an operation the command does not serve. Choosing one opens that
-  subcommand's form with the reads the link binds filled from the row and shown
-  read-only, so the action runs on the row it was chosen from, never on a value typed
-  by hand. The form runs the operation the registry holds under the link's name, the
+  as is one leading to an operation the command does not serve or to a spec refused as
+  declared. Choosing one opens that subcommand's form with the reads the link binds
+  filled from the row and shown read-only, so the action runs on the row it was chosen
+  from, never on a value typed by hand. The form runs the operation the registry holds under the link's name, the
   replacement where `replace` displaced the linked spec. A row changed since the list
   loaded is refused by the kernel with `ActionUnavailable`, shown with its reason and
   code, and a run that succeeds reloads the list beneath the form.

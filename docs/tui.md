@@ -104,7 +104,8 @@ presented.
 - **Each action names the subcommand it runs.** One the row does not afford is greyed
   with its reason and code, as the row's `affordances` answer them, and cannot be
   chosen. So is one leading to an operation this command does not serve, since the
-  screens can only run what the command runs.
+  screens can only run what the command runs, and one leading to a spec refused as
+  declared, with the reason the specs list gives.
 - **Choosing one opens that subcommand's form** with the reads the link binds filled
   from the row, a note's `id` into the target's `pk` say, and shown read-only. The
   action runs on the row it was chosen from; the rest of the form is filled as any

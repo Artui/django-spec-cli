@@ -61,6 +61,7 @@ class SpecTui(App[None]):
                 message.subcommand,
                 entry,
                 entries=self.entries,
+                refusals=self.refusals,
                 pool_seeds=self.pool_seeds,
                 command=self.title,
                 call=self.call_off_loop,

@@ -67,6 +67,7 @@ class ChangelistScreen(Screen[None]):
         entry: RegisteredSpec,
         *,
         entries: Mapping[str, RegisteredSpec],
+        refusals: Mapping[str, str],
         pool_seeds: PoolSeeds,
         command: str,
         call: Callable[..., Worker[Any]],
@@ -75,6 +76,7 @@ class ChangelistScreen(Screen[None]):
         self.subcommand = subcommand
         self.entry = entry
         self.entries = dict(entries)
+        self.refusals = dict(refusals)
         self.spec = kernel_spec(entry.spec)
         self.rows: list[Any] = []
         self.page = 1
@@ -141,7 +143,9 @@ class ChangelistScreen(Screen[None]):
         if not links:
             self.notify("This row has no actions.")
             return
-        listed = ActionsScreen(links, subcommands=self._subcommands, title=self.subcommand)
+        listed = ActionsScreen(
+            links, subcommands=self._subcommands, refusals=self.refusals, title=self.subcommand
+        )
         self.app.push_screen(listed, partial(self._act, links))
 
     def _act(self, links: Mapping[str, Mapping[str, Any]], chosen: str | None) -> None:
