@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`--tui` opens terminal screens over the command's registry.** `manage.py <command>
+  --tui --as-user USER` opens a keyboard-driven app, built on Textual and installed with
+  the new `tui` extra (`pip install 'django-spec-cli[tui]'`), whose first screen lists
+  every spec the command serves with its summary and whether it reads or writes. A spec
+  the kernel refuses as declared, which `django_spec_cli.W004` reports, is listed greyed
+  with the reason and cannot be chosen. The user is looked up once, through
+  `resolve_as_user`, so a project's override applies, and every call the screens make
+  goes through `dispatch` as that user, in a worker thread off Textual's event loop.
+  Without the extra, `--tui` is refused with a message naming it; with a spec name, with
+  `--explain` or without `--as-user`, it is a usage error. `--tui` is added after the
+  options a spec may not take are fixed, so a spec with a `tui` parameter keeps its
+  own `--tui` option. Nothing imports Textual unless `--tui` is passed.
+
 ## [0.7.0] — 2026-11-14
 
 ### Added

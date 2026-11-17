@@ -56,6 +56,12 @@ dependencies = [
     "django-service-specs>=0.33.0",
 ]
 
+[project.optional-dependencies]
+# ``--tui``: the terminal screens over a registry. Only ``django_spec_cli.tui`` imports it.
+# 8.0.0 is the first release of the current major, and the floor job runs the TUI's tests
+# on it: ``App.run_test``, thread workers, ``OptionList`` with disabled ``Option``s.
+tui = ["textual>=8.0.0"]
+
 [project.urls]
 Homepage = "https://github.com/Artui/django-spec-cli"
 Repository = "https://github.com/Artui/django-spec-cli"
@@ -80,6 +86,9 @@ dev = [
     # through the extra alone it would resolve the newest pydantic.
     "django-service-specs[pydantic]",
     "pydantic>=2.11",
+    # The ``[tui]`` extra's package at its floor, for the same reason, so every
+    # ``--all-groups`` sync runs the TUI's tests.
+    "textual>=8.0.0",
 ]
 docs = [
     "mkdocs>=1.6.0",

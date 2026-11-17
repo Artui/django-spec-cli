@@ -3,6 +3,7 @@ from __future__ import annotations
 import functools
 import io
 import json
+import sys
 from typing import Any, TypedDict
 
 import pytest
@@ -40,7 +41,9 @@ from django_service_specs import (
 from django_spec_cli.render.render_json_lines import render_json_lines
 from django_spec_cli.report.unguarded_message import unguarded_message
 from django_spec_cli.spec_command import SpecCommand
+from django_spec_cli.tui.spec_tui import SpecTui
 from django_spec_cli.types.cli_transport import CLI_TRANSPORT
+from django_spec_cli.types.exit_code import ExitCode
 from tests.commands_app.management.commands import notes
 from tests.dispatch_app.models import Note
 from tests.utils import run_project
@@ -1414,3 +1417,136 @@ class TestAFileSpec:
 
 def _refuse(error: Exception) -> None:
     raise error
+
+
+# --- --tui ---------------------------------------------------------------------------------------
+
+
+@pytest.fixture
+def opened(monkeypatch: pytest.MonkeyPatch) -> list[SpecTui]:
+    """Each ``SpecTui`` a run opens, recorded in place of running it."""
+    apps: list[SpecTui] = []
+    monkeypatch.setattr(SpecTui, "run", lambda self, *a, **k: apps.append(self))
+    return apps
+
+
+def _unloaded(monkeypatch: pytest.MonkeyPatch, *prefixes: str) -> None:
+    for name in [name for name in sys.modules if name.startswith(prefixes)]:
+        monkeypatch.delitem(sys.modules, name)
+
+
+class TestTui:
+    def test_it_opens_every_entry_as_the_principal(self, owner: Any, opened: list[SpecTui]) -> None:
+        assert run("--tui", "--as-user", str(owner.pk)) == ""
+        [app] = opened
+        assert list(app.entries) == [
+            "rename-note",
+            "list-notes",
+            "schedule",
+            "refuse",
+            "retitle",
+            "ping",
+            "my-notes",
+        ]
+        assert app.principal == owner
+        assert app.refusals == {}
+        assert app.title == "manage.py notes"
+
+    def test_both_kinds_of_declaration_refusal_are_handed_over(
+        self, owner: Any, opened: list[SpecTui]
+    ) -> None:
+        specs = {
+            entry.name: entry.spec
+            for source in (
+                TestADeclarationTheKernelRefuses()._command(),
+                TestAFieldDeclaredOnlyUnderCliThatTheKernelRefuses._command(),
+            )
+            for entry in source.registry
+        }
+        run("--tui", "--as-user", str(owner.pk), command=command_over(registry_of(**specs)))
+        assert opened[0].refusals == {
+            "echo": TestADeclarationTheKernelRefuses.REFUSAL,
+            "bad": TestAFieldDeclaredOnlyUnderCliThatTheKernelRefuses.REFUSAL,
+        }
+
+    def test_a_project_s_lookup_names_the_principal(
+        self, owner: Any, opened: list[SpecTui]
+    ) -> None:
+        def resolve_as_user(self: SpecCommand, value: str) -> Any:
+            return get_user_model().objects.get(username=value)
+
+        command = command_over(notes.registry, resolve_as_user=resolve_as_user)
+        run("--tui", "--as-user", "ada", command=command)
+        assert opened[0].principal == owner
+
+    @pytest.mark.parametrize("as_user", ["999", "anonymous"])
+    def test_a_principal_nobody_can_sign_in_as_is_refused(
+        self, as_user: str, opened: list[SpecTui]
+    ) -> None:
+        def resolve_as_user(self: SpecCommand, value: str) -> Any:
+            return (
+                AnonymousUser() if value == "anonymous" else notes.Command().resolve_as_user(value)
+            )
+
+        command = command_over(notes.registry, resolve_as_user=resolve_as_user)
+        error = refused("--tui", "--as-user", as_user, command=command)
+        assert error.returncode == int(ExitCode.PRINCIPAL_UNAVAILABLE)
+        assert not opened
+
+    @pytest.mark.parametrize(
+        ("argv", "message"),
+        [
+            (["--as-user", "1", "ping", "--as-user", "1"], "--tui runs no spec from the command"),
+            (["--explain", "--as-user", "1"], "--tui runs no spec from the command line"),
+            ([], "--tui needs --as-user USER"),
+        ],
+        ids=["spec-name", "explain", "no-as-user"],
+    )
+    def test_a_line_it_cannot_open_is_a_usage_error(
+        self, argv: list[str], message: str, opened: list[SpecTui]
+    ) -> None:
+        assert message in str(refused("--tui", *argv))
+        assert not opened
+
+    def test_without_the_extra_it_names_the_extra(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        _unloaded(monkeypatch, "django_spec_cli.tui", "textual")
+        monkeypatch.setitem(sys.modules, "textual", None)
+        error = refused("--tui", "--as-user", "1")
+        assert str(error) == "--tui needs the tui extra: pip install 'django-spec-cli[tui]'."
+        assert isinstance(error.__cause__, ImportError)
+
+    def test_an_import_error_of_its_own_is_left_to_propagate(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # Only Textual missing means the extra; a broken module of the package is a bug.
+        _unloaded(monkeypatch, "django_spec_cli.tui")
+        monkeypatch.setitem(sys.modules, "django_spec_cli.tui.spec_tui", None)
+        with pytest.raises(ImportError) as caught:
+            run("--tui", "--as-user", "1")
+        assert caught.value.name == "django_spec_cli.tui.spec_tui"
+
+    def test_a_spec_parameter_named_tui_is_its_subcommand_s_option(
+        self, owner: Any, opened: list[SpecTui]
+    ) -> None:
+        command = command_over(registry_of(echo=echo_spec(Parameter("tui", "string"))))
+        assert run("echo", "--as-user", str(owner.pk), "--tui", "x", command=command) == (
+            '{"tui":"x"}\n'
+        )
+        run("--tui", "--as-user", str(owner.pk), command=command)
+        assert list(opened[0].entries) == ["echo"]
+
+
+def test_building_the_parser_imports_no_textual() -> None:
+    """Textual is the extra's: a command that never takes ``--tui`` must not load it."""
+    completed = run_project(
+        [*CONTRIB_APPS, "django_spec_cli", *TEST_APPS],
+        """
+django.setup()
+import sys
+from django.core.management import load_command_class
+load_command_class("tests.commands_app", "notes").create_parser("manage.py", "notes")
+assert "django_spec_cli.spec_command" in sys.modules
+assert "textual" not in sys.modules, "building the parser imported textual"
+""",
+    )
+    assert completed.returncode == 0, completed.stderr

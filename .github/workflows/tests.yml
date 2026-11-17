@@ -132,6 +132,8 @@ jobs:
           # for it. Nothing here installs DRF, so an import of it would already
           # fail above; this names the claim.
           assert "rest_framework" not in sys.modules, "the package imported DRF"
+          # Textual is the ``[tui]`` extra's, imported by ``--tui`` alone.
+          assert "textual" not in sys.modules, "the package imported textual"
 
           print("BASE IMPORT OK", django_spec_cli.__version__, django.get_version())
           PY

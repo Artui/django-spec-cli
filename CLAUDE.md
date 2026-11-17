@@ -61,7 +61,9 @@ Non-negotiable. They keep the package navigable, and they are the kernel's.
    two modules the whole package exists for: `spec_command.py`, the command
    class, and `exit_code_for.py`, its outcome map. Everything else lives in a
    subpackage named for a **concern**: `argv/` (parameters as options and back),
-   `render/` (a result on stdout) and `report/` (what the system check says).
+   `render/` (a result on stdout), `report/` (what the system check says) and
+   `tui/` (the terminal screens `--tui` opens, the only package importing Textual,
+   which the root does not re-export).
    `types/` is the one standing subpackage, for value types.
 8. **`types/` imports nothing else in the package.** A subpackage's `__init__`
    re-exports its whole surface, so a module every subpackage imports must sit
