@@ -148,7 +148,7 @@ class ChangelistScreen(Screen[None]):
         self.page = page.page
         self._say("#refusal", "")
         self.query_one(ParameterFields).show_refusals({})
-        self._say("#status", f"Page {page.page} of {page.total_pages}, {page.total} rows in all")
+        self._say("#status", f"Page {page.page} of {page.total_pages}, {page.total} in all")
         table = self.query_one(DataTable)
         table.clear(columns=True)
         columns = table_columns(self.rows, self.spec.output())

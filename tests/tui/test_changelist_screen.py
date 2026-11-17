@@ -209,7 +209,7 @@ class TestPaging:
         async with app.run_test() as pilot:
             screen = await _open(app, pilot, "my-notes")
             assert _titles(screen) == ["Note 0", "Note 1"]
-            assert _text(screen, "#status") == "Page 1 of 3, 5 rows in all"
+            assert _text(screen, "#status") == "Page 1 of 3, 5 in all"
 
     async def test_n_and_p_turn_the_page(self, owner: Any) -> None:
         app = app_over(registry, owner)
@@ -227,7 +227,7 @@ class TestPaging:
             await _press(pilot, screen, "n", "n", "n")
             assert screen.page == 3
             assert _titles(screen) == ["Note 4"]
-            assert _text(screen, "#status") == "Page 3 of 3, 5 rows in all"
+            assert _text(screen, "#status") == "Page 3 of 3, 5 in all"
             await _press(pilot, screen, "p")
             assert _titles(screen) == ["Note 2", "Note 3"]
 
@@ -262,7 +262,7 @@ class TestTheFilterBar:
             screen.query_one("#field-search", Input).focus()
             await _press(pilot, screen, "enter")
             assert _titles(screen) == ["Note 4"]
-            assert _text(screen, "#status") == "Page 1 of 1, 1 rows in all"
+            assert _text(screen, "#status") == "Page 1 of 1, 1 in all"
             assert screen.arguments == {"search": "4"}
 
     async def test_ctrl_s_applies_it_from_any_field(self, owner: Any) -> None:
