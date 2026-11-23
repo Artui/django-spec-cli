@@ -102,16 +102,16 @@ Some parameters have no option:
   is annotated to answer, since a value sent for it would be dropped, and a
   `reflected` read named like a seed `pool_seeds` registers, since the seed
   fills it and dispatch refuses an argument of its name.
+- **A parameter with no flat spelling**: an object, an array of objects or of
+  arrays, and a file. The subcommand's help names them. A spec that requires
+  one, such as any `many` spec, cannot be run from the command line.
 
-A Validator field a `kwargs` provider is annotated to answer is not one of
-them: it is a
+A Validator field a `kwargs` provider is annotated to answer is not a key the
+server fills: it is a
 [namesake](https://artui.github.io/django-service-specs/dispatching/#the-services-pool),
 and stays the caller's. It is an option, required as the Validator declares it;
 the value sent is validated into `data`, and the service keyword of that name
 is the provider's.
-- **A parameter with no flat spelling**: an object, an array of objects or of
-  arrays, and a file. The subcommand's help names them. A spec that requires
-  one, such as any `many` spec, cannot be run from the command line.
 
 No option is matched by a prefix. Argparse reads `--titl` as `--title` by
 default, and beside a parameter `as_user_id` a mistyped `--as-user-i 7` would
