@@ -27,7 +27,7 @@ pip install django-spec-cli
 ```
 
 It installs [`django-service-specs`](https://artui.github.io/django-service-specs/), the kernel whose specs it serves,
-from 0.34.0, on Python 3.10 and Django 4.2 or later. The command line was the
+from 0.35.0, on Python 3.10 and Django 4.2 or later. The command line was the
 kernel's `commands/` subpackage, and moved here so the kernel carries no
 transport.
 
@@ -98,10 +98,17 @@ stays `(required)`.
 
 Some parameters have no option:
 
-- **A key the server fills**: one a `kwargs` provider is annotated to answer,
-  since a value sent for it would be dropped, and a `reflected` read named like
-  a seed `pool_seeds` registers, since the seed fills it and dispatch refuses an
-  argument of its name.
+- **A key the server fills**: one of the spec's reads that a `kwargs` provider
+  is annotated to answer, since a value sent for it would be dropped, and a
+  `reflected` read named like a seed `pool_seeds` registers, since the seed
+  fills it and dispatch refuses an argument of its name.
+
+A Validator field a `kwargs` provider is annotated to answer is not one of
+them: it is a
+[namesake](https://artui.github.io/django-service-specs/dispatching/#the-services-pool),
+and stays the caller's. It is an option, required as the Validator declares it;
+the value sent is validated into `data`, and the service keyword of that name
+is the provider's.
 - **A parameter with no flat spelling**: an object, an array of objects or of
   arrays, and a file. The subcommand's help names them. A spec that requires
   one, such as any `many` spec, cannot be run from the command line.

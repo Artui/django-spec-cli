@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **A Validator field a `kwargs` provider names is an option.** The floor is now
+  `django-service-specs>=0.35.0`, whose namesake rule leaves such a field the caller's: its
+  subcommand offers it, marked `(required)` as the Validator declares it, the value sent is
+  validated into `data`, and the service keyword of that name receives the provider's value.
+  Under 0.34.0 the kernel refused the spec, so its subcommand showed only the refusal. A read
+  a provider is annotated to answer is still filled by the server and has no option. The
+  command's code is unchanged: it offers what the kernel's caller input schema asks for.
+
 ## [0.8.0] — 2026-11-17
 
 ### Added
