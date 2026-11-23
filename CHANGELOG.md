@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] — 2026-11-23
+
 ### Changed
 - **A Validator field a `kwargs` provider names is an option.** The floor is now
   `django-service-specs>=0.35.0`, whose namesake rule leaves such a field the caller's: its
@@ -304,7 +306,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `django-service-specs>=0.10.0`, the first kernel release with every name the
   command reads at its root.
 
-[Unreleased]: https://github.com/Artui/django-spec-cli/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/Artui/django-spec-cli/compare/v0.8.1...HEAD
+[0.8.1]: https://github.com/Artui/django-spec-cli/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/Artui/django-spec-cli/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/Artui/django-spec-cli/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/Artui/django-spec-cli/compare/v0.5.0...v0.6.0
