@@ -707,7 +707,7 @@ nothing else.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span>django-spec-cli
 </span></code></pre></div>
 <p>It installs <a href="https://artui.github.io/django-service-specs/"><code>django-service-specs</code></a>, the kernel whose specs it serves,
-from 0.34.0, on Python 3.10 and Django 4.2 or later. The command line was the
+from 0.35.0, on Python 3.10 and Django 4.2 or later. The command line was the
 kernel's <code>commands/</code> subpackage, and moved here so the kernel carries no
 transport.</p>
 <h2 id="what-it-is-not">What it is not<a class="headerlink" href="#what-it-is-not" title="Permanent link">&para;</a></h2>
@@ -790,14 +790,20 @@ with no default: only the caller can fill it then, so a read declared required
 stays <code>(required)</code>.</p>
 <p>Some parameters have no option:</p>
 <ul>
-<li><strong>A key the server fills</strong>: one a <code>kwargs</code> provider is annotated to answer,
-  since a value sent for it would be dropped, and a <code>reflected</code> read named like
-  a seed <code>pool_seeds</code> registers, since the seed fills it and dispatch refuses an
-  argument of its name.</li>
+<li><strong>A key the server fills</strong>: one of the spec's reads that a <code>kwargs</code> provider
+  is annotated to answer, since a value sent for it would be dropped, and a
+  <code>reflected</code> read named like a seed <code>pool_seeds</code> registers, since the seed
+  fills it and dispatch refuses an argument of its name.</li>
 <li><strong>A parameter with no flat spelling</strong>: an object, an array of objects or of
   arrays, and a file. The subcommand's help names them. A spec that requires
   one, such as any <code>many</code> spec, cannot be run from the command line.</li>
 </ul>
+<p>A Validator field a <code>kwargs</code> provider is annotated to answer is not a key the
+server fills: it is a
+<a href="https://artui.github.io/django-service-specs/dispatching/#the-services-pool">namesake</a>,
+and stays the caller's. It is an option, required as the Validator declares it;
+the value sent is validated into <code>data</code>, and the service keyword of that name
+is the provider's.</p>
 <p>No option is matched by a prefix. Argparse reads <code>--titl</code> as <code>--title</code> by
 default, and beside a parameter <code>as_user_id</code> a mistyped <code>--as-user-i 7</code> would
 have been read as that parameter rather than refused. Here every prefix is
