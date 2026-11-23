@@ -113,6 +113,35 @@ def fill_project(**_: Any) -> Filled:
     return {"project": 1}
 
 
+class Team(TypedDict):
+    team_id: int
+
+
+def provide_team(**_: Any) -> Team:
+    return {"team_id": 999}
+
+
+def team_spec(*, required: bool) -> ServiceSpec:
+    """A Validator field ``team_id`` beside a provider typed to fill ``team_id``: a namesake."""
+
+    class TeamValidator(Validator):
+        def parameters(self, *, call_context: Any = None) -> Parameters:
+            return Parameters.of(Parameter("team_id", "integer", required=required))
+
+        def validate(self, arguments: Any, context: ValidationContext) -> dict[str, Any]:
+            return dict(arguments)
+
+    def service(*, team_id: int, data: dict[str, Any]) -> dict[str, Any]:
+        return {"service": team_id, "data": data.get("team_id")}
+
+    return ServiceSpec(
+        service=service,
+        permissions=[Unrestricted()],
+        validator=TeamValidator(),
+        kwargs=provide_team,
+    )
+
+
 @pytest.fixture
 def owner(django_user_model: Any) -> Any:
     return django_user_model.objects.create_user(username="ada")
@@ -517,6 +546,25 @@ class TestHelp:
         text = help_of(capsys, "echo", command=command_over(registry_of(echo=spec)))
         assert "--project" not in text
         assert "--n INTEGER" in text
+
+    def test_a_validator_field_a_provider_names_stays_the_caller_s_option(
+        self, capsys: pytest.CaptureFixture[str], owner: Any
+    ) -> None:
+        command = command_over(registry_of(team=team_spec(required=True)))
+        text = " ".join(help_of(capsys, "team", command=command).split())
+        assert "--team-id INTEGER (required)" in text
+        out = run("team", "--as-user", str(owner.pk), "--team-id", "5", command=command)
+        assert lines(out) == [{"service": 999, "data": 5}]
+
+    def test_an_optional_namesake_is_offered_and_not_required(
+        self, capsys: pytest.CaptureFixture[str], owner: Any
+    ) -> None:
+        command = command_over(registry_of(team=team_spec(required=False)))
+        text = " ".join(help_of(capsys, "team", command=command).split())
+        assert "--team-id INTEGER" in text
+        assert "(required)" not in text
+        out = run("team", "--as-user", str(owner.pk), command=command)
+        assert lines(out) == [{"service": 999, "data": None}]
 
     def test_a_read_a_provider_may_fill_is_offered_and_not_required(
         self, capsys: pytest.CaptureFixture[str], owner: Any

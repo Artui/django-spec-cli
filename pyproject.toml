@@ -55,7 +55,9 @@ dependencies = [
     # ``file_output``, which a file spec's subcommand is built and written by.
     # 0.34.0 adds ``SpecLink``, ``row_links`` and ``SpecRegistry.name_of``, which a
     # row's actions on the ``--tui`` changelist are listed and bound through.
-    "django-service-specs>=0.34.0",
+    # 0.35.0 leaves a Validator field a ``kwargs`` provider names the caller's,
+    # which 0.34.0 refused, so the subcommand offers it as an option.
+    "django-service-specs>=0.35.0",
 ]
 
 [project.optional-dependencies]
@@ -166,7 +168,7 @@ skip-magic-trailing-comma = false
 root = ["./django_spec_cli"]
 
 [tool.bumpversion]
-current_version = "0.8.0"
+current_version = "0.8.1"
 allow_dirty = false
 commit = false
 tag = false
